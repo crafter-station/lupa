@@ -1,42 +1,37 @@
 import z from "zod";
-import { BaseConvexSchema } from "./convex";
+import { BaseConvexSchema } from "./_convex";
 
-export const DeploymentStatusSchema = z.enum([
+export const DEPLOYMENT_TABLE = "deployment";
+
+export const DeploymentStatus = z.enum([
   "cancelled",
   "queued",
   "building",
   "error",
   "ready",
 ]);
-export type DeploymentStatus = z.infer<typeof DeploymentStatusSchema>;
+export const DeploymentLogLevel = z.enum(["info", "warning", "error"]);
 
-export const DeploymentLogLevelSchema = z.enum(["info", "warning", "error"]);
-export type DeploymentLogLevel = z.infer<typeof DeploymentLogLevelSchema>;
-
-export const DeploymentSchemaSelect = z.object({
+export const DeploymentSelectSchema = z.object({
   ...BaseConvexSchema,
-
   id: z.string(),
   bucketId: z.string(),
-  status: DeploymentStatusSchema,
-
+  status: DeploymentStatus,
   logs: z.array(
     z.object({
       message: z.string(),
       timestamp: z.number(),
-      level: DeploymentLogLevelSchema,
+      level: DeploymentLogLevel,
     }),
   ),
-
-  changesDetected: z.boolean(), // We will check if some sources have changed since the last deployment.
-
-  vectorIndexId: z.string().nullable(), //  If no changes are detected, there is no need to create a new vector index
+  changesDetected: z.boolean(),
+  vectorIndexId: z.string().nullable(),
 });
 
-export const DeploymentSchemaInsert = DeploymentSchemaSelect.omit({
+export const DeploymentInsertSchema = DeploymentSelectSchema.omit({
   _id: true,
   _creationTime: true,
 });
 
-export type DeploymentSelect = z.infer<typeof DeploymentSchemaSelect>;
-export type DeploymentInsert = z.infer<typeof DeploymentSchemaInsert>;
+export type DeploymentSelect = z.infer<typeof DeploymentSelectSchema>;
+export type DeploymentInsert = z.infer<typeof DeploymentInsertSchema>;
