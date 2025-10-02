@@ -9,7 +9,9 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bucket from "../bucket.js";
 import type * as http from "../http.js";
+import type * as source from "../source.js";
 import type * as tasks from "../tasks.js";
 
 import type {
@@ -28,7 +30,9 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  bucket: typeof bucket;
   http: typeof http;
+  source: typeof source;
   tasks: typeof tasks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
