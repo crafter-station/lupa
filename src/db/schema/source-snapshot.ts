@@ -51,6 +51,8 @@ export const SourceSnapshot = pgTable(SOURCE_SNAPSHOT_TABLE, {
   status: SourceSnapshotStatus("status").notNull(),
   type: SourceSnapshotType("type").notNull(),
 
+  markdown_url: text("markdown_url"),
+
   // Only present when status = "success"
   chunks_count: integer("chunks_count"),
 

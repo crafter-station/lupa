@@ -1,0 +1,1 @@
+ALTER TABLE "source_snapshot" ADD COLUMN "markdown_url" text;

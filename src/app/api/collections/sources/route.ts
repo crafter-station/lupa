@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import { SOURCE_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
+import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -96,6 +97,10 @@ export async function POST(request: Request) {
       const txid = await tx.execute(
         sql`SELECT pg_current_xact_id()::xid::text as txid`,
       );
+
+      await processSnapshotTask.trigger({
+        snapshotId: snapshotId,
+      });
 
       return {
         txid: txid.rows[0].txid as string,
