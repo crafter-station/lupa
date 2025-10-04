@@ -1,20 +1,21 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import React from "react";
 import type { SourceSelect } from "@/db";
 import { SourceCollection } from "@/db/collections";
 
 export function SourceList({
   preloadedSources,
-  bucketId,
 }: {
   preloadedSources: SourceSelect[];
-  bucketId: string;
 }) {
+  const { bucketId } = useParams<{ bucketId: string }>();
   const { data: freshData, status } = useLiveQuery((q) =>
     q
-      .from({ source: SourceCollection })
+      .from({ source: SourceCollection({ bucket_id: bucketId }) })
       .select(({ source }) => ({ ...source }))
       .where(({ source }) => eq(source.bucket_id, bucketId)),
   );
@@ -29,9 +30,12 @@ export function SourceList({
   return (
     <div className="flex flex-col gap-4">
       {sources.map((source) => (
-        <div key={source.id}>
+        <Link
+          href={`/buckets/${bucketId}/sources/${source.id}`}
+          key={source.id}
+        >
           {source.name} - {source.description}
-        </div>
+        </Link>
       ))}
       <div>{status}</div>
     </div>

@@ -1,20 +1,30 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useParams } from "next/navigation";
 import React from "react";
-import type { SourceSelect } from "@/db";
+import type { SourceSelect, SourceSnapshotSelect } from "@/db";
 import { SourceCollection } from "@/db/collections";
+import { SnapshotList } from "../snapshot-list";
+import { SnapshotViewer } from "../snapshot-viewer";
 
 export function SourceDetails({
   preloadedSource,
+  preloadedSnapshots,
 }: {
   preloadedSource: SourceSelect;
+  preloadedSnapshots: SourceSnapshotSelect[];
 }) {
+  const { sourceId } = useParams<{ sourceId: string }>();
+  const [selectedSnapshotId, setSelectedSnapshotId] = React.useState<
+    string | null
+  >(null);
+
   const { data: freshData, status } = useLiveQuery((q) =>
     q
-      .from({ source: SourceCollection })
+      .from({ source: SourceCollection() })
       .select(({ source }) => ({ ...source }))
-      .where(({ source }) => eq(source.id, preloadedSource.id)),
+      .where(({ source }) => eq(source.id, sourceId)),
   );
 
   const source = React.useMemo(() => {
@@ -24,10 +34,29 @@ export function SourceDetails({
     return preloadedSource;
   }, [status, freshData, preloadedSource]);
 
+  const selectedSnapshot = React.useMemo(() => {
+    if (!selectedSnapshotId) return null;
+    return preloadedSnapshots.find((s) => s.id === selectedSnapshotId) || null;
+  }, [selectedSnapshotId, preloadedSnapshots]);
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold">{source.name}</h1>
-      <p className="text-sm text-muted-foreground">{source.description}</p>
+    <div className="flex flex-col h-screen">
+      <div className="p-6 border-b">
+        <h1 className="text-2xl font-bold">{source.name}</h1>
+        <p className="text-sm text-muted-foreground">{source.description}</p>
+      </div>
+      <div className="flex-1 grid grid-cols-[400px_1fr] gap-6 p-6 overflow-hidden">
+        <div className="overflow-y-auto">
+          <SnapshotList
+            preloadedSnapshots={preloadedSnapshots}
+            selectedSnapshotId={selectedSnapshotId}
+            onSelectSnapshot={setSelectedSnapshotId}
+          />
+        </div>
+        <div className="overflow-y-auto">
+          <SnapshotViewer snapshot={selectedSnapshot} />
+        </div>
+      </div>
     </div>
   );
 }

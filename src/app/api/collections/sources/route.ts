@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const originUrl = new URL(ELECTRIC_URL);
 
   url.searchParams.forEach((value, key) => {
-    if (ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key)) {
+    if ([...ELECTRIC_PROTOCOL_QUERY_PARAMS, "where"].includes(key)) {
       originUrl.searchParams.set(key, value);
     }
   });

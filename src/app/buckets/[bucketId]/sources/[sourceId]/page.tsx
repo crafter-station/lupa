@@ -19,9 +19,17 @@ export default async function SourcePage({
     throw new Error("Source not found");
   }
 
+  const snapshots = await db
+    .select()
+    .from(schema.SourceSnapshot)
+    .where(eq(schema.SourceSnapshot.source_id, sourceId));
+
   return (
     <div>
-      <SourceDetails preloadedSource={preloadedSource} />
+      <SourceDetails
+        preloadedSource={preloadedSource}
+        preloadedSnapshots={snapshots}
+      />
     </div>
   );
 }

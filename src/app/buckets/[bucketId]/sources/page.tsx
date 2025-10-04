@@ -19,7 +19,7 @@ export default async function SourcesPage({
   return (
     <div>
       <h1 className="text-2xl font-bold">Sources</h1>
-      <SourceList preloadedSources={preloadedSources} bucketId={bucketId} />
+      <SourceList preloadedSources={preloadedSources} />
       <CreateSource />
     </div>
   );

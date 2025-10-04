@@ -18,7 +18,7 @@ export function CreateSource() {
     }
   >({
     onMutate: (source) => {
-      SourceCollection.insert({
+      SourceCollection().insert({
         id: source.id,
         bucket_id: source.bucket_id,
         name: source.name,
@@ -26,7 +26,7 @@ export function CreateSource() {
         created_at: source.created_at,
         updated_at: source.updated_at,
       });
-      SourceSnapshotCollection.insert({
+      SourceSnapshotCollection().insert({
         ...source.snapshot,
       });
     },
@@ -75,6 +75,7 @@ export function CreateSource() {
         snapshot: {
           id: snapshotId,
           source_id: sourceId,
+          markdown_url: null,
           chunks_count: null,
           type: "website",
           status: "queued",
