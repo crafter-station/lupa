@@ -20,7 +20,7 @@ export const Bucket = pgTable(BUCKET_TABLE, {
 });
 
 export const BucketInsertSchema = createInsertSchema(Bucket);
-export const BucketUpdateSchema = createSelectSchema(Bucket);
+export const BucketSelectSchema = createSelectSchema(Bucket);
 
 export type BucketSelect = typeof Bucket.$inferSelect;
 export type BucketInsert = typeof Bucket.$inferInsert;
