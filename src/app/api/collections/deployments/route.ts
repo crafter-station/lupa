@@ -1,8 +1,8 @@
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { Pool } from "@neondatabase/serverless";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { SOURCE_TABLE } from "@/db";
+import { DEPLOYMENT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
 
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     }
   });
 
-  originUrl.searchParams.set("table", SOURCE_TABLE);
+  originUrl.searchParams.set("table", DEPLOYMENT_TABLE);
 
   const response = await fetch(originUrl);
 
@@ -37,19 +37,7 @@ export async function POST(request: Request) {
   try {
     const json = await request.json();
 
-    const {
-      id: sourceId,
-      bucket_id,
-      name,
-      description,
-    } = schema.SourceInsertSchema.parse(json);
-
-    const {
-      id: snapshotId,
-      url,
-      status,
-      type,
-    } = schema.SourceSnapshotInsertSchema.parse(json.snapshot);
+    const data = schema.DeploymentInsertSchema.parse(json);
 
     if (!process.env.DATABASE_URL) {
       return Response.json(
@@ -66,32 +54,10 @@ export async function POST(request: Request) {
       schema,
     });
 
-    const bucket = await db.query.Bucket.findFirst({
-      where: eq(schema.Bucket.id, bucket_id),
-    });
-
-    if (!bucket) {
-      return Response.json(
-        { success: false, error: "Bucket not found" },
-        { status: 404 },
-      );
-    }
-
     const result = await db.transaction(async (tx) => {
-      await tx.insert(schema.Source).values({
-        id: sourceId,
-        name,
-        description,
-        bucket_id,
-      });
-
-      await tx.insert(schema.SourceSnapshot).values({
-        id: snapshotId,
-        source_id: sourceId,
-        url,
-        status,
-        type,
-      });
+      await tx
+        .insert(schema.Deployment)
+        .values(data as typeof schema.Deployment.$inferInsert);
 
       const txid = await tx.execute(
         sql`SELECT pg_current_xact_id()::xid::text as txid`,
