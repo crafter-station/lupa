@@ -1,21 +1,28 @@
-import z from "zod";
-import { BaseConvexSchema } from "./_convex";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 export const SOURCE_TABLE = "source";
 
-export const SourceSelectSchema = z.object({
-  ...BaseConvexSchema,
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  bucketId: z.string(),
-  createdAt: z.number(), // milliseconds since epoch
+export const Source = pgTable(SOURCE_TABLE, {
+  id: text("id").primaryKey(),
+
+  name: text("name").notNull(),
+  description: text("description"),
+
+  bucket_id: text("bucket_id").notNull(),
+
+  created_at: timestamp("created_at", {
+    withTimezone: true,
+    mode: "string",
+  }).defaultNow(),
+  updated_at: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "string",
+  }).defaultNow(),
 });
 
-export const SourceInsertSchema = SourceSelectSchema.omit({
-  _id: true,
-  _creationTime: true,
-});
+export const SourceInsertSchema = createInsertSchema(Source);
+export const SourceSelectSchema = createSelectSchema(Source);
 
-export type SourceSelect = z.infer<typeof SourceSelectSchema>;
-export type SourceInsert = z.infer<typeof SourceInsertSchema>;
+export type SourceSelect = typeof Source.$inferSelect;
+export type SourceInsert = typeof Source.$inferInsert;

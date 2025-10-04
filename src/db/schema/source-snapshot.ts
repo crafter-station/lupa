@@ -1,23 +1,88 @@
-import { z } from "zod";
+import {
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import z from "zod";
 
 export const SOURCE_SNAPSHOT_TABLE = "source_snapshot";
 
+// Enums for snapshot status and type
+export const SourceSnapshotStatus = pgEnum("source_snapshot_status_enum", [
+  "queued",
+  "error",
+  "running",
+  "success",
+]);
+export type SourceSnapshotStatus =
+  (typeof SourceSnapshotStatus.enumValues)[number];
+
+export const SourceSnapshotType = pgEnum("source_snapshot_type_enum", [
+  "website",
+  "upload",
+]);
+export type SourceSnapshotType = (typeof SourceSnapshotType.enumValues)[number];
+
+// JSONB metadata types
+export type WebsiteMetadata = {
+  title?: string;
+  favicon?: string;
+  screenshot?: string;
+};
+
+export type UploadMetadata = {
+  fileName?: string;
+  fileSize?: number;
+  modifiedAt?: Date;
+  createdAt?: Date;
+};
+
+// Drizzle table
+export const SourceSnapshot = pgTable(SOURCE_SNAPSHOT_TABLE, {
+  id: text("id").primaryKey(),
+
+  sourceId: text("source_id").notNull(),
+  url: text("url").notNull(),
+
+  status: SourceSnapshotStatus("status").notNull(),
+  type: SourceSnapshotType("type").notNull(),
+
+  // Only present when status = "success"
+  chunksCount: integer("chunks_count"),
+
+  // Varies by type; may be null for non-success states
+  metadata: jsonb("metadata").$type<WebsiteMetadata | UploadMetadata | null>(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const SourceSnapshotInsertSchema = createInsertSchema(SourceSnapshot);
+export const SourceSnapshotSelectSchema = createSelectSchema(SourceSnapshot);
+
+export type SourceSnapshotSelect = typeof SourceSnapshot.$inferSelect;
+export type SourceSnapshotInsert = typeof SourceSnapshot.$inferInsert;
+
+// Compatibility Zod schema used elsewhere (e.g., Convex runtime validation)
 const BaseSourceSnapshotSchema = {
   id: z.string(),
   sourceId: z.string(),
-  url: z.url(),
-  createdAt: z.number(), // milliseconds since epoch
+  url: z.string().url(),
+  createdAt: z.number(), // milliseconds since epoch (legacy shape)
 };
 
-// Zod schema that matches the Snapshot type structure
 export const SourceSnapshotSchema = z.union([
-  // For queued, error, running statuses - type is optional
+  // queued, error, running
   z.object({
     ...BaseSourceSnapshotSchema,
     status: z.enum(["queued", "error", "running"]),
     type: z.enum(["website", "upload"]),
   }),
-  // For success status with website type
+  // success + website metadata
   z.object({
     ...BaseSourceSnapshotSchema,
     status: z.literal("success"),
@@ -29,7 +94,7 @@ export const SourceSnapshotSchema = z.union([
       screenshot: z.string().optional(),
     }),
   }),
-  // For success status with upload type
+  // success + upload metadata
   z.object({
     ...BaseSourceSnapshotSchema,
     status: z.literal("success"),

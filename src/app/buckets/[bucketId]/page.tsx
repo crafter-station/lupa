@@ -1,4 +1,7 @@
-import Link from "next/link";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { BucketDetails } from "./bucket-details";
 
 export default async function BucketPage({
   params,
@@ -7,9 +10,18 @@ export default async function BucketPage({
 }) {
   const { bucketId } = await params;
 
+  const [preloadedBucket] = await db
+    .select()
+    .from(schema.Bucket)
+    .where(eq(schema.Bucket.id, bucketId));
+
+  if (!preloadedBucket) {
+    throw new Error("Bucket not found");
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold">Overview</h1>
+      <BucketDetails preloadedBucket={preloadedBucket} />
     </div>
   );
 }

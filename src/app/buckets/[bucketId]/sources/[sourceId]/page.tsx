@@ -1,3 +1,8 @@
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { SourceDetails } from "./source-details";
+
 export default async function SourcePage({
   params,
 }: {
@@ -5,5 +10,18 @@ export default async function SourcePage({
 }) {
   const { sourceId } = await params;
 
-  return <div>SourcePage</div>;
+  const [preloadedSource] = await db
+    .select()
+    .from(schema.Source)
+    .where(eq(schema.Source.id, sourceId));
+
+  if (!preloadedSource) {
+    throw new Error("Source not found");
+  }
+
+  return (
+    <div>
+      <SourceDetails preloadedSource={preloadedSource} />
+    </div>
+  );
 }

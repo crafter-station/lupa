@@ -1,5 +1,6 @@
-import { api } from "@convex/_generated/api";
-import { preloadQuery } from "convex/nextjs";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
 import { CreateSource } from "./create-source";
 import { SourceList } from "./source-list";
 
@@ -10,12 +11,15 @@ export default async function SourcesPage({
 }) {
   const { bucketId } = await params;
 
-  const preloadedSources = await preloadQuery(api.source.list, { bucketId });
+  const preloadedSources = await db
+    .select()
+    .from(schema.Source)
+    .where(eq(schema.Source.bucket_id, bucketId));
 
   return (
     <div>
       <h1 className="text-2xl font-bold">Sources</h1>
-      <SourceList preloadedSources={preloadedSources} />
+      <SourceList preloadedSources={preloadedSources} bucketId={bucketId} />
       <CreateSource />
     </div>
   );

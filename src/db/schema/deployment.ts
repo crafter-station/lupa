@@ -1,37 +1,65 @@
+import {
+  boolean,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import z from "zod";
-import { BaseConvexSchema } from "./_convex";
 
 export const DEPLOYMENT_TABLE = "deployment";
 
-export const DeploymentStatus = z.enum([
+export const DeploymentStatus = pgEnum("deployment_status_enum", [
   "cancelled",
   "queued",
   "building",
   "error",
   "ready",
 ]);
-export const DeploymentLogLevel = z.enum(["info", "warning", "error"]);
 
-export const DeploymentSelectSchema = z.object({
-  ...BaseConvexSchema,
-  id: z.string(),
-  bucketId: z.string(),
-  status: DeploymentStatus,
-  logs: z.array(
-    z.object({
-      message: z.string(),
-      timestamp: z.number(),
-      level: DeploymentLogLevel,
-    }),
-  ),
-  changesDetected: z.boolean(),
-  vectorIndexId: z.string().nullable(),
+export type DeploymentStatus = (typeof DeploymentStatus.enumValues)[number];
+
+export const DeploymentLogLevel = pgEnum("deployment_log_level_enum", [
+  "info",
+  "warning",
+  "error",
+]);
+
+export const DeploymentLogLevelSchema = createSelectSchema(DeploymentLogLevel);
+
+export type DeploymentLogLevel = (typeof DeploymentLogLevel.enumValues)[number];
+
+export const DeploymentLogSchema = z.object({
+  message: z.string(),
+  timestamp: z.number(),
+  level: DeploymentLogLevelSchema,
 });
 
-export const DeploymentInsertSchema = DeploymentSelectSchema.omit({
-  _id: true,
-  _creationTime: true,
+export type DeploymentLog = z.infer<typeof DeploymentLogSchema>;
+
+export const Deployment = pgTable(DEPLOYMENT_TABLE, {
+  id: text("id").primaryKey(),
+
+  bucketId: text("bucket_id").notNull(),
+
+  vectorIndexId: text("vector_index_id"),
+
+  status: DeploymentStatus("status").notNull(),
+  logs: jsonb("logs").array().notNull().default([]).$type<DeploymentLog[]>(),
+  changesDetected: boolean("changes_detected").notNull().default(false),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export type DeploymentSelect = z.infer<typeof DeploymentSelectSchema>;
-export type DeploymentInsert = z.infer<typeof DeploymentInsertSchema>;
+export const DeploymentInsertSchema = createInsertSchema(Deployment);
+export const DeploymentSelectSchema = createSelectSchema(Deployment);
+
+export type DeploymentSelect = typeof Deployment.$inferSelect;
+export type DeploymentInsert = typeof Deployment.$inferInsert;
