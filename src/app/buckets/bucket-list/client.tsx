@@ -1,15 +1,28 @@
 "use client";
 
-import type { api } from "@convex/_generated/api";
-import { type Preloaded, usePreloadedQuery } from "convex/react";
+import { useLiveQuery } from "@tanstack/react-db";
 import Link from "next/link";
+import React from "react";
+import type { BucketSelect } from "@/db";
+import { BucketCollection } from "@/db/collections";
 
 export function BucketList({
   preloadedBuckets,
 }: {
-  preloadedBuckets: Preloaded<typeof api.bucket.list>;
+  preloadedBuckets: BucketSelect[];
 }) {
-  const buckets = usePreloadedQuery(preloadedBuckets);
+  const { data: freshData, status } = useLiveQuery((q) =>
+    q
+      .from({ bucket: BucketCollection })
+      .select(({ bucket }) => ({ ...bucket })),
+  );
+
+  const buckets = React.useMemo(() => {
+    if (status === "ready") {
+      return freshData;
+    }
+    return preloadedBuckets;
+  }, [status, freshData, preloadedBuckets]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,6 +41,8 @@ export function BucketList({
           <p className="text-sm text-muted-foreground">{bucket.description}</p>
         </div>
       ))}
+
+      <div>{status}</div>
     </div>
   );
 }

@@ -1,7 +1,8 @@
-import { api } from "@convex/_generated/api";
-import { preloadQuery } from "convex/nextjs";
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
 import { BucketDetails } from "./bucket-details";
 
 export default async function BucketLayout({
@@ -13,7 +14,14 @@ export default async function BucketLayout({
 }) {
   const { bucketId } = await params;
 
-  const preloadedBucket = await preloadQuery(api.bucket.get, { id: bucketId });
+  const [preloadedBucket] = await db
+    .select()
+    .from(schema.Bucket)
+    .where(eq(schema.Bucket.id, bucketId));
+
+  if (!preloadedBucket) {
+    throw new Error("Bucket not found");
+  }
 
   return (
     <div>
