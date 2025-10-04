@@ -1,17 +1,17 @@
 # Agent Guidelines for Lupa
 
 ## Commands
-- **Build**: `npm run build` (Next.js with Turbopack)
-- **Dev**: `npm run dev` (Next.js with Turbopack)
-- **Lint**: `npm run lint` (Biome check)
-- **Format**: `npm run format` (Biome format --write)
+- **Build**: `bun run build` (Next.js with Turbopack)
+- **Dev**: `bun run dev` (Next.js with Turbopack)
+- **Lint**: `bun run lint` (Biome check)
+- **Format**: `bun run format` (Biome format --write)
 - **Test**: No test framework configured yet
 
 ## Code Style
 - **TypeScript**: Strict mode enabled, target ES2017
 - **Formatting**: 2-space indentation, Biome formatter
 - **Imports**: Named imports, `type` keyword for TypeScript types
-- **Path Aliases**: `@/*` for `src/*`, `@convex/*` for `convex/*`
+- **Path Aliases**: `@/*` for `src/*`
 - **Naming**: camelCase for functions/variables, PascalCase for components
 - **Validation**: Use Zod schemas for data validation
 - **Error Handling**: Throw Error objects for failures
@@ -20,6 +20,6 @@
 
 ## Architecture
 - **Frontend**: Next.js 15, React 19, Tailwind CSS
-- **Backend**: Convex for database/queries, Better Auth for authentication
+- **Backend**: Drizzle and TanstackDB for database/queries, Clerk for authentication
 - **Database**: Drizzle ORM with Neon
 - **UI**: Radix UI components, shadcn/ui patterns
