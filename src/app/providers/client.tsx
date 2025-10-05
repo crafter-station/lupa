@@ -37,11 +37,10 @@ export function ClientProviders({ children }: { children: ReactNode }) {
   const _SourceSnapshotCollection = React.useMemo(
     () =>
       SourceSnapshotCollection({
-        bucket_id: bucketId,
         source_id: sourceId,
         snapshot_id: snapshotId,
       }),
-    [bucketId, sourceId, snapshotId],
+    [sourceId, snapshotId],
   );
 
   return (
