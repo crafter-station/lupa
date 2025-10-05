@@ -9,15 +9,20 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 
 export default function Breadcrumbs() {
-  const params = useParams<{ bucketId?: string; sourceId?: string }>();
+  const params = useParams<{
+    bucketId?: string;
+    sourceId?: string;
+    deploymentId?: string;
+  }>();
   const pathname = usePathname();
 
   if (!params.bucketId) {
     return (
       <Breadcrumb>
-        <BreadcrumbList>
+        <BreadcrumbList className="h-16">
           <BreadcrumbItem>
             <BreadcrumbLink href="/">Home</BreadcrumbLink>
           </BreadcrumbItem>
@@ -31,45 +36,55 @@ export default function Breadcrumbs() {
     );
   }
 
-  if (!params.sourceId) {
+  if (params.sourceId || params.deploymentId) {
     return (
       <Breadcrumb>
-        <BreadcrumbList>
+        <BreadcrumbList className="h-16">
           <BreadcrumbItem>
             <BreadcrumbLink href="/">Home</BreadcrumbLink>
           </BreadcrumbItem>
+
           <BreadcrumbSeparator />
 
           <BreadcrumbItem>
             <BreadcrumbLink href="/buckets">Buckets</BreadcrumbLink>
           </BreadcrumbItem>
+
           <BreadcrumbSeparator />
 
-          {pathname.includes("/sources") ? (
-            <>
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/buckets/${params.bucketId}`}>
-                  {params.bucketId}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Sources</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
-          ) : (
-            <>
-              <BreadcrumbItem>
-                <BreadcrumbPage>{params.bucketId}</BreadcrumbPage>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/buckets/${params.bucketId}/sources`}>
-                  Sources
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </>
-          )}
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/buckets/${params.bucketId}`}>
+              {params.bucketId}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+
+          <BreadcrumbSeparator />
+
+          {params.sourceId ? (
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/buckets/${params.bucketId}/sources/`}>
+                Sources
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          ) : params.deploymentId ? (
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/buckets/${params.bucketId}/deployments/`}>
+                Deployments
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          ) : null}
+
+          <BreadcrumbSeparator />
+
+          {params.sourceId ? (
+            <BreadcrumbItem>
+              <BreadcrumbPage>{params.sourceId}</BreadcrumbPage>
+            </BreadcrumbItem>
+          ) : params.deploymentId ? (
+            <BreadcrumbItem>
+              <BreadcrumbPage>{params.deploymentId}</BreadcrumbPage>
+            </BreadcrumbItem>
+          ) : null}
         </BreadcrumbList>
       </Breadcrumb>
     );
@@ -77,38 +92,87 @@ export default function Breadcrumbs() {
 
   return (
     <Breadcrumb>
-      <BreadcrumbList>
+      <BreadcrumbList className="h-16">
         <BreadcrumbItem>
           <BreadcrumbLink href="/">Home</BreadcrumbLink>
         </BreadcrumbItem>
-
         <BreadcrumbSeparator />
 
         <BreadcrumbItem>
           <BreadcrumbLink href="/buckets">Buckets</BreadcrumbLink>
         </BreadcrumbItem>
-
         <BreadcrumbSeparator />
 
-        <BreadcrumbItem>
-          <BreadcrumbLink href={`/buckets/${params.bucketId}`}>
-            {params.bucketId}
-          </BreadcrumbLink>
-        </BreadcrumbItem>
+        {pathname.includes("/sources") ? (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/buckets/${params.bucketId}`}>
+                {params.bucketId}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
 
-        <BreadcrumbSeparator />
+            <BreadcrumbSeparator />
 
-        <BreadcrumbItem>
-          <BreadcrumbLink href={`/buckets/${params.bucketId}/sources/`}>
-            Sources
-          </BreadcrumbLink>
-        </BreadcrumbItem>
+            <div className="flex flex-col items-center">
+              <BreadcrumbItem>
+                <BreadcrumbPage>Sources</BreadcrumbPage>
+              </BreadcrumbItem>
+              <Separator />
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  href={`/buckets/${params.bucketId}/deployments`}
+                >
+                  Deployments
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </div>
+          </>
+        ) : pathname.includes("/deployments") ? (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/buckets/${params.bucketId}`}>
+                {params.bucketId}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
 
-        <BreadcrumbSeparator />
+            <div className="flex flex-col items-center">
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/buckets/${params.bucketId}/sources`}>
+                  Sources
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <Separator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Deployments</BreadcrumbPage>
+              </BreadcrumbItem>
+            </div>
+          </>
+        ) : (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbPage>{params.bucketId}</BreadcrumbPage>
+            </BreadcrumbItem>
 
-        <BreadcrumbItem>
-          <BreadcrumbPage>{params.sourceId}</BreadcrumbPage>
-        </BreadcrumbItem>
+            <BreadcrumbSeparator />
+
+            <div className="flex flex-col items-center">
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/buckets/${params.bucketId}/sources`}>
+                  Sources
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <Separator />
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  href={`/buckets/${params.bucketId}/deployments`}
+                >
+                  Deployments
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </div>
+          </>
+        )}
       </BreadcrumbList>
     </Breadcrumb>
   );

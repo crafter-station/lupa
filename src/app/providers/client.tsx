@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import * as React from "react";
 import {
   BucketCollection,
+  DeploymentCollection,
   SourceCollection,
   SourceSnapshotCollection,
 } from "@/db/collections";
@@ -14,10 +15,11 @@ import { CollectionsContext } from "./collections";
 const queryClient = new QueryClient();
 
 export function ClientProviders({ children }: { children: ReactNode }) {
-  const { bucketId, sourceId, snapshotId } = useParams<{
+  const { bucketId, sourceId, snapshotId, deploymentId } = useParams<{
     bucketId?: string;
     sourceId?: string;
     snapshotId?: string;
+    deploymentId?: string;
   }>();
 
   const _BucketCollection = React.useMemo(
@@ -32,6 +34,15 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         source_id: sourceId,
       }),
     [bucketId, sourceId],
+  );
+
+  const _DeploymentCollection = React.useMemo(
+    () =>
+      DeploymentCollection({
+        bucket_id: bucketId,
+        deployment_id: deploymentId,
+      }),
+    [bucketId, deploymentId],
   );
 
   const _SourceSnapshotCollection = React.useMemo(
@@ -49,6 +60,7 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         BucketCollection: _BucketCollection,
         SourceCollection: _SourceCollection,
         SourceSnapshotCollection: _SourceSnapshotCollection,
+        DeploymentCollection: _DeploymentCollection,
       }}
     >
       <QueryClientProvider client={queryClient}>

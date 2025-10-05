@@ -1,0 +1,1 @@
+DROP TABLE "vector_index" CASCADE;

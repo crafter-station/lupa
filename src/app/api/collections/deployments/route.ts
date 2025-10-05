@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import { DEPLOYMENT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
+import { deploy } from "@/trigger/deploy.task";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -55,9 +56,11 @@ export async function POST(request: Request) {
     });
 
     const result = await db.transaction(async (tx) => {
-      await tx
-        .insert(schema.Deployment)
-        .values(data as typeof schema.Deployment.$inferInsert);
+      await tx.insert(schema.Deployment).values({
+        ...data,
+        created_at: undefined,
+        updated_at: undefined,
+      } as typeof schema.Deployment.$inferInsert);
 
       const txid = await tx.execute(
         sql`SELECT pg_current_xact_id()::xid::text as txid`,
@@ -69,6 +72,10 @@ export async function POST(request: Request) {
     });
 
     await pool.end();
+
+    await deploy.trigger({
+      deploymentId: data.id,
+    });
 
     return Response.json(
       { success: true, txid: parseInt(result.txid, 10) },

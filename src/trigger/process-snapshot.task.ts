@@ -29,6 +29,7 @@ export const processSnapshotTask = schemaTask({
       .update(schema.SourceSnapshot)
       .set({
         status: "running",
+        updated_at: new Date().toISOString(),
       })
       .where(eq(schema.SourceSnapshot.id, snapshotId));
 
@@ -60,6 +61,7 @@ export const processSnapshotTask = schemaTask({
           favicon: doc.metadata?.favicon as string | undefined,
           screenshot: doc.screenshot,
         },
+        updated_at: new Date().toISOString(),
       })
       .where(eq(schema.SourceSnapshot.id, snapshotId));
   },

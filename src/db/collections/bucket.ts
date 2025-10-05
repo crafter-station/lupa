@@ -11,6 +11,9 @@ export const BucketCollection = ({ bucket_id }: { bucket_id?: string } = {}) =>
       id: BUCKET_TABLE + (bucket_id ?? ""),
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/buckets`,
+        params: {
+          where: bucket_id ? `"id"='${bucket_id}'` : undefined,
+        },
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {

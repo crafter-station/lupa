@@ -16,6 +16,7 @@
         "@tanstack/react-db": "^0.1.25",
         "@tanstack/react-query": "^5.90.2",
         "@trigger.dev/sdk": "4.0.4",
+        "@upstash/redis": "^1.35.4",
         "@upstash/vector": "^1.2.2",
         "@vercel/blob": "^2.0.0",
         "class-variance-authority": "^0.7.1",
@@ -394,6 +395,8 @@
     "@types/react": ["@types/react@19.1.13", "", { "dependencies": { "csstype": "^3.0.2" } }, "sha512-hHkbU/eoO3EG5/MZkuFSKmYqPbSVk5byPFa3e7y/8TybHiLMACgI8seVYlicwk7H5K/rI2px9xrQp/C+AUDTiQ=="],
 
     "@types/react-dom": ["@types/react-dom@19.1.9", "", { "peerDependencies": { "@types/react": "^19.0.0" } }, "sha512-qXRuZaOsAdXKFyOhRBg6Lqqc0yay13vN7KrIg4L7N4aaHN68ma9OK3NE1BoDFgFOTfM7zg+3/8+2n8rLUH3OKQ=="],
+
+    "@upstash/redis": ["@upstash/redis@1.35.4", "", { "dependencies": { "uncrypto": "^0.1.3" } }, "sha512-WE1ZnhFyBiIjTDW13GbO6JjkiMVVjw5VsvS8ENmvvJsze/caMQ5paxVD44+U68IUVmkXcbsLSoE+VIYsHtbQEw=="],
 
     "@upstash/vector": ["@upstash/vector@1.2.2", "", {}, "sha512-ptQ9xnxtKqmpNK52PCcHCszlPOLxIBfjsv7ty8RoF95pkjctS9rSjTQ3Pl9bx5VFbpDj+0dMXw88WLt6swDkgQ=="],
 
