@@ -4,6 +4,14 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { SourceSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 
@@ -24,23 +32,48 @@ export function SourceList({
   );
 
   const sources = React.useMemo(() => {
-    if (status === "ready") {
-      return freshData;
-    }
-    return preloadedSources;
+    const data = status === "ready" ? freshData : preloadedSources;
+    return [...data].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
   }, [status, freshData, preloadedSources]);
 
   return (
-    <div className="flex flex-col gap-4">
-      {sources.map((source) => (
-        <Link
-          href={`/buckets/${bucketId}/sources/${source.id}`}
-          key={source.id}
-        >
-          {source.name} - {source.description}
-        </Link>
-      ))}
-      <div>{status}</div>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Updated</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sources.map((source) => (
+            <TableRow key={source.id}>
+              <TableCell>
+                <Link
+                  href={`/buckets/${bucketId}/sources/${source.id}`}
+                  className="font-medium hover:underline"
+                >
+                  {source.name}
+                </Link>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {source.description}
+              </TableCell>
+              <TableCell>
+                {new Date(source.created_at).toLocaleDateString()}
+              </TableCell>
+              <TableCell>
+                {new Date(source.updated_at).toLocaleDateString()}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

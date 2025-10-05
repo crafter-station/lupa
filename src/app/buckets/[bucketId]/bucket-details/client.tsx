@@ -27,8 +27,12 @@ export function BucketDetails({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">{bucket.name}</h1>
-      <p className="text-sm text-muted-foreground">{bucket.description}</p>
+      <h1 className="text-2xl">
+        Name: <span className="font-bold">{bucket.name}</span>
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        Description: {bucket.description}
+      </p>
     </div>
   );
 }

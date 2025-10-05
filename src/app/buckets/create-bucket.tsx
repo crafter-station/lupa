@@ -1,6 +1,13 @@
 "use client";
 import React from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCollections } from "@/hooks/use-collections";
@@ -26,14 +33,24 @@ export function CreateBucket() {
   );
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Input id="name" type="text" placeholder="Bucket Name" name="name" />
-      <Textarea
-        id="description"
-        placeholder="Bucket Description"
-        name="description"
-      />
-      <Button type="submit">Create Bucket</Button>
-    </form>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Create Bucket</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Bucket</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <Input id="name" type="text" placeholder="Bucket Name" name="name" />
+          <Textarea
+            id="description"
+            placeholder="Bucket Description"
+            name="description"
+          />
+          <Button type="submit">Create Bucket</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -4,6 +4,13 @@ import { createOptimisticAction } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
 import React from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { SourceSelect, SourceSnapshotSelect } from "@/db";
@@ -100,15 +107,26 @@ export function CreateSource() {
   );
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Input id="name" type="text" placeholder="Name" name="name" />
-      <Input id="url" type="text" placeholder="URL" name="url" />
-      <Textarea
-        id="description"
-        placeholder="Source Description"
-        name="description"
-      />
-      <Button type="submit">Create Source</Button>
-    </form>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Create Source</Button>
+      </DialogTrigger>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Source</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <Input id="name" type="text" placeholder="Name" name="name" />
+          <Input id="url" type="text" placeholder="URL" name="url" />
+          <Textarea
+            id="description"
+            placeholder="Source Description"
+            name="description"
+          />
+          <Button type="submit">Create Source</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

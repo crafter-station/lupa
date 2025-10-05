@@ -24,12 +24,5 @@ export default async function SourcePage({
     .from(schema.SourceSnapshot)
     .where(eq(schema.SourceSnapshot.source_id, sourceId));
 
-  return (
-    <div>
-      <SourceDetails
-        preloadedSource={preloadedSource}
-        preloadedSnapshots={snapshots}
-      />
-    </div>
-  );
+  return <SourceDetails preloadedSnapshots={snapshots} />;
 }

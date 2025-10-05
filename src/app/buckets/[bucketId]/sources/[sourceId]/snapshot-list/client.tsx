@@ -62,7 +62,7 @@ export function SnapshotList({
   return (
     <>
       <div className="flex flex-col gap-3 h-full overflow-y-auto">
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Snapshots</h2>
           <Button
             size="sm"
@@ -86,7 +86,7 @@ export function SnapshotList({
               <Card
                 key={snapshot.id}
                 className={cn(
-                  "cursor-pointer hover:bg-accent transition-colors p-4",
+                  "cursor-pointer hover:bg-accent transition-colors p-4 mx-0.5",
                   selectedSnapshotId === snapshot.id && "ring-2 ring-primary",
                 )}
                 onClick={() => onSelectSnapshot(snapshot.id)}
