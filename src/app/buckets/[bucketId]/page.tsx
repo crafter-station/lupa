@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
+export const revalidate = 60;
+
 export default async function BucketPage({
   params,
 }: {

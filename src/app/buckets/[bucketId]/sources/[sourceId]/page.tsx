@@ -3,6 +3,8 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { SourceDetails } from "./source-details";
 
+export const revalidate = 60;
+
 export default async function SourcePage({
   params,
 }: {
