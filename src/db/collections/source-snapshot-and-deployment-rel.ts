@@ -15,7 +15,7 @@ export const SourceSnapshotDeploymentRelCollection =
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/source-snapshot-and-deployment-rel`,
       },
-      getKey: (item) => `${item.snapshotId}-${item.deploymentId}`,
+      getKey: (item) => `${item.snapshot_id}-${item.deployment_id}`,
       onInsert: async (item) => {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_URL}/api/collections/source-snapshot-and-deployment-rel`,
