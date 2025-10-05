@@ -19,6 +19,7 @@ import { generateId } from "@/lib/generate-id";
 
 export function CreateSource() {
   const { bucketId } = useParams<{ bucketId: string }>();
+  const [open, setOpen] = React.useState(false);
 
   const { SourceCollection, SourceSnapshotCollection } = useCollections();
 
@@ -102,12 +103,14 @@ export function CreateSource() {
           updated_at: new Date().toISOString(),
         },
       });
+
+      setOpen(false);
     },
     [bucketId, createSource],
   );
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">Create Source</Button>
       </DialogTrigger>
