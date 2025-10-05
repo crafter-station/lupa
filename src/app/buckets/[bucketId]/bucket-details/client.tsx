@@ -14,8 +14,8 @@ export function BucketDetails({
   const { data: freshData, status } = useLiveQuery((q) =>
     q
       .from({ bucket: BucketCollection })
-      .where(({ bucket }) => eq(bucket.id, preloadedBucket.id))
-      .select(({ bucket }) => ({ ...bucket })),
+      .select(({ bucket }) => ({ ...bucket }))
+      .where(({ bucket }) => eq(bucket.id, preloadedBucket.id)),
   );
 
   const bucket = React.useMemo(() => {

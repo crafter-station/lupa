@@ -1,4 +1,5 @@
 "use client";
+import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
 import React from "react";
@@ -52,6 +53,13 @@ export function CreateSource() {
         success: boolean;
         txid: number;
       };
+
+      await (SourceCollection.utils as ElectricCollectionUtils).awaitTxId(
+        data.txid,
+      );
+      await (
+        SourceSnapshotCollection.utils as ElectricCollectionUtils
+      ).awaitTxId(data.txid);
 
       return {
         txid: data.txid,

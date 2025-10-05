@@ -76,43 +76,49 @@ export function SnapshotList({
         {snapshots.length === 0 ? (
           <p className="text-sm text-muted-foreground px-1">No snapshots yet</p>
         ) : (
-          snapshots.map((snapshot) => (
-            <Card
-              key={snapshot.id}
-              className={cn(
-                "cursor-pointer hover:bg-accent transition-colors p-4",
-                selectedSnapshotId === snapshot.id && "ring-2 ring-primary",
-              )}
-              onClick={() => onSelectSnapshot(snapshot.id)}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div
-                      className={cn(
-                        "w-2 h-2 rounded-full",
-                        getStatusColor(snapshot.status),
-                      )}
-                    />
-                    <span className="text-xs font-medium capitalize">
-                      {snapshot.status}
-                    </span>
-                  </div>
-                  <p className="text-sm truncate" title={snapshot.url}>
-                    {snapshot.url}
-                  </p>
-                  {snapshot.status === "success" && snapshot.chunks_count && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {snapshot.chunks_count} chunks
+          snapshots
+            .toSorted(
+              (a, b) =>
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime(),
+            )
+            .map((snapshot) => (
+              <Card
+                key={snapshot.id}
+                className={cn(
+                  "cursor-pointer hover:bg-accent transition-colors p-4",
+                  selectedSnapshotId === snapshot.id && "ring-2 ring-primary",
+                )}
+                onClick={() => onSelectSnapshot(snapshot.id)}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div
+                        className={cn(
+                          "w-2 h-2 rounded-full",
+                          getStatusColor(snapshot.status),
+                        )}
+                      />
+                      <span className="text-xs font-medium capitalize">
+                        {snapshot.status}
+                      </span>
+                    </div>
+                    <p className="text-sm truncate" title={snapshot.url}>
+                      {snapshot.url}
                     </p>
-                  )}
+                    {snapshot.status === "success" && snapshot.chunks_count && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {snapshot.chunks_count} chunks
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                {new Date(snapshot.created_at).toLocaleString()}
-              </p>
-            </Card>
-          ))
+                <p className="text-xs text-muted-foreground mt-2">
+                  {new Date(snapshot.created_at).toLocaleString()}
+                </p>
+              </Card>
+            ))
         )}
       </div>
       <CreateSnapshotModal
