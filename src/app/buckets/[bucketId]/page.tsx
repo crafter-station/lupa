@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { CreateDeployment } from "./create-deployment";
 
 export const revalidate = 60;
 
@@ -24,7 +23,6 @@ export default async function BucketPage({
   return (
     <>
       <pre>Here we can put graphs, metrics, and more</pre>
-      <CreateDeployment />
     </>
   );
 }
