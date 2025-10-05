@@ -61,10 +61,10 @@ export function BucketList({
                 {bucket.description}
               </TableCell>
               <TableCell>
-                {new Date(bucket.created_at).toLocaleDateString()}
+                {new Date(bucket.created_at).toLocaleString()}
               </TableCell>
               <TableCell>
-                {new Date(bucket.updated_at).toLocaleDateString()}
+                {new Date(bucket.updated_at).toLocaleString()}
               </TableCell>
             </TableRow>
           ))}

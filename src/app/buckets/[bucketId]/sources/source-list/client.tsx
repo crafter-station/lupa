@@ -65,10 +65,10 @@ export function SourceList({
                 {source.description}
               </TableCell>
               <TableCell>
-                {new Date(source.created_at).toLocaleDateString()}
+                {new Date(source.created_at).toLocaleString()}
               </TableCell>
               <TableCell>
-                {new Date(source.updated_at).toLocaleDateString()}
+                {new Date(source.updated_at).toLocaleString()}
               </TableCell>
             </TableRow>
           ))}
