@@ -4,7 +4,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
 import React from "react";
 import type { SourceSelect, SourceSnapshotSelect } from "@/db";
-import { SourceCollection, SourceSnapshotCollection } from "@/db/collections";
+import { useCollections } from "@/hooks/use-collections";
 import { SnapshotList } from "../snapshot-list";
 import { SnapshotViewer } from "../snapshot-viewer";
 
@@ -15,14 +15,19 @@ export function SourceDetails({
   preloadedSource: SourceSelect;
   preloadedSnapshots: SourceSnapshotSelect[];
 }) {
-  const { sourceId } = useParams<{ sourceId: string }>();
+  const { sourceId } = useParams<{
+    sourceId: string;
+    bucketId: string;
+  }>();
   const [selectedSnapshotId, setSelectedSnapshotId] = React.useState<
     string | null
   >(null);
 
+  const { SourceSnapshotCollection, SourceCollection } = useCollections();
+
   const { data: freshSourceData, status: sourceStatus } = useLiveQuery((q) =>
     q
-      .from({ source: SourceCollection() })
+      .from({ source: SourceCollection })
       .select(({ source }) => ({ ...source }))
       .where(({ source }) => eq(source.id, sourceId)),
   );
@@ -41,7 +46,7 @@ export function SourceDetails({
   const { data: freshSnapshotsData, status: snapshotsStatus } = useLiveQuery(
     (q) =>
       q
-        .from({ snapshot: SourceSnapshotCollection({ source_id: sourceId }) })
+        .from({ snapshot: SourceSnapshotCollection })
         .select(({ snapshot }) => ({ ...snapshot }))
         .where(({ snapshot }) => eq(snapshot.source_id, sourceId)),
   );

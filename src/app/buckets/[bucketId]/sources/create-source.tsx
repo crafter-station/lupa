@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { SourceSelect, SourceSnapshotSelect } from "@/db";
-import { SourceCollection, SourceSnapshotCollection } from "@/db/collections";
+import { useCollections } from "@/hooks/use-collections";
 import { generateId } from "@/lib/generate-id";
 
 export function CreateSource() {
   const { bucketId } = useParams<{ bucketId: string }>();
+
+  const { SourceCollection, SourceSnapshotCollection } = useCollections();
 
   const createSource = createOptimisticAction<
     SourceSelect & {
@@ -18,7 +20,7 @@ export function CreateSource() {
     }
   >({
     onMutate: (source) => {
-      SourceCollection().insert({
+      SourceCollection.insert({
         id: source.id,
         bucket_id: source.bucket_id,
         name: source.name,
@@ -26,7 +28,7 @@ export function CreateSource() {
         created_at: source.created_at,
         updated_at: source.updated_at,
       });
-      SourceSnapshotCollection().insert({
+      SourceSnapshotCollection.insert({
         ...source.snapshot,
       });
     },

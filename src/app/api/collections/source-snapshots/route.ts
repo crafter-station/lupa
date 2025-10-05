@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import { SOURCE_SNAPSHOT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
+import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -66,6 +67,10 @@ export async function POST(request: Request) {
       return {
         txid: txid.rows[0].txid as string,
       };
+    });
+
+    await processSnapshotTask.trigger({
+      snapshotId: data.id,
     });
 
     await pool.end();

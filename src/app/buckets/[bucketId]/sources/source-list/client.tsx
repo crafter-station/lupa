@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
 import type { SourceSelect } from "@/db";
-import { SourceCollection } from "@/db/collections";
+import { useCollections } from "@/hooks/use-collections";
 
 export function SourceList({
   preloadedSources,
@@ -13,9 +13,12 @@ export function SourceList({
   preloadedSources: SourceSelect[];
 }) {
   const { bucketId } = useParams<{ bucketId: string }>();
+
+  const { SourceCollection } = useCollections();
+
   const { data: freshData, status } = useLiveQuery((q) =>
     q
-      .from({ source: SourceCollection({ bucket_id: bucketId }) })
+      .from({ source: SourceCollection })
       .select(({ source }) => ({ ...source }))
       .where(({ source }) => eq(source.bucket_id, bucketId)),
   );

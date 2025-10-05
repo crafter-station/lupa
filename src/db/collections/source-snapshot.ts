@@ -16,7 +16,11 @@ export const SourceSnapshotCollection = ({
 } = {}) =>
   createCollection<SourceSnapshotSelect>(
     electricCollectionOptions<SourceSnapshotSelect>({
-      id: SOURCE_SNAPSHOT_TABLE,
+      id:
+        SOURCE_SNAPSHOT_TABLE +
+        (bucket_id ?? "") +
+        (source_id ?? "") +
+        (snapshot_id ?? ""),
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/source-snapshots`,
         params: {

@@ -14,7 +14,7 @@ export const SourceCollection = ({
 } = {}) =>
   createCollection<SourceSelect>(
     electricCollectionOptions<SourceSelect>({
-      id: SOURCE_TABLE,
+      id: SOURCE_TABLE + (bucket_id ?? "") + (source_id ?? ""),
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/sources`,
         params: {

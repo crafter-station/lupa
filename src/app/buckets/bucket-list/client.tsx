@@ -4,13 +4,15 @@ import { useLiveQuery } from "@tanstack/react-db";
 import Link from "next/link";
 import React from "react";
 import type { BucketSelect } from "@/db";
-import { BucketCollection } from "@/db/collections";
+import { useCollections } from "@/hooks/use-collections";
 
 export function BucketList({
   preloadedBuckets,
 }: {
   preloadedBuckets: BucketSelect[];
 }) {
+  const { BucketCollection } = useCollections();
+
   const { data: freshData, status } = useLiveQuery((q) =>
     q
       .from({ bucket: BucketCollection })

@@ -3,10 +3,12 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BucketCollection } from "@/db/collections";
+import { useCollections } from "@/hooks/use-collections";
 import { generateId } from "@/lib/generate-id";
 
 export function CreateBucket() {
+  const { BucketCollection } = useCollections();
+
   const handleSubmit = React.useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -20,7 +22,7 @@ export function CreateBucket() {
         updated_at: new Date().toISOString(),
       });
     },
-    [],
+    [BucketCollection],
   );
 
   return (
