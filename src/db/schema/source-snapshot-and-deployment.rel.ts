@@ -10,35 +10,33 @@ export const SOURCE_SNAPSHOT_AND_DEPLOYMENT_REL_TABLE =
 export const SourceSnapshotDeploymentRel = pgTable(
   SOURCE_SNAPSHOT_AND_DEPLOYMENT_REL_TABLE,
   {
-    snapshotId: text("snapshot_id")
+    snapshot_id: text("snapshot_id")
       .notNull()
       .references(() => SourceSnapshot.id, { onDelete: "cascade" }),
 
-    deploymentId: text("deployment_id")
+    deployment_id: text("deployment_id")
       .notNull()
       .references(() => Deployment.id, { onDelete: "cascade" }),
 
-    createdAt: timestamp("created_at", { withTimezone: true })
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
-  (t) => ({
-    pk: primaryKey({ columns: [t.snapshotId, t.deploymentId] }),
-  }),
+  (t) => [primaryKey({ columns: [t.snapshot_id, t.deployment_id] })],
 );
 
 export const SourceSnapshotDeploymentRelRelations = relations(
   SourceSnapshotDeploymentRel,
   ({ one }) => ({
     snapshot: one(SourceSnapshot, {
-      fields: [SourceSnapshotDeploymentRel.snapshotId],
+      fields: [SourceSnapshotDeploymentRel.snapshot_id],
       references: [SourceSnapshot.id],
     }),
     deployment: one(Deployment, {
-      fields: [SourceSnapshotDeploymentRel.deploymentId],
+      fields: [SourceSnapshotDeploymentRel.deployment_id],
       references: [Deployment.id],
     }),
   }),

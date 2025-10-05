@@ -9,8 +9,12 @@ export const VectorIndex = pgTable(VECTOR_INDEX_TABLE, {
   url: text("url").notNull(),
   token: text("token").notNull(),
 
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
 });
 
 export const VectorIndexInsertSchema = createInsertSchema(VectorIndex);

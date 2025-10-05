@@ -42,18 +42,18 @@ export type DeploymentLog = z.infer<typeof DeploymentLogSchema>;
 export const Deployment = pgTable(DEPLOYMENT_TABLE, {
   id: text("id").primaryKey(),
 
-  bucketId: text("bucket_id").notNull(),
+  bucket_id: text("bucket_id").notNull(),
 
-  vectorIndexId: text("vector_index_id"),
+  vector_index_id: text("vector_index_id"),
 
   status: DeploymentStatus("status").notNull(),
   logs: jsonb("logs").array().notNull().default([]).$type<DeploymentLog[]>(),
-  changesDetected: boolean("changes_detected").notNull().default(false),
+  changes_detected: boolean("changes_detected").notNull().default(false),
 
-  createdAt: timestamp("created_at", { withTimezone: true })
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
     .notNull()
     .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
+  updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
     .notNull()
     .defaultNow(),
 });
