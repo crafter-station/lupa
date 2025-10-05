@@ -82,7 +82,7 @@ export function SnapshotList({
                 new Date(b.created_at).getTime() -
                 new Date(a.created_at).getTime(),
             )
-            .map((snapshot) => (
+            .map((snapshot, index, array) => (
               <Card
                 key={snapshot.id}
                 className={cn(
@@ -94,6 +94,9 @@ export function SnapshotList({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-mono text-muted-foreground">
+                        v{array.length - index - 1}
+                      </span>
                       <div
                         className={cn(
                           "w-2 h-2 rounded-full",
