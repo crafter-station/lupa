@@ -6,6 +6,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { firecrawl } from "@/lib/firecrawl";
 
+// TODO: handle errors
 export const processSnapshotTask = schemaTask({
   id: "process-snapshot",
   schema: z.object({
