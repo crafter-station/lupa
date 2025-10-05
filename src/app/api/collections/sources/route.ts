@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import { SOURCE_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
+import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const originUrl = new URL(ELECTRIC_URL);
 
   url.searchParams.forEach((value, key) => {
-    if (ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key)) {
+    if ([...ELECTRIC_PROTOCOL_QUERY_PARAMS, "where"].includes(key)) {
       originUrl.searchParams.set(key, value);
     }
   });
@@ -37,8 +38,19 @@ export async function POST(request: Request) {
   try {
     const json = await request.json();
 
-    const { id, bucket_id, name, description } =
-      schema.SourceInsertSchema.parse(json);
+    const {
+      id: sourceId,
+      bucket_id,
+      name,
+      description,
+    } = schema.SourceInsertSchema.parse(json);
+
+    const {
+      id: snapshotId,
+      url,
+      status,
+      type,
+    } = schema.SourceSnapshotInsertSchema.parse(json.snapshot);
 
     if (!process.env.DATABASE_URL) {
       return Response.json(
@@ -68,15 +80,27 @@ export async function POST(request: Request) {
 
     const result = await db.transaction(async (tx) => {
       await tx.insert(schema.Source).values({
-        id,
+        id: sourceId,
         name,
         description,
         bucket_id,
       });
 
+      await tx.insert(schema.SourceSnapshot).values({
+        id: snapshotId,
+        source_id: sourceId,
+        url,
+        status,
+        type,
+      });
+
       const txid = await tx.execute(
         sql`SELECT pg_current_xact_id()::xid::text as txid`,
       );
+
+      await processSnapshotTask.trigger({
+        snapshotId: snapshotId,
+      });
 
       return {
         txid: txid.rows[0].txid as string,

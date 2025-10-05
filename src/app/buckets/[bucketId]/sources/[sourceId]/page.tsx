@@ -3,6 +3,8 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { SourceDetails } from "./source-details";
 
+export const revalidate = 60;
+
 export default async function SourcePage({
   params,
 }: {
@@ -19,9 +21,10 @@ export default async function SourcePage({
     throw new Error("Source not found");
   }
 
-  return (
-    <div>
-      <SourceDetails preloadedSource={preloadedSource} />
-    </div>
-  );
+  const snapshots = await db
+    .select()
+    .from(schema.SourceSnapshot)
+    .where(eq(schema.SourceSnapshot.source_id, sourceId));
+
+  return <SourceDetails preloadedSnapshots={snapshots} />;
 }

@@ -4,6 +4,8 @@ import * as schema from "@/db/schema";
 import { CreateSource } from "./create-source";
 import { SourceList } from "./source-list";
 
+export const revalidate = 60;
+
 export default async function SourcesPage({
   params,
 }: {
@@ -17,10 +19,12 @@ export default async function SourcesPage({
     .where(eq(schema.Source.bucket_id, bucketId));
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Sources</h1>
-      <SourceList preloadedSources={preloadedSources} bucketId={bucketId} />
-      <CreateSource />
-    </div>
+    <>
+      <div className="flex justify-between items-start">
+        <h1 className="text-2xl font-bold">Sources</h1>
+        <CreateSource />
+      </div>
+      <SourceList preloadedSources={preloadedSources} />
+    </>
   );
 }

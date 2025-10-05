@@ -35,30 +35,42 @@ export type WebsiteMetadata = {
 };
 
 export type UploadMetadata = {
-  fileName?: string;
-  fileSize?: number;
-  modifiedAt?: Date;
-  createdAt?: Date;
+  file_name?: string;
+  file_size?: number;
+  modified_at?: Date;
+  created_at?: Date;
 };
 
 // Drizzle table
 export const SourceSnapshot = pgTable(SOURCE_SNAPSHOT_TABLE, {
   id: text("id").primaryKey(),
 
-  sourceId: text("source_id").notNull(),
+  source_id: text("source_id").notNull(),
   url: text("url").notNull(),
 
   status: SourceSnapshotStatus("status").notNull(),
   type: SourceSnapshotType("type").notNull(),
 
+  markdown_url: text("markdown_url"),
+
   // Only present when status = "success"
-  chunksCount: integer("chunks_count"),
+  chunks_count: integer("chunks_count"),
 
   // Varies by type; may be null for non-success states
   metadata: jsonb("metadata").$type<WebsiteMetadata | UploadMetadata | null>(),
 
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  created_at: timestamp("created_at", {
+    withTimezone: true,
+    mode: "string",
+  })
+    .notNull()
+    .defaultNow(),
+  updated_at: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "string",
+  })
+    .notNull()
+    .defaultNow(),
 });
 
 export const SourceSnapshotInsertSchema = createInsertSchema(SourceSnapshot);
@@ -70,9 +82,9 @@ export type SourceSnapshotInsert = typeof SourceSnapshot.$inferInsert;
 // Compatibility Zod schema used elsewhere (e.g., Convex runtime validation)
 const BaseSourceSnapshotSchema = {
   id: z.string(),
-  sourceId: z.string(),
-  url: z.string().url(),
-  createdAt: z.number(), // milliseconds since epoch (legacy shape)
+  source_id: z.string(),
+  url: z.url(),
+  created_at: z.number(), // milliseconds since epoch (legacy shape)
 };
 
 export const SourceSnapshotSchema = z.union([
@@ -86,7 +98,7 @@ export const SourceSnapshotSchema = z.union([
   z.object({
     ...BaseSourceSnapshotSchema,
     status: z.literal("success"),
-    chunksCount: z.number(),
+    chunks_count: z.number(),
     type: z.literal("website"),
     metadata: z.object({
       title: z.string().optional(),
@@ -98,13 +110,13 @@ export const SourceSnapshotSchema = z.union([
   z.object({
     ...BaseSourceSnapshotSchema,
     status: z.literal("success"),
-    chunksCount: z.number(),
+    chunks_count: z.number(),
     type: z.literal("upload"),
     metadata: z.object({
-      fileName: z.string().optional(),
-      fileSize: z.number().optional(),
-      modifiedAt: z.date().optional(),
-      createdAt: z.date().optional(),
+      file_name: z.string().optional(),
+      file_size: z.number().optional(),
+      modified_at: z.date().optional(),
+      created_at: z.date().optional(),
     }),
   }),
 ]);

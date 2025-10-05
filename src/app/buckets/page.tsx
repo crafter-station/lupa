@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { BucketList } from "./bucket-list";
@@ -10,11 +9,12 @@ export default async function BucketsPage() {
   const preloadedBuckets = await db.select().from(schema.Bucket);
 
   return (
-    <div>
-      Buckets
+    <>
+      <div className="flex justify-between items-start">
+        <h1 className="text-2xl font-bold">Buckets</h1>
+        <CreateBucket />
+      </div>
       <BucketList preloadedBuckets={preloadedBuckets} />
-      <Separator className="my-4" />
-      <CreateBucket />
-    </div>
+    </>
   );
 }

@@ -3,18 +3,19 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import React from "react";
 import type { BucketSelect } from "@/db";
-import { BucketCollection } from "@/db/collections";
+import { useCollections } from "@/hooks/use-collections";
 
 export function BucketDetails({
   preloadedBucket,
 }: {
   preloadedBucket: BucketSelect;
 }) {
+  const { BucketCollection } = useCollections();
   const { data: freshData, status } = useLiveQuery((q) =>
     q
       .from({ bucket: BucketCollection })
-      .where(({ bucket }) => eq(bucket.id, preloadedBucket.id))
-      .select(({ bucket }) => ({ ...bucket })),
+      .select(({ bucket }) => ({ ...bucket }))
+      .where(({ bucket }) => eq(bucket.id, preloadedBucket.id)),
   );
 
   const bucket = React.useMemo(() => {
@@ -26,8 +27,12 @@ export function BucketDetails({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">{bucket.name}</h1>
-      <p className="text-sm text-muted-foreground">{bucket.description}</p>
+      <h1 className="text-2xl">
+        Name: <span className="font-bold">{bucket.name}</span>
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        Description: {bucket.description}
+      </p>
     </div>
   );
 }

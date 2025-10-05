@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { BucketDetails } from "./bucket-details";
+
+export const revalidate = 60;
 
 export default async function BucketPage({
   params,
@@ -19,9 +20,5 @@ export default async function BucketPage({
     throw new Error("Bucket not found");
   }
 
-  return (
-    <div>
-      <BucketDetails preloadedBucket={preloadedBucket} />
-    </div>
-  );
+  return <pre>Here we can put graphs, metrics, and more</pre>;
 }

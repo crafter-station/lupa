@@ -14,11 +14,15 @@ export const Source = pgTable(SOURCE_TABLE, {
   created_at: timestamp("created_at", {
     withTimezone: true,
     mode: "string",
-  }).defaultNow(),
+  })
+    .notNull()
+    .defaultNow(),
   updated_at: timestamp("updated_at", {
     withTimezone: true,
     mode: "string",
-  }).defaultNow(),
+  })
+    .notNull()
+    .defaultNow(),
 });
 
 export const SourceInsertSchema = createInsertSchema(Source);
