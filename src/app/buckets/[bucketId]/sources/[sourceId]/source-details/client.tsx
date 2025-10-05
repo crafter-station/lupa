@@ -4,7 +4,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
 import React from "react";
 import type { SourceSelect, SourceSnapshotSelect } from "@/db";
-import { SourceCollection } from "@/db/collections";
+import { SourceCollection, SourceSnapshotCollection } from "@/db/collections";
 import { SnapshotList } from "../snapshot-list";
 import { SnapshotViewer } from "../snapshot-viewer";
 
@@ -20,7 +20,7 @@ export function SourceDetails({
     string | null
   >(null);
 
-  const { data: freshData, status } = useLiveQuery((q) =>
+  const { data: freshSourceData, status: sourceStatus } = useLiveQuery((q) =>
     q
       .from({ source: SourceCollection() })
       .select(({ source }) => ({ ...source }))
@@ -28,16 +28,35 @@ export function SourceDetails({
   );
 
   const source = React.useMemo(() => {
-    if (status === "ready" && freshData && freshData.length > 0) {
-      return freshData[0];
+    if (
+      sourceStatus === "ready" &&
+      freshSourceData &&
+      freshSourceData.length > 0
+    ) {
+      return freshSourceData[0];
     }
     return preloadedSource;
-  }, [status, freshData, preloadedSource]);
+  }, [sourceStatus, freshSourceData, preloadedSource]);
+
+  const { data: freshSnapshotsData, status: snapshotsStatus } = useLiveQuery(
+    (q) =>
+      q
+        .from({ snapshot: SourceSnapshotCollection({ source_id: sourceId }) })
+        .select(({ snapshot }) => ({ ...snapshot }))
+        .where(({ snapshot }) => eq(snapshot.source_id, sourceId)),
+  );
+
+  const snapshots = React.useMemo(() => {
+    if (snapshotsStatus === "ready") {
+      return freshSnapshotsData;
+    }
+    return preloadedSnapshots;
+  }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
 
   const selectedSnapshot = React.useMemo(() => {
     if (!selectedSnapshotId) return null;
-    return preloadedSnapshots.find((s) => s.id === selectedSnapshotId) || null;
-  }, [selectedSnapshotId, preloadedSnapshots]);
+    return snapshots.find((s) => s.id === selectedSnapshotId) || null;
+  }, [selectedSnapshotId, snapshots]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -48,13 +67,16 @@ export function SourceDetails({
       <div className="flex-1 grid grid-cols-[400px_1fr] gap-6 p-6 overflow-hidden">
         <div className="overflow-y-auto">
           <SnapshotList
-            preloadedSnapshots={preloadedSnapshots}
+            preloadedSnapshots={snapshots}
             selectedSnapshotId={selectedSnapshotId}
             onSelectSnapshot={setSelectedSnapshotId}
           />
         </div>
         <div className="overflow-y-auto">
-          <SnapshotViewer snapshot={selectedSnapshot} />
+          <SnapshotViewer
+            snapshot={selectedSnapshot}
+            key={selectedSnapshot?.status}
+          />
         </div>
       </div>
     </div>

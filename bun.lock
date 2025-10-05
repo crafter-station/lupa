@@ -13,6 +13,7 @@
         "@radix-ui/react-slot": "^1.2.3",
         "@tanstack/electric-db-collection": "^0.1.27",
         "@tanstack/react-db": "^0.1.25",
+        "@tanstack/react-query": "^5.90.2",
         "@trigger.dev/sdk": "4.0.4",
         "@upstash/vector": "^1.2.2",
         "@vercel/blob": "^2.0.0",
@@ -351,7 +352,11 @@
 
     "@tanstack/electric-db-collection": ["@tanstack/electric-db-collection@0.1.27", "", { "dependencies": { "@electric-sql/client": "^1.0.10", "@standard-schema/spec": "^1.0.0", "@tanstack/db": "0.4.3", "@tanstack/store": "^0.7.7", "debug": "^4.4.3" } }, "sha512-7B9Zn4XhHwNQV6zjEPc6iV9jNX84TT5Mla/7P1X9+6IXoTdUOjvMEmSzZUqiNND5Y50p4Uo17WClSM3F2YgqaA=="],
 
+    "@tanstack/query-core": ["@tanstack/query-core@5.90.2", "", {}, "sha512-k/TcR3YalnzibscALLwxeiLUub6jN5EDLwKDiO7q5f4ICEoptJ+n9+7vcEFy5/x/i6Q+Lb/tXrsKCggf5uQJXQ=="],
+
     "@tanstack/react-db": ["@tanstack/react-db@0.1.25", "", { "dependencies": { "@tanstack/db": "0.4.3", "use-sync-external-store": "^1.5.0" }, "peerDependencies": { "react": ">=16.8.0" } }, "sha512-srnuMAxqhbLY7ZMTtDCCd9g1uhw6afj8cn7t+ykSCxdZXWrDbgq7zZBjeaolavhW/qUZPLNPxd8hSV6dJcsLhQ=="],
+
+    "@tanstack/react-query": ["@tanstack/react-query@5.90.2", "", { "dependencies": { "@tanstack/query-core": "5.90.2" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-CLABiR+h5PYfOWr/z+vWFt5VsOA2ekQeRQBFSKlcoW6Ndx/f8rfyVmq4LbgOM4GG2qtxAxjLYLOpCNTYm4uKzw=="],
 
     "@tanstack/store": ["@tanstack/store@0.7.7", "", {}, "sha512-xa6pTan1bcaqYDS9BDpSiS63qa6EoDkPN9RsRaxHuDdVDNntzq3xNwR5YKTU/V3SkSyC9T4YVOPh2zRQN0nhIQ=="],
 

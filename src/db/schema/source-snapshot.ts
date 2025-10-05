@@ -62,11 +62,15 @@ export const SourceSnapshot = pgTable(SOURCE_SNAPSHOT_TABLE, {
   created_at: timestamp("created_at", {
     withTimezone: true,
     mode: "string",
-  }).defaultNow(),
+  })
+    .notNull()
+    .defaultNow(),
   updated_at: timestamp("updated_at", {
     withTimezone: true,
     mode: "string",
-  }).defaultNow(),
+  })
+    .notNull()
+    .defaultNow(),
 });
 
 export const SourceSnapshotInsertSchema = createInsertSchema(SourceSnapshot);

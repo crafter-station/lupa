@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SourceSnapshotSelect } from "@/db";
 
@@ -9,39 +9,22 @@ export function SnapshotViewer({
 }: {
   snapshot: SourceSnapshotSelect | null;
 }) {
-  const [markdown, setMarkdown] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!snapshot || !snapshot.markdown_url) {
-      setMarkdown(null);
-      setError(null);
-      return;
-    }
-
-    const fetchMarkdown = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(snapshot.markdown_url);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch markdown: ${response.statusText}`);
-        }
-        const text = await response.text();
-        setMarkdown(text);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load markdown",
-        );
-        setMarkdown(null);
-      } finally {
-        setIsLoading(false);
+  const {
+    data: markdown,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["snapshot-markdown", snapshot?.markdown_url],
+    queryFn: async () => {
+      if (!snapshot?.markdown_url) return null;
+      const response = await fetch(snapshot.markdown_url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch markdown: ${response.statusText}`);
       }
-    };
-
-    fetchMarkdown();
-  }, [snapshot]);
+      return response.text();
+    },
+    enabled: !!snapshot?.markdown_url,
+  });
 
   if (!snapshot) {
     return (
@@ -139,7 +122,9 @@ export function SnapshotViewer({
           )}
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-800">
-              {error}
+              {error instanceof Error
+                ? error.message
+                : "Failed to load markdown"}
             </div>
           )}
           {markdown && !isLoading && (
