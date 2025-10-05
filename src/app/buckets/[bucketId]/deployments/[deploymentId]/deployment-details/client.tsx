@@ -115,6 +115,21 @@ export function DeploymentDetails({
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>API Endpoint</CardTitle>
+              <CardDescription>Try the search in your app</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <code className="block rounded bg-muted p-2 text-xs break-all">
+                  GET https://www.lupa.build/api/search?q=peru&deploymentId=
+                  {deployment.id}
+                </code>
+              </div>
+            </CardContent>
+          </Card>
         </div>
         {deployment.status === "ready" && (
           <SearchPlayground deploymentId={deployment.id} />
