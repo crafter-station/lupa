@@ -1,17 +1,24 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { Copy } from "lucide-react";
 import { useParams } from "next/navigation";
 import React from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import type { DeploymentSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
+import { AIPlayground } from "../ai-playground";
 import { SearchPlayground } from "../search-playground";
 
 export function DeploymentDetails({
@@ -42,100 +49,95 @@ export function DeploymentDetails({
     return <div>Deployment not found</div>;
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Deployment Details</h1>
-        <p className="text-sm text-muted-foreground">{deployment.id}</p>
-      </div>
+  const statusColor =
+    deployment.status === "ready"
+      ? "bg-green-100 text-green-800 border-green-200"
+      : deployment.status === "building"
+        ? "bg-blue-100 text-blue-800 border-blue-200"
+        : deployment.status === "queued"
+          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+          : deployment.status === "error"
+            ? "bg-red-100 text-red-800 border-red-200"
+            : "bg-gray-100 text-gray-800 border-gray-200";
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-1 flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Status</CardTitle>
-              <CardDescription>Current deployment status</CardDescription>
-            </CardHeader>
-            <CardContent>
+  const apiUrl = `https://www.lupa.build/api/search/${projectId}/${deploymentId}/<query>`;
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Deployment</h1>
+          <Badge className={statusColor}>{deployment.status}</Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span className="font-mono text-xs">{deployment.id}</span>
+          <span>•</span>
+          <span>
+            Created {new Date(deployment.created_at).toLocaleDateString()}
+          </span>
+          <span>•</span>
+          <span>
+            Updated {new Date(deployment.updated_at).toLocaleDateString()}
+          </span>
+          <span>•</span>
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                onClick={() => {
+                  navigator.clipboard.writeText(apiUrl);
+                }}
+              >
+                <span>API</span>
+                <Copy className="size-3" />
+              </button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80">
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Status:</span>
-                  <span
-                    className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                      deployment.status === "ready"
-                        ? "bg-green-50 text-green-700 ring-green-600/20"
-                        : deployment.status === "building"
-                          ? "bg-blue-50 text-blue-700 ring-blue-600/20"
-                          : deployment.status === "queued"
-                            ? "bg-yellow-50 text-yellow-700 ring-yellow-600/20"
-                            : deployment.status === "error"
-                              ? "bg-red-50 text-red-700 ring-red-600/20"
-                              : "bg-gray-50 text-gray-700 ring-gray-600/20"
-                    }`}
-                  >
-                    {deployment.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Changes Detected:</span>
-                  <span className="text-sm">
-                    {deployment.changes_detected ? "Yes" : "No"}
-                  </span>
-                </div>
+                <p className="text-xs font-medium">API Endpoint</p>
+                <code className="block rounded bg-muted p-2 text-xs break-all">
+                  GET {apiUrl}
+                </code>
                 {deployment.vector_index_id && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      Vector Index ID:
-                    </span>
-                    <span className="text-sm">
-                      {deployment.vector_index_id}
-                    </span>
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Vector Index: {deployment.vector_index_id}
+                    </p>
                   </div>
                 )}
+                {deployment.changes_detected && (
+                  <p className="text-xs text-muted-foreground">
+                    Changes detected
+                  </p>
+                )}
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Timestamps</CardTitle>
-              <CardDescription>Creation and update information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Created:</span>
-                  <span className="text-sm">
-                    {new Date(deployment.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Updated:</span>
-                  <span className="text-sm">
-                    {new Date(deployment.updated_at).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>API Endpoint</CardTitle>
-              <CardDescription>Try the search in your app</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <code className="block rounded bg-muted p-2 text-xs break-all">
-                  GET https://www.lupa.build/api/search/{projectId}
-                  {deploymentId}/{"<search-term>"}
-                </code>
-              </div>
-            </CardContent>
-          </Card>
+            </HoverCardContent>
+          </HoverCard>
         </div>
-        {deployment.status === "ready" && <SearchPlayground />}
       </div>
+
+      {deployment.status === "ready" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SearchPlayground />
+          <AIPlayground />
+        </div>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Deployment Not Ready</CardTitle>
+            <CardDescription>
+              {deployment.status === "building"
+                ? "Building deployment... Playgrounds will be available once ready."
+                : deployment.status === "queued"
+                  ? "Deployment queued... Playgrounds will be available once ready."
+                  : deployment.status === "error"
+                    ? "Deployment failed. Please check the logs."
+                    : "Deployment status unknown."}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
     </div>
   );
 }

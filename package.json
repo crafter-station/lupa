@@ -11,6 +11,8 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.42",
+    "@ai-sdk/react": "^2.0.60",
     "@clerk/nextjs": "^6.33.1",
     "@mendable/firecrawl-js": "^4.3.7",
     "@neondatabase/serverless": "^1.0.2",

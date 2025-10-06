@@ -6,7 +6,7 @@ export const revalidate = false;
 export const dynamic = "force-static";
 
 export async function GET(
-  request: Request,
+  _request: Request,
   {
     params,
   }: {
@@ -20,7 +20,7 @@ export async function GET(
 
     const results = await vector.query({
       data: query,
-      topK: 10,
+      topK: 5,
       includeData: true,
       includeMetadata: true,
     });
@@ -46,12 +46,9 @@ export async function GET(
       }
 
       if (error.message.includes("Invalid encrypted data")) {
-        const deploymentId = new URL(request.url).searchParams.get(
-          "deploymentId",
-        );
-        if (deploymentId) {
-          await invalidateVectorCache(deploymentId);
-        }
+        const { deploymentId } = await params;
+        await invalidateVectorCache(deploymentId);
+
         return new Response(
           JSON.stringify({ error: "Cache corrupted, please retry" }),
           { status: 500 },

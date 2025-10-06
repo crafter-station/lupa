@@ -84,14 +84,14 @@ export function SearchPlayground() {
   });
 
   return (
-    <Card className="col-span-2">
+    <Card className="flex flex-col h-[calc(100vh-16rem)]">
       <CardHeader>
         <CardTitle>Search Playground</CardTitle>
         <CardDescription>
           Test your deployment search functionality
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
         <Input
           type="text"
           placeholder="Search..."
@@ -111,7 +111,7 @@ export function SearchPlayground() {
         )}
 
         {data && (
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1 flex flex-col min-h-0">
             <div className="text-sm text-muted-foreground">
               Found {data.results.length} results for "{data.query}"
             </div>
@@ -121,7 +121,7 @@ export function SearchPlayground() {
                 No results found
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 overflow-y-auto flex-1">
                 {data.results.map((result) => (
                   <div
                     key={result.id}
