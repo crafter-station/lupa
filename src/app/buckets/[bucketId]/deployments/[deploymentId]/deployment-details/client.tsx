@@ -19,7 +19,10 @@ export function DeploymentDetails({
 }: {
   preloadedDeployment: DeploymentSelect;
 }) {
-  const { deploymentId } = useParams<{ deploymentId: string }>();
+  const { deploymentId, bucketId } = useParams<{
+    deploymentId: string;
+    bucketId: string;
+  }>();
 
   const { DeploymentCollection } = useCollections();
 
@@ -124,8 +127,8 @@ export function DeploymentDetails({
             <CardContent>
               <div className="space-y-2">
                 <code className="block rounded bg-muted p-2 text-xs break-all">
-                  GET https://www.lupa.build/api/search?q=peru&deploymentId=
-                  {deployment.id}
+                  GET https://www.lupa.build/api/search/{bucketId}
+                  {deploymentId}/{"<search-term>"}
                 </code>
               </div>
             </CardContent>
