@@ -5,50 +5,62 @@ import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import * as React from "react";
 import {
-  BucketCollection,
-  SourceCollection,
-  SourceSnapshotCollection,
+  DeploymentCollection,
+  DocumentCollection,
+  ProjectCollection,
+  SnapshotCollection,
 } from "@/db/collections";
 import { CollectionsContext } from "./collections";
 
 const queryClient = new QueryClient();
 
 export function ClientProviders({ children }: { children: ReactNode }) {
-  const { bucketId, sourceId, snapshotId } = useParams<{
-    bucketId?: string;
-    sourceId?: string;
+  const { projectId, documentId, snapshotId, deploymentId } = useParams<{
+    projectId?: string;
+    documentId?: string;
     snapshotId?: string;
+    deploymentId?: string;
   }>();
 
-  const _BucketCollection = React.useMemo(
-    () => BucketCollection({ bucket_id: bucketId }),
-    [bucketId],
+  const _ProjectCollection = React.useMemo(
+    () => ProjectCollection({ project_id: projectId }),
+    [projectId],
   );
 
-  const _SourceCollection = React.useMemo(
+  const _DocumentCollection = React.useMemo(
     () =>
-      SourceCollection({
-        bucket_id: bucketId,
-        source_id: sourceId,
+      DocumentCollection({
+        project_id: projectId,
+        document_id: documentId,
       }),
-    [bucketId, sourceId],
+    [projectId, documentId],
   );
 
-  const _SourceSnapshotCollection = React.useMemo(
+  const _DeploymentCollection = React.useMemo(
     () =>
-      SourceSnapshotCollection({
-        source_id: sourceId,
+      DeploymentCollection({
+        project_id: projectId,
+        deployment_id: deploymentId,
+      }),
+    [projectId, deploymentId],
+  );
+
+  const _SnapshotCollection = React.useMemo(
+    () =>
+      SnapshotCollection({
+        document_id: documentId,
         snapshot_id: snapshotId,
       }),
-    [sourceId, snapshotId],
+    [documentId, snapshotId],
   );
 
   return (
     <CollectionsContext
       value={{
-        BucketCollection: _BucketCollection,
-        SourceCollection: _SourceCollection,
-        SourceSnapshotCollection: _SourceSnapshotCollection,
+        ProjectCollection: _ProjectCollection,
+        DocumentCollection: _DocumentCollection,
+        SnapshotCollection: _SnapshotCollection,
+        DeploymentCollection: _DeploymentCollection,
       }}
     >
       <QueryClientProvider client={queryClient}>

@@ -1,13 +1,15 @@
 import type { Collection } from "@tanstack/react-db";
 import * as React from "react";
 import type {
-  BucketSelect,
-  SourceSelect,
-  SourceSnapshotSelect,
+  DeploymentSelect,
+  DocumentSelect,
+  ProjectSelect,
+  SnapshotSelect,
 } from "@/db/schema";
 
 export const CollectionsContext = React.createContext<{
-  BucketCollection: Collection<BucketSelect>;
-  SourceCollection: Collection<SourceSelect>;
-  SourceSnapshotCollection: Collection<SourceSnapshotSelect>;
+  ProjectCollection: Collection<ProjectSelect>;
+  DocumentCollection: Collection<DocumentSelect>;
+  DeploymentCollection: Collection<DeploymentSelect>;
+  SnapshotCollection: Collection<SnapshotSelect>;
 } | null>(null);

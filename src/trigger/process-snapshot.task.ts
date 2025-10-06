@@ -15,8 +15,8 @@ export const processSnapshotTask = schemaTask({
   run: async ({ snapshotId }) => {
     const snapshots = await db
       .select()
-      .from(schema.SourceSnapshot)
-      .where(eq(schema.SourceSnapshot.id, snapshotId))
+      .from(schema.Snapshot)
+      .where(eq(schema.Snapshot.id, snapshotId))
       .limit(1);
 
     if (!snapshots.length) {
@@ -26,11 +26,12 @@ export const processSnapshotTask = schemaTask({
     const snapshot = snapshots[0];
 
     await db
-      .update(schema.SourceSnapshot)
+      .update(schema.Snapshot)
       .set({
         status: "running",
+        updated_at: new Date().toISOString(),
       })
-      .where(eq(schema.SourceSnapshot.id, snapshotId));
+      .where(eq(schema.Snapshot.id, snapshotId));
 
     const doc = await firecrawl.scrape(snapshot.url, {
       formats: [
@@ -51,7 +52,7 @@ export const processSnapshotTask = schemaTask({
     });
 
     await db
-      .update(schema.SourceSnapshot)
+      .update(schema.Snapshot)
       .set({
         status: "success",
         markdown_url: url,
@@ -60,7 +61,8 @@ export const processSnapshotTask = schemaTask({
           favicon: doc.metadata?.favicon as string | undefined,
           screenshot: doc.screenshot,
         },
+        updated_at: new Date().toISOString(),
       })
-      .where(eq(schema.SourceSnapshot.id, snapshotId));
+      .where(eq(schema.Snapshot.id, snapshotId));
   },
 });

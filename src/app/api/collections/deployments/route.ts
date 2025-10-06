@@ -2,17 +2,52 @@ import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { z } from "zod";
+
 import { DEPLOYMENT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
+import { deploy } from "@/trigger/deploy.task";
+
+export const preferredRegion = "iad1";
+
+const WhereParamsSchema = z.object({
+  where: z.string().optional(),
+  params: z.record(z.string(), z.string()).optional(),
+});
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
+  const whereValue = url.searchParams.get("where");
+  const paramsEntries: Record<string, string> = {};
+
+  url.searchParams.forEach((value, key) => {
+    if (key.startsWith("params[")) {
+      paramsEntries[key] = value;
+    }
+  });
+
+  const validation = WhereParamsSchema.safeParse({
+    where: whereValue ?? undefined,
+    params: Object.keys(paramsEntries).length > 0 ? paramsEntries : undefined,
+  });
+
+  if (!validation.success) {
+    return Response.json(
+      { success: false, error: "Invalid query parameters" },
+      { status: 400 },
+    );
+  }
+
   const originUrl = new URL(ELECTRIC_URL);
 
   url.searchParams.forEach((value, key) => {
-    if (ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key)) {
+    if (
+      ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key) ||
+      key === "where" ||
+      key.startsWith("params[")
+    ) {
       originUrl.searchParams.set(key, value);
     }
   });
@@ -55,9 +90,11 @@ export async function POST(request: Request) {
     });
 
     const result = await db.transaction(async (tx) => {
-      await tx
-        .insert(schema.Deployment)
-        .values(data as typeof schema.Deployment.$inferInsert);
+      await tx.insert(schema.Deployment).values({
+        ...data,
+        created_at: undefined,
+        updated_at: undefined,
+      } as typeof schema.Deployment.$inferInsert);
 
       const txid = await tx.execute(
         sql`SELECT pg_current_xact_id()::xid::text as txid`,
@@ -69,6 +106,10 @@ export async function POST(request: Request) {
     });
 
     await pool.end();
+
+    await deploy.trigger({
+      deploymentId: data.id,
+    });
 
     return Response.json(
       { success: true, txid: parseInt(result.txid, 10) },
