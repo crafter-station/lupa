@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DocumentSelect, SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
+import { CreateSnapshot } from "../create-snapshot";
 
 export function DocumentVersionViewer({
   preloadedDocument,
@@ -47,11 +48,12 @@ export function DocumentVersionViewer({
       .filter((s) => s.status === "success" && s.markdown_url)
       .sort(
         (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
   }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
 
-  const currentVersionIndex = versionIndex ?? 0;
+  const latestVersionIndex = snapshots.length - 1;
+  const currentVersionIndex = versionIndex ?? latestVersionIndex;
   const currentSnapshot = snapshots[currentVersionIndex] || null;
 
   const [markdown, setMarkdown] = React.useState<string | null>(null);
@@ -95,40 +97,48 @@ export function DocumentVersionViewer({
       <div className="flex items-center justify-between sticky top-0 bg-background pb-4 border-b mb-4">
         <h2 className="text-xl font-semibold">{preloadedDocument.name}</h2>
         <div className="flex items-center gap-2">
-          <Link
-            href={
-              currentVersionIndex < snapshots.length - 1
-                ? `${baseUrl}/v${currentVersionIndex + 1}`
-                : baseUrl
-            }
+          <CreateSnapshot documentId={preloadedDocument.id} />
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={currentVersionIndex <= 0}
+            asChild={currentVersionIndex > 0}
           >
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentVersionIndex >= snapshots.length - 1}
-            >
+            {currentVersionIndex > 0 ? (
+              <Link href={`${baseUrl}/v${currentVersionIndex - 1}`}>
+                <ChevronLeft className="h-4 w-4" />
+              </Link>
+            ) : (
               <ChevronLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+            )}
+          </Button>
           <span className="text-sm font-medium px-3">
             v{currentVersionIndex}
-            {currentVersionIndex === 0 ? " (latest)" : ""} / {snapshots.length}
           </span>
-          <Link
-            href={
-              currentVersionIndex > 0
-                ? `${baseUrl}/v${currentVersionIndex - 1}`
-                : baseUrl
-            }
+
+          {currentVersionIndex === latestVersionIndex ? (
+            <Badge variant="outline">L</Badge>
+          ) : null}
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={currentVersionIndex >= latestVersionIndex}
+            asChild={currentVersionIndex < latestVersionIndex}
           >
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentVersionIndex <= 0}
-            >
+            {currentVersionIndex < latestVersionIndex ? (
+              <Link
+                href={
+                  currentVersionIndex === latestVersionIndex - 1
+                    ? baseUrl
+                    : `${baseUrl}/v${currentVersionIndex + 1}`
+                }
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            ) : (
               <ChevronRight className="h-4 w-4" />
-            </Button>
-          </Link>
+            )}
+          </Button>
         </div>
       </div>
 
