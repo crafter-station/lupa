@@ -67,10 +67,7 @@ export default async function DocumentsPathPage({
             <h1 className="text-2xl font-bold">Documents</h1>
             <CreateDocument currentPath={currentPath} />
           </div>
-          <DocumentList
-            preloadedDocuments={preloadedDocuments}
-            currentPath={currentPath}
-          />
+          <DocumentList preloadedDocuments={preloadedDocuments} />
         </div>
         <div className="overflow-y-auto border-l pl-4">
           {preloadedDocument ? (
@@ -102,10 +99,7 @@ export default async function DocumentsPathPage({
         <h1 className="text-2xl font-bold">Documents</h1>
         <CreateDocument currentPath={currentPath} />
       </div>
-      <DocumentList
-        preloadedDocuments={preloadedDocuments}
-        currentPath={currentPath}
-      />
+      <DocumentList preloadedDocuments={preloadedDocuments} />
     </div>
   );
 }
