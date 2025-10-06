@@ -17,13 +17,19 @@ export const DocumentCollection = ({
       id: DOCUMENT_TABLE + (project_id ?? "") + (document_id ?? ""),
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/documents`,
-        params: {
-          where: document_id
-            ? `"id"='${document_id}'`
-            : project_id
-              ? `"project_id"='${project_id}'`
-              : undefined,
-        },
+        params: document_id
+          ? {
+              where: `"id"=$1`,
+              params: [document_id],
+            }
+          : project_id
+            ? {
+                where: `"project_id"=$1`,
+                params: [project_id],
+              }
+            : {
+                where: undefined,
+              },
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {

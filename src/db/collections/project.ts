@@ -15,9 +15,14 @@ export const ProjectCollection = ({
       id: PROJECT_TABLE + (project_id ?? ""),
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/projects`,
-        params: {
-          where: project_id ? `"id"='${project_id}'` : undefined,
-        },
+        params: project_id
+          ? {
+              where: `"id"=$1`,
+              params: [project_id],
+            }
+          : {
+              where: undefined,
+            },
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {

@@ -17,13 +17,19 @@ export const DeploymentCollection = ({
       id: DEPLOYMENT_TABLE + (project_id ?? "") + (deployment_id ?? ""),
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/deployments`,
-        params: {
-          where: deployment_id
-            ? `"id"='${deployment_id}'`
-            : project_id
-              ? `"project_id"='${project_id}'`
-              : undefined,
-        },
+        params: deployment_id
+          ? {
+              where: `"id"=$1`,
+              params: [deployment_id],
+            }
+          : project_id
+            ? {
+                where: `"project_id"=$1`,
+                params: [project_id],
+              }
+            : {
+                where: undefined,
+              },
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {

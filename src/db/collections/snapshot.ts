@@ -17,13 +17,19 @@ export const SnapshotCollection = ({
       id: SNAPSHOT_TABLE + (document_id ?? "") + (snapshot_id ?? ""),
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
-        params: {
-          where: snapshot_id
-            ? `"id"='${snapshot_id}'`
-            : document_id
-              ? `"document_id"='${document_id}'`
-              : undefined,
-        },
+        params: snapshot_id
+          ? {
+              where: `"id"=$1`,
+              params: [snapshot_id],
+            }
+          : document_id
+            ? {
+                where: `"document_id"=$1`,
+                params: [document_id],
+              }
+            : {
+                where: undefined,
+              },
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {
