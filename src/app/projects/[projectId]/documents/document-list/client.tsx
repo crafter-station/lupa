@@ -41,7 +41,7 @@ export function DocumentList({
     path?: string[];
   }>();
 
-  const { folder: currentFolder } = useFolderDocumentVersion();
+  const { folder: currentFolder, documentId } = useFolderDocumentVersion();
 
   const { DocumentCollection } = useCollections();
 
@@ -105,10 +105,10 @@ export function DocumentList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
+            <TableHead className="w-1/4">Name</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Updated</TableHead>
+            <TableHead className="w-1/4">Created</TableHead>
+            <TableHead className="w-1/4">Updated</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -169,12 +169,16 @@ export function DocumentList({
                   <TableRow
                     key={item.document.id}
                     className={cn({
-                      "bg-muted": item.document.id === currentFolder,
+                      "bg-muted": item.document.id === documentId,
                     })}
                   >
                     <TableCell>
                       <Link
-                        href={documentUrl}
+                        href={
+                          documentId
+                            ? `/projects/${projectId}/documents${currentFolder}`
+                            : documentUrl
+                        }
                         className="font-medium hover:underline flex items-center gap-2"
                       >
                         <FileText className="h-4 w-4" />
@@ -185,10 +189,18 @@ export function DocumentList({
                       {item.document.description}
                     </TableCell>
                     <TableCell>
-                      {new Date(item.document.created_at).toLocaleString()}
+                      {documentId
+                        ? new Date(
+                            item.document.created_at,
+                          ).toLocaleDateString()
+                        : new Date(item.document.created_at).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {new Date(item.document.updated_at).toLocaleString()}
+                      {documentId
+                        ? new Date(
+                            item.document.updated_at,
+                          ).toLocaleDateString()
+                        : new Date(item.document.updated_at).toLocaleString()}
                     </TableCell>
                   </TableRow>
                 );
