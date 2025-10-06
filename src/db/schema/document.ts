@@ -6,6 +6,7 @@ export const DOCUMENT_TABLE = "document";
 export const Document = pgTable(DOCUMENT_TABLE, {
   id: text("id").primaryKey(),
 
+  path: text("path").notNull(),
   name: text("name").notNull(),
   description: text("description"),
 
