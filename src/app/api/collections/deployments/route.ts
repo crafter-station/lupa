@@ -2,10 +2,13 @@ import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+
 import { DEPLOYMENT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
 import { deploy } from "@/trigger/deploy.task";
+
+export const preferredRegion = "iad1";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

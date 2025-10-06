@@ -7,6 +7,8 @@ import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
 import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
+export const preferredRegion = "iad1";
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
 

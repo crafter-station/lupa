@@ -1,5 +1,7 @@
 import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 
+export const preferredRegion = "iad1";
+
 export async function GET(request: Request) {
   try {
     const searchParamsSplit = request.url.split("?");

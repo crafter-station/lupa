@@ -6,6 +6,8 @@ import { BUCKET_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
 
+export const preferredRegion = "iad1";
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
