@@ -8,7 +8,7 @@ import {
 } from "ai";
 import { z } from "zod";
 
-export const maxDuration = 30;
+export const maxDuration = 120;
 
 export async function POST(
   request: Request,
@@ -27,7 +27,7 @@ export async function POST(
       model: openai.responses(model || "gpt-5"),
       providerOptions: {
         openai: {
-          reasoningEffort: "high",
+          reasoningEffort: "low",
           reasoningSummary: "detailed",
           include: ["reasoning.encrypted_content"],
         } satisfies OpenAIResponsesProviderOptions,
@@ -83,7 +83,7 @@ export async function POST(
           },
         }),
       },
-      stopWhen: stepCountIs(10), // Stop after maximum 10 steps
+      stopWhen: stepCountIs(15), // Stop after maximum 10 steps
     });
 
     return result.toUIMessageStreamResponse({
