@@ -3,32 +3,26 @@
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
-import { DEPLOYMENT_TABLE, type DeploymentSelect } from "@/db/schema";
+import { PROJECT_TABLE, type ProjectSelect } from "@/db/schema";
 
-export const DeploymentCollection = ({
+export const ProjectCollection = ({
   project_id,
-  deployment_id,
 }: {
   project_id?: string;
-  deployment_id?: string;
 } = {}) =>
-  createCollection<DeploymentSelect>(
-    electricCollectionOptions<DeploymentSelect>({
-      id: DEPLOYMENT_TABLE + (project_id ?? "") + (deployment_id ?? ""),
+  createCollection<ProjectSelect>(
+    electricCollectionOptions<ProjectSelect>({
+      id: PROJECT_TABLE + (project_id ?? ""),
       shapeOptions: {
-        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/deployments`,
+        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/projects`,
         params: {
-          where: deployment_id
-            ? `"id"='${deployment_id}'`
-            : project_id
-              ? `"project_id"='${project_id}'`
-              : undefined,
+          where: project_id ? `"id"='${project_id}'` : undefined,
         },
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/deployments`,
+          `${process.env.NEXT_PUBLIC_URL}/api/collections/projects`,
           {
             method: "POST",
             headers: {
@@ -39,9 +33,7 @@ export const DeploymentCollection = ({
         );
 
         if (!response.ok) {
-          throw new Error(
-            `Failed to insert deployment: ${response.statusText}`,
-          );
+          throw new Error(`Failed to insert project: ${response.statusText}`);
         }
 
         const data = (await response.json()) as {

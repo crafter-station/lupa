@@ -3,32 +3,32 @@
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
-import { DEPLOYMENT_TABLE, type DeploymentSelect } from "@/db/schema";
+import { SNAPSHOT_TABLE, type SnapshotSelect } from "@/db/schema";
 
-export const DeploymentCollection = ({
-  project_id,
-  deployment_id,
+export const SnapshotCollection = ({
+  document_id,
+  snapshot_id,
 }: {
-  project_id?: string;
-  deployment_id?: string;
+  document_id?: string;
+  snapshot_id?: string;
 } = {}) =>
-  createCollection<DeploymentSelect>(
-    electricCollectionOptions<DeploymentSelect>({
-      id: DEPLOYMENT_TABLE + (project_id ?? "") + (deployment_id ?? ""),
+  createCollection<SnapshotSelect>(
+    electricCollectionOptions<SnapshotSelect>({
+      id: SNAPSHOT_TABLE + (document_id ?? "") + (snapshot_id ?? ""),
       shapeOptions: {
-        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/deployments`,
+        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
         params: {
-          where: deployment_id
-            ? `"id"='${deployment_id}'`
-            : project_id
-              ? `"project_id"='${project_id}'`
+          where: snapshot_id
+            ? `"id"='${snapshot_id}'`
+            : document_id
+              ? `"document_id"='${document_id}'`
               : undefined,
         },
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/deployments`,
+          `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
           {
             method: "POST",
             headers: {
@@ -40,7 +40,7 @@ export const DeploymentCollection = ({
 
         if (!response.ok) {
           throw new Error(
-            `Failed to insert deployment: ${response.statusText}`,
+            `Failed to insert document snapshot: ${response.statusText}`,
           );
         }
 

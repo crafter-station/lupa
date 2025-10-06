@@ -24,25 +24,25 @@ export const deploy = schemaTask({
 
       const deployment = deployments[0];
 
-      const sources = await db
+      const documents = await db
         .select()
-        .from(schema.Source)
-        .where(eq(schema.Source.bucket_id, deployment.bucket_id));
+        .from(schema.Document)
+        .where(eq(schema.Document.project_id, deployment.project_id));
 
-      const snapshots: schema.SourceSnapshotSelect[] = [];
+      const snapshots: schema.SnapshotSelect[] = [];
 
-      for (const source of sources) {
+      for (const document of documents) {
         const results = await db
           .select()
-          .from(schema.SourceSnapshot)
+          .from(schema.Snapshot)
           .where(
             and(
-              eq(schema.SourceSnapshot.source_id, source.id),
-              lte(schema.SourceSnapshot.updated_at, deployment.created_at),
-              eq(schema.SourceSnapshot.status, "success"),
+              eq(schema.Snapshot.document_id, document.id),
+              lte(schema.Snapshot.updated_at, deployment.created_at),
+              eq(schema.Snapshot.status, "success"),
             ),
           )
-          .orderBy(desc(schema.SourceSnapshot.updated_at))
+          .orderBy(desc(schema.Snapshot.updated_at))
           .limit(1);
 
         if (results.length) {
@@ -53,7 +53,7 @@ export const deploy = schemaTask({
         throw new Error(`No snapshots found for deployment ${deploymentId}`);
       }
 
-      await db.insert(schema.SourceSnapshotDeploymentRel).values(
+      await db.insert(schema.SnapshotDeploymentRel).values(
         snapshots.map((snapshot) => ({
           deployment_id: deployment.id,
           snapshot_id: snapshot.id,
@@ -155,8 +155,8 @@ export const pushSnapshot = schemaTask({
     try {
       const snapshots = await db
         .select()
-        .from(schema.SourceSnapshot)
-        .where(eq(schema.SourceSnapshot.id, snapshotId))
+        .from(schema.Snapshot)
+        .where(eq(schema.Snapshot.id, snapshotId))
         .limit(1);
 
       if (!snapshots.length) {
@@ -200,14 +200,14 @@ export const pushSnapshot = schemaTask({
 
       for (let i = 0; i < markdown.length; i += chunkSize - chunkOverlap) {
         const chunk = markdown.slice(i, i + chunkSize);
-        const chunkId = `${snapshot.source_id}_chunk_${Math.floor(i / (chunkSize - chunkOverlap))}`;
+        const chunkId = `${snapshot.document_id}_chunk_${Math.floor(i / (chunkSize - chunkOverlap))}`;
 
         chunks.push({
           id: chunkId,
           content: chunk,
           metadata: {
             snapshotId: snapshot.id,
-            sourceId: snapshot.source_id,
+            documentId: snapshot.document_id,
             chunkIndex: Math.floor(i / (chunkSize - chunkOverlap)),
             chunkSize: chunk.length,
             createdAt: new Date().toISOString(),
