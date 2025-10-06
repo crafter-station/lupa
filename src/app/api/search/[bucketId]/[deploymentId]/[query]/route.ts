@@ -3,6 +3,7 @@ import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 export const preferredRegion = "iad1";
 
 export const revalidate = false;
+export const dynamic = "force-static";
 
 export async function GET(
   request: Request,
