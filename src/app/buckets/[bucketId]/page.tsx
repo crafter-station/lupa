@@ -20,9 +20,5 @@ export default async function BucketPage({
     throw new Error("Bucket not found");
   }
 
-  return (
-    <>
-      <pre>Here we can put graphs, metrics, and more</pre>
-    </>
-  );
+  return <pre>Here we can put graphs, metrics, and more</pre>;
 }
