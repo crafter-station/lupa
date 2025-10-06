@@ -79,7 +79,7 @@ export async function getVectorIndex(
       encryptedToken,
     },
     {
-      ex: 15 * 60,
+      ex: 15 * 60, // 15 min
     },
   );
 
