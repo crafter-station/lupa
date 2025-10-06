@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import type { DocumentSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
+import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { cn } from "@/lib/utils";
 
 type FolderItem = {
@@ -35,28 +36,12 @@ export function DocumentList({
 }: {
   preloadedDocuments: DocumentSelect[];
 }) {
-  const { projectId, path: rawPath = [] } = useParams<{
+  const { projectId } = useParams<{
     projectId: string;
     path?: string[];
   }>();
 
-  const path = React.useMemo(() => rawPath.map(decodeURIComponent), [rawPath]);
-
-  const [currentFolder, selectedDocument] = React.useMemo(() => {
-    if (!path.length) {
-      return ["/", null];
-    }
-    if (path.some((item) => item.startsWith("doc:"))) {
-      const folder = `/${path.join("/").split("doc:")[0]}`;
-      // biome-ignore lint/style/noNonNullAssertion: exists
-      const documentId = path
-        .find((item) => item.startsWith("doc:"))!
-        .split(":")[1];
-      return [folder, documentId];
-    }
-    const folder = `/${path.join("/")}/`;
-    return [folder, null];
-  }, [path]);
+  const { folder: currentFolder } = useFolderDocumentVersion();
 
   const { DocumentCollection } = useCollections();
 
@@ -76,15 +61,15 @@ export function DocumentList({
     const documentsInPath: DocumentSelect[] = [];
 
     for (const doc of allDocuments) {
-      const docPath = doc.path;
+      const docFolder = doc.folder;
 
-      if (docPath === currentFolder) {
+      if (docFolder === currentFolder) {
         documentsInPath.push(doc);
       } else if (
-        docPath.startsWith(currentFolder) &&
-        docPath !== currentFolder
+        docFolder.startsWith(currentFolder) &&
+        docFolder !== currentFolder
       ) {
-        const relativePath = docPath.slice(currentFolder.length);
+        const relativePath = docFolder.slice(currentFolder.length);
         const nextSegment = relativePath.split("/")[0];
         if (nextSegment) {
           folders.add(nextSegment);
@@ -184,7 +169,7 @@ export function DocumentList({
                   <TableRow
                     key={item.document.id}
                     className={cn({
-                      "bg-muted": item.document.id === selectedDocument,
+                      "bg-muted": item.document.id === currentFolder,
                     })}
                   >
                     <TableCell>

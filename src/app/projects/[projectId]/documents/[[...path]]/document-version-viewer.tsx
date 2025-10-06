@@ -11,23 +11,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DocumentSelect, SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
+import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { CreateSnapshot } from "../create-snapshot";
 
 export function DocumentVersionViewer({
   preloadedDocument,
   preloadedSnapshots,
-  versionIndex,
 }: {
   preloadedDocument: DocumentSelect;
   preloadedSnapshots: SnapshotSelect[];
-  versionIndex: number | null;
 }) {
-  const { projectId, path: rawPath = [] } = useParams<{
+  const { projectId } = useParams<{
     projectId: string;
-    path?: string[];
   }>();
 
-  const path = rawPath.map(decodeURIComponent);
+  const { folder, version } = useFolderDocumentVersion();
 
   const { SnapshotCollection } = useCollections();
 
@@ -51,7 +49,9 @@ export function DocumentVersionViewer({
   }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
 
   const latestVersionIndex = snapshots.length - 1;
-  const currentVersionIndex = versionIndex ?? latestVersionIndex;
+  const currentVersionIndex = version
+    ? parseInt(version.replace("v", ""), 10)
+    : latestVersionIndex;
   const currentSnapshot = snapshots[currentVersionIndex] || null;
 
   const [markdown, setMarkdown] = React.useState<string | null>(null);
@@ -76,11 +76,7 @@ export function DocumentVersionViewer({
       });
   }, [currentSnapshot?.markdown_url]);
 
-  const folderPath = Array.isArray(path)
-    ? path.filter((p) => !p.startsWith("doc:") && !p.startsWith("v")).join("/")
-    : "";
-  const basePath = folderPath ? `${folderPath}/` : "";
-  const baseUrl = `/projects/${projectId}/documents/${basePath}doc:${preloadedDocument.id}`;
+  const baseUrl = `/projects/${projectId}/documents/${folder}doc:${preloadedDocument.id}`;
 
   if (!currentSnapshot) {
     return (
@@ -95,7 +91,7 @@ export function DocumentVersionViewer({
       <div className="flex items-center justify-between sticky top-0 bg-background pb-4 border-b mb-4">
         <h2 className="text-xl font-semibold">{preloadedDocument.name}</h2>
         <div className="flex items-center gap-2">
-          <CreateSnapshot documentId={preloadedDocument.id} />
+          <CreateSnapshot />
           <Button
             variant="outline"
             size="icon"

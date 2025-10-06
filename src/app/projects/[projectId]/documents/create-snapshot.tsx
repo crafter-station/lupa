@@ -14,12 +14,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useCollections } from "@/hooks/use-collections";
+import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 
-export function CreateSnapshot({ documentId }: { documentId: string }) {
+export function CreateSnapshot() {
   const [open, setOpen] = React.useState(false);
 
   const { SnapshotCollection } = useCollections();
+
+  const { documentId } = useFolderDocumentVersion();
 
   const { data: snapshots } = useLiveQuery((q) =>
     q
@@ -31,6 +34,9 @@ export function CreateSnapshot({ documentId }: { documentId: string }) {
   const handleSubmit = React.useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
+      if (!documentId) return;
+
       const formData = new FormData(e.target as HTMLFormElement);
 
       SnapshotCollection.insert({

@@ -17,11 +17,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { DocumentSelect, SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
+import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 
-export function CreateDocument({ currentPath }: { currentPath?: string }) {
+export function CreateDocument() {
   const { projectId } = useParams<{ projectId: string }>();
   const [open, setOpen] = React.useState(false);
+
+  const { folder } = useFolderDocumentVersion();
 
   const { DocumentCollection, SnapshotCollection } = useCollections();
 
@@ -34,7 +37,7 @@ export function CreateDocument({ currentPath }: { currentPath?: string }) {
       DocumentCollection.insert({
         id: document.id,
         project_id: document.project_id,
-        path: document.path,
+        folder: document.folder,
         name: document.name,
         description: document.description,
         created_at: document.created_at,
@@ -89,7 +92,7 @@ export function CreateDocument({ currentPath }: { currentPath?: string }) {
       createDocument({
         id: documentId,
         project_id: projectId,
-        path: (formData.get("path") as string) ?? currentPath ?? "/",
+        folder: folder ?? "/",
         name: formData.get("name") as string,
         description: formData.get("description") as string,
         created_at: new Date().toISOString(),
@@ -110,7 +113,7 @@ export function CreateDocument({ currentPath }: { currentPath?: string }) {
 
       setOpen(false);
     },
-    [projectId, createDocument, currentPath],
+    [projectId, createDocument, folder],
   );
 
   return (
@@ -123,14 +126,7 @@ export function CreateDocument({ currentPath }: { currentPath?: string }) {
         <DialogHeader>
           <DialogTitle>Create Document</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <Input
-            id="path"
-            type="text"
-            placeholder="Path"
-            name="path"
-            defaultValue={currentPath ?? "/"}
-          />
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-2">
           <Input id="name" type="text" placeholder="Name" name="name" />
           <Input id="url" type="text" placeholder="URL" name="url" />
           <Textarea

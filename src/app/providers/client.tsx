@@ -1,9 +1,11 @@
 "use client";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import * as React from "react";
+
 import {
   DeploymentCollection,
   DocumentCollection,
@@ -11,6 +13,7 @@ import {
   SnapshotCollection,
 } from "@/db/collections";
 import { CollectionsContext } from "./collections";
+import { FolderDocumentVersionContext } from "./folder-document-version";
 
 const queryClient = new QueryClient();
 
@@ -27,20 +30,26 @@ export function ClientProviders({ children }: { children: ReactNode }) {
 
   const path = React.useMemo(() => rawPath.map(decodeURIComponent), [rawPath]);
 
-  const [_currentFolder, documentId] = React.useMemo(() => {
+  const [currentFolder, documentId, version] = React.useMemo(() => {
     if (!path.length) {
-      return ["/", null];
+      return ["/", null, null];
     }
+
     if (path.some((item) => item.startsWith("doc:"))) {
       const folder = `/${path.join("/").split("doc:")[0]}`;
       // biome-ignore lint/style/noNonNullAssertion: exists
       const documentId = path
         .find((item) => item.startsWith("doc:"))!
         .split(":")[1];
-      return [folder, documentId];
+
+      const versionSplit = path.join("/").split(`doc:${documentId}`)[1];
+      const version = versionSplit ? versionSplit.replace(/\//g, "") : null;
+
+      return [folder, documentId, version];
     }
+
     const folder = `/${path.join("/")}/`;
-    return [folder, null];
+    return [folder, null, null];
   }, [path]);
 
   const _ProjectCollection = React.useMemo(
@@ -82,16 +91,24 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         DeploymentCollection: _DeploymentCollection,
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
-      </QueryClientProvider>
+      <FolderDocumentVersionContext
+        value={{
+          folder: currentFolder,
+          documentId: documentId,
+          version: version,
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </QueryClientProvider>
+      </FolderDocumentVersionContext>
     </CollectionsContext>
   );
 }

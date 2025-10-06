@@ -20,9 +20,7 @@ export default async function DocumentsPathPage({
   const secondLastSegment = path.length > 1 ? path[path.length - 2] : null;
 
   let isDocumentView = lastSegment?.startsWith("doc:");
-  let versionIndex: number | null = null;
   let documentId: string | null = null;
-  let folderPath: string[] = [];
 
   if (
     lastSegment?.startsWith("v") &&
@@ -30,13 +28,10 @@ export default async function DocumentsPathPage({
     secondLastSegment?.startsWith("doc:")
   ) {
     isDocumentView = true;
-    versionIndex = Number(lastSegment.slice(1));
     documentId = secondLastSegment.slice(4);
-    folderPath = path.slice(0, -2);
   } else if (lastSegment?.startsWith("doc:")) {
     isDocumentView = true;
     documentId = lastSegment.slice(4);
-    folderPath = path.slice(0, -1);
   }
 
   if (isDocumentView && documentId) {
@@ -57,15 +52,12 @@ export default async function DocumentsPathPage({
       .from(schema.Document)
       .where(eq(schema.Document.project_id, projectId));
 
-    const currentPath =
-      folderPath.length > 0 ? `/${folderPath.join("/")}/` : "/";
-
     return (
       <div className="grid grid-cols-2 gap-4 h-[calc(100vh-10rem)]">
         <div className="overflow-y-auto flex flex-col gap-2">
           <div className="flex justify-between items-start">
             <h1 className="text-2xl font-bold">Documents</h1>
-            <CreateDocument currentPath={currentPath} />
+            <CreateDocument />
           </div>
           <DocumentList preloadedDocuments={preloadedDocuments} />
         </div>
@@ -74,7 +66,6 @@ export default async function DocumentsPathPage({
             <DocumentVersionViewer
               preloadedDocument={preloadedDocument}
               preloadedSnapshots={snapshots}
-              versionIndex={versionIndex}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -86,8 +77,6 @@ export default async function DocumentsPathPage({
     );
   }
 
-  const currentPath = path.length > 0 ? `/${path.join("/")}/` : "/";
-
   const preloadedDocuments = await db
     .select()
     .from(schema.Document)
@@ -97,7 +86,7 @@ export default async function DocumentsPathPage({
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-start">
         <h1 className="text-2xl font-bold">Documents</h1>
-        <CreateDocument currentPath={currentPath} />
+        <CreateDocument />
       </div>
       <DocumentList preloadedDocuments={preloadedDocuments} />
     </div>
