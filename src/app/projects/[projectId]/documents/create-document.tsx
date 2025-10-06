@@ -1,10 +1,11 @@
 "use client";
 
 import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
-import { createOptimisticAction } from "@tanstack/react-db";
+import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
 import React from "react";
 
+import { FolderPathSelector } from "@/components/elements/folder-path-selector";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,9 +25,25 @@ export function CreateDocument() {
   const { projectId } = useParams<{ projectId: string }>();
   const [open, setOpen] = React.useState(false);
 
-  const { folder } = useFolderDocumentVersion();
+  const { folder: contextFolder } = useFolderDocumentVersion();
+  const [selectedFolder, setSelectedFolder] = React.useState<string>(
+    contextFolder ?? "/",
+  );
 
   const { DocumentCollection, SnapshotCollection } = useCollections();
+
+  const { data: allDocuments = [] } = useLiveQuery((q) =>
+    q
+      .from({ document: DocumentCollection })
+      .select(({ document }) => ({ ...document }))
+      .where(({ document }) => eq(document.project_id, projectId)),
+  );
+
+  React.useEffect(() => {
+    if (open) {
+      setSelectedFolder(contextFolder ?? "/");
+    }
+  }, [open, contextFolder]);
 
   const createDocument = createOptimisticAction<
     DocumentSelect & {
@@ -92,7 +109,7 @@ export function CreateDocument() {
       createDocument({
         id: documentId,
         project_id: projectId,
-        folder: folder ?? "/",
+        folder: selectedFolder || "/",
         name: formData.get("name") as string,
         description: formData.get("description") as string,
         created_at: new Date().toISOString(),
@@ -113,7 +130,7 @@ export function CreateDocument() {
 
       setOpen(false);
     },
-    [projectId, createDocument, folder],
+    [projectId, createDocument, selectedFolder],
   );
 
   return (
@@ -126,7 +143,12 @@ export function CreateDocument() {
         <DialogHeader>
           <DialogTitle>Create Document</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-2">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3">
+          <FolderPathSelector
+            documents={allDocuments}
+            initialFolder={selectedFolder}
+            onChange={setSelectedFolder}
+          />
           <Input id="name" type="text" placeholder="Name" name="name" />
           <Input id="url" type="text" placeholder="URL" name="url" />
           <Textarea
