@@ -1,7 +1,6 @@
 "use client";
 
-import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
-import { createOptimisticAction } from "@tanstack/react-db";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Plus } from "lucide-react";
 import React from "react";
 
@@ -14,7 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import type { SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { generateId } from "@/lib/generate-id";
 
@@ -23,52 +21,20 @@ export function CreateSnapshot({ documentId }: { documentId: string }) {
 
   const { SnapshotCollection } = useCollections();
 
-  const createSnapshot = createOptimisticAction<SnapshotSelect>({
-    onMutate: (snapshot) => {
-      SnapshotCollection.insert({
-        ...snapshot,
-      });
-    },
-    mutationFn: async (snapshot) => {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(snapshot),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to insert snapshot: ${response.statusText}`);
-      }
-
-      const data = (await response.json()) as {
-        success: boolean;
-        txid: number;
-      };
-
-      await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
-
-      return {
-        txid: data.txid,
-      };
-    },
-  });
+  const { data: snapshots } = useLiveQuery((q) =>
+    q
+      .from({ snapshot: SnapshotCollection })
+      .select(({ snapshot }) => ({ ...snapshot }))
+      .where(({ snapshot }) => eq(snapshot.document_id, documentId)),
+  );
 
   const handleSubmit = React.useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.target as HTMLFormElement);
 
-      const snapshotId = generateId();
-
-      createSnapshot({
-        id: snapshotId,
+      SnapshotCollection.insert({
+        id: generateId(),
         document_id: documentId,
         markdown_url: null,
         chunks_count: null,
@@ -82,7 +48,7 @@ export function CreateSnapshot({ documentId }: { documentId: string }) {
 
       setOpen(false);
     },
-    [documentId, createSnapshot],
+    [documentId, SnapshotCollection],
   );
 
   return (
@@ -99,7 +65,20 @@ export function CreateSnapshot({ documentId }: { documentId: string }) {
           <DialogTitle>Create Snapshot</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input id="url" type="text" placeholder="URL" name="url" required />
+          <Input
+            id="url"
+            type="text"
+            placeholder="URL"
+            name="url"
+            required
+            defaultValue={
+              snapshots.toSorted(
+                (a, b) =>
+                  new Date(a.created_at).getTime() -
+                  new Date(b.created_at).getTime(),
+              )[0]?.url
+            }
+          />
           <Button type="submit">Create Snapshot</Button>
         </form>
       </DialogContent>
