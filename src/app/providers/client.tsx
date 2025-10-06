@@ -15,12 +15,33 @@ import { CollectionsContext } from "./collections";
 const queryClient = new QueryClient();
 
 export function ClientProviders({ children }: { children: ReactNode }) {
-  const { projectId, documentId, snapshotId, deploymentId } = useParams<{
+  const {
+    projectId,
+    deploymentId,
+    path: rawPath = [],
+  } = useParams<{
     projectId?: string;
-    documentId?: string;
-    snapshotId?: string;
     deploymentId?: string;
+    path?: string[];
   }>();
+
+  const path = React.useMemo(() => rawPath.map(decodeURIComponent), [rawPath]);
+
+  const [_currentFolder, documentId] = React.useMemo(() => {
+    if (!path.length) {
+      return ["/", null];
+    }
+    if (path.some((item) => item.startsWith("doc:"))) {
+      const folder = `/${path.join("/").split("doc:")[0]}`;
+      // biome-ignore lint/style/noNonNullAssertion: exists
+      const documentId = path
+        .find((item) => item.startsWith("doc:"))!
+        .split(":")[1];
+      return [folder, documentId];
+    }
+    const folder = `/${path.join("/")}/`;
+    return [folder, null];
+  }, [path]);
 
   const _ProjectCollection = React.useMemo(
     () => ProjectCollection({ project_id: projectId }),
@@ -31,9 +52,8 @@ export function ClientProviders({ children }: { children: ReactNode }) {
     () =>
       DocumentCollection({
         project_id: projectId,
-        document_id: documentId,
       }),
-    [projectId, documentId],
+    [projectId],
   );
 
   const _DeploymentCollection = React.useMemo(
@@ -48,10 +68,9 @@ export function ClientProviders({ children }: { children: ReactNode }) {
   const _SnapshotCollection = React.useMemo(
     () =>
       SnapshotCollection({
-        document_id: documentId,
-        snapshot_id: snapshotId,
+        document_id: documentId ?? undefined,
       }),
-    [documentId, snapshotId],
+    [documentId],
   );
 
   return (

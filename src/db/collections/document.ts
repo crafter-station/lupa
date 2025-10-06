@@ -14,7 +14,7 @@ export const DocumentCollection = ({
 } = {}) =>
   createCollection<DocumentSelect>(
     electricCollectionOptions<DocumentSelect>({
-      id: DOCUMENT_TABLE + (project_id ?? "") + (document_id ?? ""),
+      id: `${DOCUMENT_TABLE}|${project_id ?? ""}|${document_id ?? ""}`,
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/documents`,
         params: document_id

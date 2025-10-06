@@ -44,12 +44,10 @@ export function DocumentVersionViewer({
   const snapshots = React.useMemo(() => {
     const data =
       snapshotsStatus === "ready" ? freshSnapshotsData : preloadedSnapshots;
-    return data
-      .filter((s) => s.status === "success" && s.markdown_url)
-      .sort(
-        (a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-      );
+    return data.sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
   }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
 
   const latestVersionIndex = snapshots.length - 1;
@@ -143,9 +141,10 @@ export function DocumentVersionViewer({
       </div>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+        <Badge>{currentSnapshot.status}</Badge>
         <Badge variant="secondary">{currentSnapshot.type}</Badge>
         <span>•</span>
-        <span>{new Date(currentSnapshot.created_at).toLocaleDateString()}</span>
+        <span>{new Date(currentSnapshot.created_at).toLocaleString()}</span>
         {currentSnapshot.chunks_count && (
           <>
             <span>•</span>
