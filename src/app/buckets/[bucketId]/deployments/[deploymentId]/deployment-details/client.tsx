@@ -131,9 +131,7 @@ export function DeploymentDetails({
             </CardContent>
           </Card>
         </div>
-        {deployment.status === "ready" && (
-          <SearchPlayground deploymentId={deployment.id} />
-        )}
+        {deployment.status === "ready" && <SearchPlayground />}
       </div>
     </div>
   );
