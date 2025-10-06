@@ -39,7 +39,6 @@ export function ThemeSwitcherMultiButton() {
           title={label}
           type="button"
           onClick={() => {
-            console.log("clicked", value);
             setTheme(value);
           }}
           className="group relative size-6 rounded-full transition duration-200 ease-out"

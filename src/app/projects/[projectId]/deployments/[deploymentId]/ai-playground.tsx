@@ -149,13 +149,6 @@ export function AIPlayground() {
     setInput("");
   };
 
-  if (messages.length > 0) {
-    console.log(
-      "Last message:",
-      JSON.stringify(messages[messages.length - 1], null, 2),
-    );
-  }
-
   return (
     <Card className="flex flex-col h-[calc(100vh-16rem)]">
       <CardHeader>

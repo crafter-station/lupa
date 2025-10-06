@@ -57,5 +57,33 @@ export const DocumentCollection = ({
           txid: data.txid,
         };
       },
+      onUpdate: async (item) => {
+        const documentId = item.transaction.mutations[0].key;
+        const changes = item.transaction.mutations[0].changes;
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_URL}/api/collections/documents/${documentId}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(changes),
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to update document: ${response.statusText}`);
+        }
+
+        const data = (await response.json()) as {
+          success: boolean;
+          txid: number;
+        };
+
+        return {
+          txid: data.txid,
+        };
+      },
     }),
   );
