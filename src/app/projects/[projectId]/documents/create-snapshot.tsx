@@ -80,8 +80,8 @@ export function CreateSnapshot() {
             defaultValue={
               snapshots.toSorted(
                 (a, b) =>
-                  new Date(a.created_at).getTime() -
-                  new Date(b.created_at).getTime(),
+                  new Date(b.created_at).getTime() -
+                  new Date(a.created_at).getTime(),
               )[0]?.url
             }
           />
