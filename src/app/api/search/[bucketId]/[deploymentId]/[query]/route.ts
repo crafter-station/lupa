@@ -2,34 +2,18 @@ import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 
 export const preferredRegion = "iad1";
 
-export async function GET(request: Request) {
+export const revalidate = false;
+
+export async function GET(
+  request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{ bucketId: string; deploymentId: string; query: string }>;
+  },
+) {
   try {
-    const searchParamsSplit = request.url.split("?");
-    if (!searchParamsSplit[1]) {
-      return new Response(
-        JSON.stringify({ error: "Missing query parameters" }),
-        { status: 400 },
-      );
-    }
-
-    const searchParams = new URLSearchParams(searchParamsSplit[1]);
-
-    const query = searchParams.get("q");
-    const deploymentId = searchParams.get("deploymentId");
-
-    if (!query) {
-      return new Response(
-        JSON.stringify({ error: "Missing query parameter" }),
-        { status: 400 },
-      );
-    }
-
-    if (!deploymentId) {
-      return new Response(
-        JSON.stringify({ error: "Missing deploymentId parameter" }),
-        { status: 400 },
-      );
-    }
+    const { deploymentId, query } = await params;
 
     const vector = await getVectorIndex(deploymentId);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
 import React from "react";
 import {
   Card,
@@ -47,13 +48,16 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 
 async function searchDeployment(
   query: string,
+  bucketId: string,
   deploymentId: string,
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
-  const params = new URLSearchParams({ q: query, deploymentId });
-  const response = await fetch(`/api/search?${params.toString()}`, {
-    signal,
-  });
+  const response = await fetch(
+    `/api/search/${bucketId}/${deploymentId}/${query}`,
+    {
+      signal,
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Search failed");
@@ -62,14 +66,18 @@ async function searchDeployment(
   return response.json();
 }
 
-export function SearchPlayground({ deploymentId }: { deploymentId: string }) {
+export function SearchPlayground() {
+  const { bucketId, deploymentId } = useParams<{
+    bucketId: string;
+    deploymentId: string;
+  }>();
   const [query, setQuery] = React.useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["search", deploymentId, debouncedQuery],
     queryFn: ({ signal }) =>
-      searchDeployment(debouncedQuery, deploymentId, signal),
+      searchDeployment(debouncedQuery, bucketId, deploymentId, signal),
     enabled: debouncedQuery.trim().length > 0,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
