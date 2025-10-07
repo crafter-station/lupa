@@ -1,5 +1,6 @@
 import type { Collection } from "@tanstack/react-db";
 import * as React from "react";
+
 import type {
   DeploymentSelect,
   DocumentSelect,

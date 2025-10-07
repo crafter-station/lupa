@@ -5,7 +5,9 @@ export const useCollections = () => {
   const ctx = React.useContext(CollectionsContext);
 
   if (!ctx) {
-    throw new Error("useCollections must be used within a CollectionsProvider");
+    throw new Error(
+      "useCollections must be used within a CollectionsContext provider",
+    );
   }
 
   return {

@@ -1,9 +1,11 @@
 "use client";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import * as React from "react";
+
 import {
   DeploymentCollection,
   DocumentCollection,
@@ -11,16 +13,44 @@ import {
   SnapshotCollection,
 } from "@/db/collections";
 import { CollectionsContext } from "./collections";
+import { FolderDocumentVersionContext } from "./folder-document-version";
 
 const queryClient = new QueryClient();
 
 export function ClientProviders({ children }: { children: ReactNode }) {
-  const { projectId, documentId, snapshotId, deploymentId } = useParams<{
+  const {
+    projectId,
+    deploymentId,
+    path: rawPath = [],
+  } = useParams<{
     projectId?: string;
-    documentId?: string;
-    snapshotId?: string;
     deploymentId?: string;
+    path?: string[];
   }>();
+
+  const path = React.useMemo(() => rawPath.map(decodeURIComponent), [rawPath]);
+
+  const [currentFolder, documentId, version] = React.useMemo(() => {
+    if (!path.length) {
+      return ["/", null, null];
+    }
+
+    if (path.some((item) => item.startsWith("doc:"))) {
+      const folder = `/${path.join("/").split("doc:")[0]}`;
+      // biome-ignore lint/style/noNonNullAssertion: exists
+      const documentId = path
+        .find((item) => item.startsWith("doc:"))!
+        .split(":")[1];
+
+      const versionSplit = path.join("/").split(`doc:${documentId}`)[1];
+      const version = versionSplit ? versionSplit.replace(/\//g, "") : null;
+
+      return [folder, documentId, version];
+    }
+
+    const folder = `/${path.join("/")}/`;
+    return [folder, null, null];
+  }, [path]);
 
   const _ProjectCollection = React.useMemo(
     () => ProjectCollection({ project_id: projectId }),
@@ -31,9 +61,8 @@ export function ClientProviders({ children }: { children: ReactNode }) {
     () =>
       DocumentCollection({
         project_id: projectId,
-        document_id: documentId,
       }),
-    [projectId, documentId],
+    [projectId],
   );
 
   const _DeploymentCollection = React.useMemo(
@@ -48,10 +77,9 @@ export function ClientProviders({ children }: { children: ReactNode }) {
   const _SnapshotCollection = React.useMemo(
     () =>
       SnapshotCollection({
-        document_id: documentId,
-        snapshot_id: snapshotId,
+        document_id: documentId ?? undefined,
       }),
-    [documentId, snapshotId],
+    [documentId],
   );
 
   return (
@@ -63,16 +91,24 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         DeploymentCollection: _DeploymentCollection,
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
-      </QueryClientProvider>
+      <FolderDocumentVersionContext
+        value={{
+          folder: currentFolder,
+          documentId: documentId,
+          version: version,
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </QueryClientProvider>
+      </FolderDocumentVersionContext>
     </CollectionsContext>
   );
 }

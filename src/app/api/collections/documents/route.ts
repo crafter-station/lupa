@@ -74,6 +74,7 @@ export async function POST(request: Request) {
     const {
       id: documentId,
       project_id,
+      folder,
       name,
       description,
     } = schema.DocumentInsertSchema.parse(json);
@@ -114,6 +115,7 @@ export async function POST(request: Request) {
     const result = await db.transaction(async (tx) => {
       await tx.insert(schema.Document).values({
         id: documentId,
+        folder,
         name,
         description,
         project_id,

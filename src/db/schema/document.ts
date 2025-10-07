@@ -6,6 +6,10 @@ export const DOCUMENT_TABLE = "document";
 export const Document = pgTable(DOCUMENT_TABLE, {
   id: text("id").primaryKey(),
 
+  // Path to the folder that contains the document.
+  // Starts and ends with a slash
+  folder: text("folder").notNull().default("/"),
+
   name: text("name").notNull(),
   description: text("description"),
 

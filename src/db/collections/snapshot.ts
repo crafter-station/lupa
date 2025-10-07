@@ -14,7 +14,7 @@ export const SnapshotCollection = ({
 } = {}) =>
   createCollection<SnapshotSelect>(
     electricCollectionOptions<SnapshotSelect>({
-      id: SNAPSHOT_TABLE + (document_id ?? "") + (snapshot_id ?? ""),
+      id: `${SNAPSHOT_TABLE}|${document_id ?? ""}|${snapshot_id ?? ""}`,
       shapeOptions: {
         url: `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
         params: snapshot_id

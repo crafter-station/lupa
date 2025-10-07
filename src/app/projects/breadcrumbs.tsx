@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, usePathname } from "next/navigation";
+import React from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,8 +17,13 @@ export default function Breadcrumbs() {
     projectId?: string;
     documentId?: string;
     deploymentId?: string;
+    path?: string[];
   }>();
   const pathname = usePathname();
+  const path = React.useMemo(() => {
+    if (!params.path) return [];
+    return params.path.map(decodeURIComponent);
+  }, [params.path]);
 
   if (!params.projectId) {
     return (
@@ -36,7 +42,11 @@ export default function Breadcrumbs() {
     );
   }
 
-  if (params.documentId || params.deploymentId) {
+  if (
+    params.documentId ||
+    params.deploymentId ||
+    (path && pathname.includes("/documents/"))
+  ) {
     return (
       <Breadcrumb>
         <BreadcrumbList className="h-16">
@@ -60,7 +70,7 @@ export default function Breadcrumbs() {
 
           <BreadcrumbSeparator />
 
-          {params.documentId ? (
+          {params.documentId || pathname.includes("/documents") ? (
             <BreadcrumbItem>
               <BreadcrumbLink href={`/projects/${params.projectId}/documents/`}>
                 Documents
@@ -76,17 +86,55 @@ export default function Breadcrumbs() {
             </BreadcrumbItem>
           ) : null}
 
-          <BreadcrumbSeparator />
+          {path &&
+            path.length > 0 &&
+            path.map((segment, index, arr) => {
+              if (segment.startsWith("doc:")) {
+                return (
+                  <div key={segment} className="flex items-center">
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>{segment.slice(4)}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </div>
+                );
+              }
 
-          {params.documentId ? (
-            <BreadcrumbItem>
-              <BreadcrumbPage>{params.documentId}</BreadcrumbPage>
-            </BreadcrumbItem>
-          ) : params.deploymentId ? (
-            <BreadcrumbItem>
-              <BreadcrumbPage>{params.deploymentId}</BreadcrumbPage>
-            </BreadcrumbItem>
-          ) : null}
+              const isLast = index === arr.length - 1;
+              const path = arr.slice(0, index + 1).join("/");
+              const href = `/projects/${params.projectId}/documents/${path}`;
+
+              return (
+                <div key={segment} className="flex items-center">
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    {isLast ? (
+                      <BreadcrumbPage>{segment}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink href={href}>{segment}</BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </div>
+              );
+            })}
+
+          {params.documentId && (
+            <>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{params.documentId}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          )}
+
+          {params.deploymentId && (
+            <>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{params.deploymentId}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          )}
         </BreadcrumbList>
       </Breadcrumb>
     );

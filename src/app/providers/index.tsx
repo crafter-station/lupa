@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import { Toaster } from "@/components/ui/sonner";
 import { ClientProviders } from "./client";
 
