@@ -48,6 +48,7 @@ export function CreateSnapshot() {
         status: "queued",
         url: formData.get("url") as string,
         metadata: null,
+        extracted_metadata: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });

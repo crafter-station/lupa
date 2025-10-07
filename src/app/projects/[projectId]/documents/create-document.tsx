@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import React from "react";
 
 import { FolderPathSelector } from "@/components/elements/folder-path-selector";
+import { MetadataSchemaEditor } from "@/components/elements/metadata-schema-editor";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +17,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { DocumentSelect, SnapshotSelect } from "@/db";
+import type {
+  DocumentSelect,
+  MetadataSchemaConfig,
+  SnapshotSelect,
+} from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
@@ -29,6 +34,8 @@ export function CreateDocument() {
   const [selectedFolder, setSelectedFolder] = React.useState<string>(
     contextFolder ?? "/",
   );
+  const [metadataSchema, setMetadataSchema] =
+    React.useState<MetadataSchemaConfig | null>(null);
 
   const { DocumentCollection, SnapshotCollection } = useCollections();
 
@@ -42,6 +49,7 @@ export function CreateDocument() {
   React.useEffect(() => {
     if (open) {
       setSelectedFolder(contextFolder ?? "/");
+      setMetadataSchema(null);
     }
   }, [open, contextFolder]);
 
@@ -57,6 +65,7 @@ export function CreateDocument() {
         folder: document.folder,
         name: document.name,
         description: document.description,
+        metadata_schema: document.metadata_schema,
         created_at: document.created_at,
         updated_at: document.updated_at,
       });
@@ -112,6 +121,7 @@ export function CreateDocument() {
         folder: selectedFolder || "/",
         name: formData.get("name") as string,
         description: formData.get("description") as string,
+        metadata_schema: metadataSchema,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         snapshot: {
@@ -123,6 +133,7 @@ export function CreateDocument() {
           status: "queued",
           url: formData.get("url") as string,
           metadata: null,
+          extracted_metadata: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -130,7 +141,7 @@ export function CreateDocument() {
 
       setOpen(false);
     },
-    [projectId, createDocument, selectedFolder],
+    [projectId, createDocument, selectedFolder, metadataSchema],
   );
 
   return (
@@ -149,12 +160,22 @@ export function CreateDocument() {
             initialFolder={selectedFolder}
             onChange={setSelectedFolder}
           />
-          <Input id="name" type="text" placeholder="Name" name="name" />
-          <Input id="url" type="text" placeholder="URL" name="url" />
+          <Input
+            id="name"
+            type="text"
+            placeholder="Name"
+            name="name"
+            required
+          />
+          <Input id="url" type="text" placeholder="URL" name="url" required />
           <Textarea
             id="description"
             placeholder="Document Description"
             name="description"
+          />
+          <MetadataSchemaEditor
+            value={metadataSchema}
+            onChange={setMetadataSchema}
           />
           <Button type="submit">Create Document</Button>
         </form>

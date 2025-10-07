@@ -77,6 +77,7 @@ export async function POST(request: Request) {
       folder,
       name,
       description,
+      metadata_schema,
     } = schema.DocumentInsertSchema.parse(json);
 
     const {
@@ -119,6 +120,7 @@ export async function POST(request: Request) {
         name,
         description,
         project_id,
+        metadata_schema,
       });
 
       await tx.insert(schema.Snapshot).values({
