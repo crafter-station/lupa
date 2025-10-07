@@ -2,7 +2,6 @@
 
 import { ChevronDown, ChevronUp, Code2, Info, Sparkles } from "lucide-react";
 import React from "react";
-import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
