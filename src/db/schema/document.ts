@@ -45,5 +45,5 @@ export type DocumentInsert = typeof Document.$inferInsert;
 
 export const MetadataSchemaConfigSchema = z.object({
   mode: z.enum(["infer", "custom"]),
-  schema: z.record(z.unknown()).optional(),
+  schema: z.record(z.string(), z.unknown()).optional(),
 });

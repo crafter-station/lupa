@@ -30,7 +30,7 @@ function zodSchemaFromJsonSchema(
     | undefined;
 
   if (!properties) {
-    return z.record(z.unknown());
+    return z.record(z.string(), z.unknown());
   }
 
   const shape: Record<string, z.ZodType> = {};

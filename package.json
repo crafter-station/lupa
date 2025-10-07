@@ -73,6 +73,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/uuid": "^11.0.0",
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.7",
     "tailwindcss": "^4",
