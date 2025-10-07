@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   jsonb,
@@ -47,7 +48,11 @@ export const Deployment = pgTable(DEPLOYMENT_TABLE, {
   vector_index_id: text("vector_index_id"),
 
   status: DeploymentStatus("status").notNull(),
-  logs: jsonb("logs").array().notNull().default([]).$type<DeploymentLog[]>(),
+  logs: jsonb("logs")
+    .$type<DeploymentLog[]>()
+    .array()
+    .notNull()
+    .default(sql`'{}'::jsonb[]`),
   changes_detected: boolean("changes_detected").notNull().default(false),
 
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
