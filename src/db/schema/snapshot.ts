@@ -37,6 +37,8 @@ export type UploadMetadata = {
   created_at?: Date;
 };
 
+export type ExtractedMetadata = Record<string, unknown>;
+
 // Drizzle table
 export const Snapshot = pgTable(SNAPSHOT_TABLE, {
   id: text("id").primaryKey(),
@@ -54,6 +56,11 @@ export const Snapshot = pgTable(SNAPSHOT_TABLE, {
 
   // Varies by type; may be null for non-success states
   metadata: jsonb("metadata").$type<WebsiteMetadata | UploadMetadata | null>(),
+
+  // LLM-extracted metadata from document content
+  extracted_metadata: jsonb(
+    "extracted_metadata",
+  ).$type<ExtractedMetadata | null>(),
 
   created_at: timestamp("created_at", {
     withTimezone: true,

@@ -169,6 +169,17 @@ export const pushSnapshot = schemaTask({
         throw new Error(`Snapshot ${snapshotId} does not have a markdown URL`);
       }
 
+      const documents = await db
+        .select()
+        .from(schema.Document)
+        .where(eq(schema.Document.id, snapshot.document_id))
+        .limit(1);
+
+      const document = documents[0];
+      if (!document) {
+        throw new Error(`Document ${snapshot.document_id} not found`);
+      }
+
       const vector = await (async () => {
         try {
           const { getVectorIndex } = await import("@/lib/vector");
@@ -208,9 +219,12 @@ export const pushSnapshot = schemaTask({
           metadata: {
             snapshotId: snapshot.id,
             documentId: snapshot.document_id,
+            documentName: document.name,
+            documentPath: document.folder,
             chunkIndex: Math.floor(i / (chunkSize - chunkOverlap)),
             chunkSize: chunk.length,
             createdAt: new Date().toISOString(),
+            ...(snapshot.extracted_metadata || {}),
           },
         });
       }

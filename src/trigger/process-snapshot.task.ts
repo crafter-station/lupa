@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { firecrawl } from "@/lib/firecrawl";
+import { extractMetadata } from "@/lib/metadata";
 
 // TODO: handle errors
 export const processSnapshotTask = schemaTask({
@@ -51,6 +52,18 @@ export const processSnapshotTask = schemaTask({
       access: "public",
     });
 
+    const documents = await db
+      .select()
+      .from(schema.Document)
+      .where(eq(schema.Document.id, snapshot.document_id))
+      .limit(1);
+
+    const document = documents[0];
+
+    const extractedMetadata = document?.metadata_schema
+      ? await extractMetadata(doc.markdown, document.metadata_schema)
+      : {};
+
     await db
       .update(schema.Snapshot)
       .set({
@@ -61,6 +74,7 @@ export const processSnapshotTask = schemaTask({
           favicon: doc.metadata?.favicon as string | undefined,
           screenshot: doc.screenshot,
         },
+        extracted_metadata: extractedMetadata,
         updated_at: new Date().toISOString(),
       })
       .where(eq(schema.Snapshot.id, snapshotId));
