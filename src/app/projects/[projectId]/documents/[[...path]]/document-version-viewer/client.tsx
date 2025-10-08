@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DocumentSelect, SnapshotSelect } from "@/db";
@@ -37,6 +38,40 @@ export function DocumentVersionViewerLiveQuery({
       snapshotsStatus === "ready" ? freshSnapshotsData : preloadedSnapshots;
     return [...data];
   }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
+
+  const prevSnapshotsRef = React.useRef(preloadedSnapshots);
+
+  React.useEffect(() => {
+    if (snapshotsStatus !== "ready") return;
+
+    const prevSnapshots = prevSnapshotsRef.current;
+    const currentSnapshots = freshSnapshotsData;
+
+    for (const currentSnapshot of currentSnapshots) {
+      const prevSnapshot = prevSnapshots.find(
+        (s) => s.id === currentSnapshot.id,
+      );
+
+      if (
+        prevSnapshot &&
+        prevSnapshot.status === "running" &&
+        currentSnapshot.status === "success" &&
+        currentSnapshot.has_changed
+      ) {
+        toast("Document has changed", {
+          description: "Do you want to redeploy now?",
+          action: {
+            label: "Redeploy",
+            onClick: () => {
+              window.location.href = `/projects/${preloadedDocument.project_id}/deployments/create-deployment`;
+            },
+          },
+        });
+      }
+    }
+
+    prevSnapshotsRef.current = currentSnapshots;
+  }, [snapshotsStatus, freshSnapshotsData, preloadedDocument.project_id]);
 
   return (
     <DocumentVersionViewerContent

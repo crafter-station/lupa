@@ -1,6 +1,6 @@
 import { schemaTask } from "@trigger.dev/sdk";
 import { put } from "@vercel/blob";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -60,6 +60,29 @@ export const processSnapshotTask = schemaTask({
 
     const document = documents[0];
 
+    const previousSnapshots = await db
+      .select()
+      .from(schema.Snapshot)
+      .where(eq(schema.Snapshot.document_id, snapshot.document_id))
+      .orderBy(desc(schema.Snapshot.created_at))
+      .limit(2);
+
+    let hasChanged = true;
+    if (previousSnapshots.length === 2) {
+      const previousSnapshot = previousSnapshots[1];
+      if (previousSnapshot.markdown_url) {
+        try {
+          const previousMarkdownResponse = await fetch(
+            previousSnapshot.markdown_url,
+          );
+          const previousMarkdown = await previousMarkdownResponse.text();
+          hasChanged = previousMarkdown !== doc.markdown;
+        } catch (error) {
+          console.error("Failed to fetch previous markdown:", error);
+        }
+      }
+    }
+
     const extractedMetadata = document?.metadata_schema
       ? await extractMetadata(doc.markdown, document.metadata_schema)
       : {};
@@ -75,6 +98,7 @@ export const processSnapshotTask = schemaTask({
           screenshot: doc.screenshot,
         },
         extracted_metadata: extractedMetadata,
+        has_changed: hasChanged ? 1 : 0,
         updated_at: new Date().toISOString(),
       })
       .where(eq(schema.Snapshot.id, snapshotId));
