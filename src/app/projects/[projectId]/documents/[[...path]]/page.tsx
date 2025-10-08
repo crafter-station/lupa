@@ -78,16 +78,11 @@ export default async function DocumentsPathPage({
           />
         </div>
         <div className="overflow-y-auto border-l pl-4">
-          {preloadedDocument ? (
-            <DocumentVersionViewer
-              preloadedDocument={preloadedDocument}
-              preloadedSnapshots={snapshots}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <p>Document not found</p>
-            </div>
-          )}
+          <DocumentVersionViewer
+            documentId={documentId}
+            preloadedDocument={preloadedDocument ?? null}
+            preloadedSnapshots={snapshots}
+          />
         </div>
       </div>
     );

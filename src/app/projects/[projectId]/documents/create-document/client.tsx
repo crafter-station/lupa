@@ -2,7 +2,7 @@
 
 import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React from "react";
 
 import { FolderPathSelector } from "@/components/elements/folder-path-selector";
@@ -28,6 +28,7 @@ import { generateId } from "@/lib/generate-id";
 
 export function CreateDocument() {
   const { projectId } = useParams<{ projectId: string }>();
+  const router = useRouter();
   const [open, setOpen] = React.useState(false);
 
   const { folder: contextFolder } = useFolderDocumentVersion();
@@ -112,15 +113,17 @@ export function CreateDocument() {
   const handleSubmit = React.useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
       const formData = new FormData(e.target as HTMLFormElement);
 
       const documentId = generateId();
       const snapshotId = generateId();
+      const folder = selectedFolder || "/";
 
       createDocument({
         id: documentId,
         project_id: projectId,
-        folder: selectedFolder || "/",
+        folder,
         name: formData.get("name") as string,
         description: formData.get("description") as string,
         metadata_schema: metadataSchema,
@@ -136,14 +139,18 @@ export function CreateDocument() {
           url: formData.get("url") as string,
           metadata: null,
           extracted_metadata: null,
+          has_changed: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
       });
 
+      router.push(
+        `/projects/${projectId}/documents/${folder}doc:${documentId}?newSnapshot=true`,
+      );
       setOpen(false);
     },
-    [projectId, createDocument, selectedFolder, metadataSchema],
+    [projectId, createDocument, selectedFolder, metadataSchema, router],
   );
 
   return (

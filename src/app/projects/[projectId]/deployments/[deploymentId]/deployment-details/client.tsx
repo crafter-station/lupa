@@ -119,11 +119,6 @@ export function DeploymentDetailsContent({
                     </p>
                   </div>
                 )}
-                {deployment.changes_detected && (
-                  <p className="text-xs text-muted-foreground">
-                    Changes detected
-                  </p>
-                )}
               </div>
             </HoverCardContent>
           </HoverCard>

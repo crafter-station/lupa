@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  boolean,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import z from "zod";
 
@@ -53,7 +46,6 @@ export const Deployment = pgTable(DEPLOYMENT_TABLE, {
     .array()
     .notNull()
     .default(sql`'{}'::jsonb[]`),
-  changes_detected: boolean("changes_detected").notNull().default(false),
 
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
     .notNull()

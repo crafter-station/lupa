@@ -98,7 +98,7 @@ export const processSnapshotTask = schemaTask({
           screenshot: doc.screenshot,
         },
         extracted_metadata: extractedMetadata,
-        has_changed: hasChanged ? 1 : 0,
+        has_changed: hasChanged,
         updated_at: new Date().toISOString(),
       })
       .where(eq(schema.Snapshot.id, snapshotId));

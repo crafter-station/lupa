@@ -2,6 +2,7 @@ import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PROJECT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
@@ -104,6 +105,8 @@ export async function POST(request: Request) {
     });
 
     await pool.end();
+
+    revalidatePath("/projects");
 
     return Response.json(
       { success: true, txid: parseInt(result.txid, 10) },

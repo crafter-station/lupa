@@ -43,6 +43,13 @@
       "when": 1759942601936,
       "tag": "0005_fancy_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1759944357709,
+      "tag": "0006_foamy_smasher",
+      "breakpoints": true
     }
   ]
 }

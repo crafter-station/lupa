@@ -3,7 +3,8 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,23 +15,49 @@ import type { DocumentSelect, SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { useMarkdown } from "@/hooks/use-markdown";
+import { generateId } from "@/lib/generate-id";
 import { CreateSnapshot } from "../../create-snapshot";
 import type { DocumentVersionViewerLoadingContextProps } from "./index";
 
 export function DocumentVersionViewerLiveQuery({
+  documentId,
   preloadedDocument,
   preloadedSnapshots,
 }: DocumentVersionViewerLoadingContextProps) {
-  const { SnapshotCollection } = useCollections();
+  const router = useRouter();
+  const { projectId } = useParams<{
+    projectId: string;
+  }>();
+  const { DocumentCollection, SnapshotCollection, DeploymentCollection } =
+    useCollections();
+  const [deploymentId, setDeploymentId] = useQueryState("foo");
+  const [toastId, setToastId] = React.useState<string | number | null>(null);
+  const [newSnapshot, _setNewSnapshot] = useQueryState(
+    "newSnapshot",
+    parseAsBoolean.withDefault(false),
+  );
+
+  const { data: freshDocumentData, status: documentStatus } = useLiveQuery(
+    (q) =>
+      q
+        .from({ document: DocumentCollection })
+        .select(({ document }) => ({ ...document }))
+        .where(({ document }) => eq(document.id, documentId)),
+  );
+
+  const document = React.useMemo(() => {
+    if (documentStatus === "ready" && freshDocumentData.length > 0) {
+      return freshDocumentData[0];
+    }
+    return preloadedDocument;
+  }, [documentStatus, freshDocumentData, preloadedDocument]);
 
   const { data: freshSnapshotsData, status: snapshotsStatus } = useLiveQuery(
     (q) =>
       q
         .from({ snapshot: SnapshotCollection })
         .select(({ snapshot }) => ({ ...snapshot }))
-        .where(({ snapshot }) =>
-          eq(snapshot.document_id, preloadedDocument.id),
-        ),
+        .where(({ snapshot }) => eq(snapshot.document_id, documentId)),
   );
 
   const snapshots = React.useMemo(() => {
@@ -40,6 +67,49 @@ export function DocumentVersionViewerLiveQuery({
   }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
 
   const prevSnapshotsRef = React.useRef(preloadedSnapshots);
+
+  const deploymentsResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: DeploymentCollection })
+        .select(({ deployment }) => ({ ...deployment }))
+        .where(({ deployment }) => eq(deployment.id, deploymentId)),
+    [deploymentId],
+  );
+
+  React.useEffect(() => {
+    const { data } = deploymentsResult;
+    if (data && data.length > 0 && newSnapshot) {
+      const deployment = data[0];
+
+      if (deployment.status === "queued" && !toastId) {
+        const id = toast.loading("Preparing deployment...", {
+          description: "Setting up your deployment",
+          duration: Number.POSITIVE_INFINITY,
+        });
+        setToastId(id);
+      } else if (deployment.status === "building" && toastId) {
+        toast.dismiss(toastId);
+        toast("Deployment is running", {
+          description: "Please wait for it to finish",
+          duration: 20000,
+          action: {
+            label: "Go to Deployment",
+            onClick: () =>
+              router.push(`/projects/${projectId}/deployments/${deploymentId}`),
+          },
+        });
+        setToastId(null);
+      }
+    }
+  }, [
+    newSnapshot,
+    deploymentsResult,
+    router,
+    projectId,
+    deploymentId,
+    toastId,
+  ]);
 
   React.useEffect(() => {
     if (snapshotsStatus !== "ready") return;
@@ -55,29 +125,59 @@ export function DocumentVersionViewerLiveQuery({
       if (
         prevSnapshot &&
         prevSnapshot.status === "running" &&
-        currentSnapshot.status === "success" &&
-        currentSnapshot.has_changed
+        currentSnapshot.status === "success"
       ) {
-        toast("Document has changed", {
-          description: "Do you want to redeploy now?",
-          action: {
-            label: "Redeploy",
-            onClick: () => {
-              window.location.href = `/projects/${preloadedDocument.project_id}/deployments/create-deployment`;
+        const isFirstSnapshot = currentSnapshots.length === 1;
+        const shouldDeploy =
+          currentSnapshot.has_changed === true || isFirstSnapshot;
+
+        if (shouldDeploy && document) {
+          toast(
+            isFirstSnapshot ? "Document is ready" : "Document has changed",
+            {
+              description: "Do you want to deploy now?",
+              duration: 20000,
+              action: {
+                label: isFirstSnapshot ? "Deploy" : "Redeploy",
+                onClick: () => {
+                  const deploymentId = generateId();
+                  DeploymentCollection.insert({
+                    id: deploymentId,
+                    project_id: document.project_id,
+                    vector_index_id: null,
+                    status: "queued",
+                    logs: [],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  });
+                  setDeploymentId(deploymentId);
+                },
+              },
             },
-          },
-        });
+          );
+        }
       }
     }
 
     prevSnapshotsRef.current = currentSnapshots;
-  }, [snapshotsStatus, freshSnapshotsData, preloadedDocument.project_id]);
+  }, [
+    snapshotsStatus,
+    freshSnapshotsData,
+    document,
+    DeploymentCollection,
+    setDeploymentId,
+  ]);
+
+  if (!document) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <p>Loading document...</p>
+      </div>
+    );
+  }
 
   return (
-    <DocumentVersionViewerContent
-      document={preloadedDocument}
-      snapshots={snapshots}
-    />
+    <DocumentVersionViewerContent document={document} snapshots={snapshots} />
   );
 }
 

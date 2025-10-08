@@ -24,6 +24,14 @@ export const deploy = schemaTask({
 
       const deployment = deployments[0];
 
+      await db
+        .update(schema.Deployment)
+        .set({
+          status: "building",
+          updated_at: new Date().toISOString(),
+        })
+        .where(eq(schema.Deployment.id, deploymentId));
+
       const documents = await db
         .select()
         .from(schema.Document)

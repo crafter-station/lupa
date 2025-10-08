@@ -19,7 +19,6 @@ export const CreateDeployment = () => {
       vector_index_id: null,
 
       status: "queued",
-      changes_detected: true,
       logs: [],
 
       created_at: new Date().toISOString(),
