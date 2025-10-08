@@ -14,11 +14,11 @@ import {
 import type { ProjectSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 
-export function ProjectList({
+import type { ProjectListLoadingContextProps } from "./index";
+
+export function ProjectListLiveQuery({
   preloadedProjects,
-}: {
-  preloadedProjects: ProjectSelect[];
-}) {
+}: ProjectListLoadingContextProps) {
   const { ProjectCollection } = useCollections();
 
   const { data: freshData, status } = useLiveQuery((q) =>
@@ -29,12 +29,17 @@ export function ProjectList({
 
   const projects = React.useMemo(() => {
     const data = status === "ready" ? freshData : preloadedProjects;
-    return [...data].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
+    return [...data];
   }, [status, freshData, preloadedProjects]);
 
+  return <ProjectListContent projects={projects} />;
+}
+
+export function ProjectListContent({
+  projects,
+}: {
+  projects: ProjectSelect[];
+}) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -47,27 +52,33 @@ export function ProjectList({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {projects.map((project) => (
-            <TableRow key={project.id}>
-              <TableCell>
-                <Link
-                  href={`/projects/${project.id}`}
-                  className="font-medium hover:underline"
-                >
-                  {project.name}
-                </Link>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {project.description}
-              </TableCell>
-              <TableCell>
-                {new Date(project.created_at).toLocaleString()}
-              </TableCell>
-              <TableCell>
-                {new Date(project.updated_at).toLocaleString()}
-              </TableCell>
-            </TableRow>
-          ))}
+          {projects
+            .toSorted(
+              (a, b) =>
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime(),
+            )
+            .map((project) => (
+              <TableRow key={project.id}>
+                <TableCell>
+                  <Link
+                    href={`/projects/${project.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {project.name}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {project.description}
+                </TableCell>
+                <TableCell>
+                  {new Date(project.created_at).toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  {new Date(project.updated_at).toLocaleString()}
+                </TableCell>
+              </TableRow>
+            ))}
         </TableBody>
       </Table>
     </div>

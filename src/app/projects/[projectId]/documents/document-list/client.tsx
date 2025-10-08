@@ -11,7 +11,8 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Folder, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -25,10 +26,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { DocumentSelect } from "@/db";
+import type { DocumentSelect, SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
+import { fetchMarkdown } from "@/hooks/use-markdown";
 import { cn } from "@/lib/utils";
+import type { DocumentListLoadingContextProps } from "./index";
 
 type FolderItem = {
   type: "folder";
@@ -104,21 +107,18 @@ function DroppableFolderRow({
   );
 }
 
-export function DocumentList({
+export function DocumentListLiveQuery({
   preloadedDocuments,
-}: {
-  preloadedDocuments: DocumentSelect[];
-}) {
+  preloadedSnapshots,
+}: DocumentListLoadingContextProps) {
   const { projectId } = useParams<{
     projectId: string;
     path?: string[];
   }>();
 
-  const { folder: currentFolder, documentId } = useFolderDocumentVersion();
+  const { DocumentCollection, SnapshotCollection } = useCollections();
 
-  const { DocumentCollection } = useCollections();
-
-  const { data: freshData, status } = useLiveQuery((q) =>
+  const { data: freshDocuments, status: documentsStatus } = useLiveQuery((q) =>
     q
       .from({ document: DocumentCollection })
       .select(({ document }) => ({ ...document }))
@@ -126,8 +126,50 @@ export function DocumentList({
   );
 
   const allDocuments = React.useMemo(() => {
-    return status === "ready" ? freshData : preloadedDocuments;
-  }, [status, freshData, preloadedDocuments]);
+    const data =
+      documentsStatus === "ready" ? freshDocuments : preloadedDocuments;
+    return [...data];
+  }, [documentsStatus, freshDocuments, preloadedDocuments]);
+
+  const { data: freshSnapshots, status: snapshotsStatus } = useLiveQuery((q) =>
+    q
+      .from({ snapshot: SnapshotCollection })
+      .select(({ snapshot }) => ({ ...snapshot }))
+      .where(({ snapshot }) =>
+        inArray(
+          snapshot.document_id,
+          allDocuments.map((d) => d.id),
+        ),
+      ),
+  );
+
+  const allSnapshots = React.useMemo(() => {
+    const data =
+      snapshotsStatus === "ready" ? freshSnapshots : preloadedSnapshots;
+    return [...data];
+  }, [snapshotsStatus, freshSnapshots, preloadedSnapshots]);
+
+  return (
+    <DocumentListContent documents={allDocuments} snapshots={allSnapshots} />
+  );
+}
+
+export function DocumentListContent({
+  documents: allDocuments,
+  snapshots: allSnapshots,
+}: {
+  documents: DocumentSelect[];
+  snapshots: SnapshotSelect[];
+}) {
+  const { projectId } = useParams<{
+    projectId: string;
+    path?: string[];
+  }>();
+
+  const { DocumentCollection } = useCollections();
+
+  const { folder: currentFolder, documentId } = useFolderDocumentVersion();
+  const queryClient = useQueryClient();
 
   const [activeDocument, setActiveDocument] =
     React.useState<DocumentSelect | null>(null);
@@ -185,6 +227,44 @@ export function DocumentList({
       });
     }
   };
+
+  const folderDocuments = React.useMemo(() => {
+    return allDocuments.filter((doc) => doc.folder === currentFolder);
+  }, [allDocuments, currentFolder]);
+
+  const folderSnapshots = React.useMemo(() => {
+    const folderDocumentIds = new Set(folderDocuments.map((d) => d.id));
+    return allSnapshots.filter((snapshot) =>
+      folderDocumentIds.has(snapshot.document_id),
+    );
+  }, [allSnapshots, folderDocuments]);
+
+  React.useEffect(() => {
+    if (folderSnapshots.length === 0) return;
+
+    const latestSnapshotsByDocument = new Map<string, SnapshotSelect>();
+
+    for (const snapshot of folderSnapshots) {
+      const existing = latestSnapshotsByDocument.get(snapshot.document_id);
+      if (
+        !existing ||
+        new Date(snapshot.created_at) > new Date(existing.created_at)
+      ) {
+        latestSnapshotsByDocument.set(snapshot.document_id, snapshot);
+      }
+    }
+
+    for (const snapshot of latestSnapshotsByDocument.values()) {
+      if (snapshot.markdown_url) {
+        const markdownUrl = snapshot.markdown_url;
+        queryClient.prefetchQuery({
+          queryKey: ["markdown", markdownUrl],
+          queryFn: () => fetchMarkdown(markdownUrl),
+          staleTime: 10 * 60 * 1000,
+        });
+      }
+    }
+  }, [folderSnapshots, queryClient]);
 
   const items = React.useMemo(() => {
     const folders = new Set<string>();
@@ -318,7 +398,7 @@ export function DocumentList({
                       <TableCell>
                         <Link
                           href={
-                            documentId
+                            documentId === item.document.id
                               ? `/projects/${projectId}/documents${currentFolder}`
                               : documentUrl
                           }

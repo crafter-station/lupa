@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { CreateDocument } from "../create-document";
@@ -52,6 +52,19 @@ export default async function DocumentsPathPage({
       .from(schema.Document)
       .where(eq(schema.Document.project_id, projectId));
 
+    const preloadedSnapshotsForList =
+      preloadedDocuments.length > 0
+        ? await db
+            .select()
+            .from(schema.Snapshot)
+            .where(
+              inArray(
+                schema.Snapshot.document_id,
+                preloadedDocuments.map((d) => d.id),
+              ),
+            )
+        : [];
+
     return (
       <div className="grid grid-cols-2 gap-4 h-[calc(100vh-10rem)]">
         <div className="overflow-y-auto flex flex-col gap-2">
@@ -59,7 +72,10 @@ export default async function DocumentsPathPage({
             <h1 className="text-2xl font-bold">Documents</h1>
             <CreateDocument />
           </div>
-          <DocumentList preloadedDocuments={preloadedDocuments} />
+          <DocumentList
+            preloadedDocuments={preloadedDocuments}
+            preloadedSnapshots={preloadedSnapshotsForList}
+          />
         </div>
         <div className="overflow-y-auto border-l pl-4">
           {preloadedDocument ? (
@@ -82,13 +98,29 @@ export default async function DocumentsPathPage({
     .from(schema.Document)
     .where(eq(schema.Document.project_id, projectId));
 
+  const preloadedSnapshotsForList =
+    preloadedDocuments.length > 0
+      ? await db
+          .select()
+          .from(schema.Snapshot)
+          .where(
+            inArray(
+              schema.Snapshot.document_id,
+              preloadedDocuments.map((d) => d.id),
+            ),
+          )
+      : [];
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-start">
         <h1 className="text-2xl font-bold">Documents</h1>
         <CreateDocument />
       </div>
-      <DocumentList preloadedDocuments={preloadedDocuments} />
+      <DocumentList
+        preloadedDocuments={preloadedDocuments}
+        preloadedSnapshots={preloadedSnapshotsForList}
+      />
     </div>
   );
 }

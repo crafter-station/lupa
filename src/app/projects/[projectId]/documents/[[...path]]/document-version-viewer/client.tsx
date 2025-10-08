@@ -12,21 +12,14 @@ import { Button } from "@/components/ui/button";
 import type { DocumentSelect, SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
-import { CreateSnapshot } from "../create-snapshot";
+import { useMarkdown } from "@/hooks/use-markdown";
+import { CreateSnapshot } from "../../create-snapshot";
+import type { DocumentVersionViewerLoadingContextProps } from "./index";
 
-export function DocumentVersionViewer({
+export function DocumentVersionViewerLiveQuery({
   preloadedDocument,
   preloadedSnapshots,
-}: {
-  preloadedDocument: DocumentSelect;
-  preloadedSnapshots: SnapshotSelect[];
-}) {
-  const { projectId } = useParams<{
-    projectId: string;
-  }>();
-
-  const { folder, version } = useFolderDocumentVersion();
-
+}: DocumentVersionViewerLoadingContextProps) {
   const { SnapshotCollection } = useCollections();
 
   const { data: freshSnapshotsData, status: snapshotsStatus } = useLiveQuery(
@@ -42,11 +35,36 @@ export function DocumentVersionViewer({
   const snapshots = React.useMemo(() => {
     const data =
       snapshotsStatus === "ready" ? freshSnapshotsData : preloadedSnapshots;
-    return data.sort(
+    return [...data];
+  }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
+
+  return (
+    <DocumentVersionViewerContent
+      document={preloadedDocument}
+      snapshots={snapshots}
+    />
+  );
+}
+
+export function DocumentVersionViewerContent({
+  document: preloadedDocument,
+  snapshots: snapshotsData,
+}: {
+  document: DocumentSelect;
+  snapshots: SnapshotSelect[];
+}) {
+  const { projectId } = useParams<{
+    projectId: string;
+  }>();
+
+  const { folder, version } = useFolderDocumentVersion();
+
+  const snapshots = React.useMemo(() => {
+    return [...snapshotsData].sort(
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
-  }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
+  }, [snapshotsData]);
 
   const latestVersionIndex = snapshots.length - 1;
   const currentVersionIndex = version
@@ -54,27 +72,11 @@ export function DocumentVersionViewer({
     : latestVersionIndex;
   const currentSnapshot = snapshots[currentVersionIndex] || null;
 
-  const [markdown, setMarkdown] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!currentSnapshot?.markdown_url) {
-      setMarkdown(null);
-      return;
-    }
-
-    setLoading(true);
-    fetch(currentSnapshot.markdown_url)
-      .then((res) => res.text())
-      .then((text) => {
-        setMarkdown(text);
-        setLoading(false);
-      })
-      .catch(() => {
-        setMarkdown(null);
-        setLoading(false);
-      });
-  }, [currentSnapshot?.markdown_url]);
+  const {
+    data: markdown,
+    isLoading: loading,
+    isError,
+  } = useMarkdown(currentSnapshot?.markdown_url);
 
   const baseUrl = `/projects/${projectId}/documents/${folder}doc:${preloadedDocument.id}`;
 
@@ -156,8 +158,11 @@ export function DocumentVersionViewer({
         {!loading && markdown && (
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
         )}
-        {!loading && !markdown && (
+        {!loading && !markdown && !isError && (
           <p className="text-sm text-muted-foreground">No content available</p>
+        )}
+        {isError && (
+          <p className="text-sm text-red-600">Failed to load content</p>
         )}
       </div>
     </div>

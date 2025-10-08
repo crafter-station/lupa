@@ -44,3 +44,4 @@ next-env.d.ts
 .cursor
 .clerk
 .idea
+.env*.local
