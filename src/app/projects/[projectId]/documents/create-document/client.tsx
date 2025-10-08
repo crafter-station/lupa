@@ -39,11 +39,13 @@ export function CreateDocument() {
 
   const { DocumentCollection, SnapshotCollection } = useCollections();
 
-  const { data: allDocuments = [] } = useLiveQuery((q) =>
-    q
-      .from({ document: DocumentCollection })
-      .select(({ document }) => ({ ...document }))
-      .where(({ document }) => eq(document.project_id, projectId)),
+  const { data: allDocuments = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ document: DocumentCollection })
+        .select(({ document }) => ({ ...document }))
+        .where(({ document }) => eq(document.project_id, projectId)),
+    [],
   );
 
   React.useEffect(() => {

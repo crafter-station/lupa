@@ -27,5 +27,9 @@ export const CreateDeployment = () => {
     });
   }, [projectId, DeploymentCollection]);
 
-  return <Button onClick={handleClick}>Deploy</Button>;
+  return (
+    <Button variant="outline" onClick={handleClick}>
+      Deploy
+    </Button>
+  );
 };

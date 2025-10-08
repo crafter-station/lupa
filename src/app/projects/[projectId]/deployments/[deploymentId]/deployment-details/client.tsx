@@ -21,12 +21,12 @@ import { useCollections } from "@/hooks/use-collections";
 import { AIPlayground } from "../ai-playground";
 import { SearchPlayground } from "../search-playground";
 
-export function DeploymentDetails({
+import type { DeploymentDetailsLoadingContextProps } from "./index";
+
+export function DeploymentDetailsLiveQuery({
   preloadedDeployment,
-}: {
-  preloadedDeployment: DeploymentSelect;
-}) {
-  const { deploymentId, projectId } = useParams<{
+}: DeploymentDetailsLoadingContextProps) {
+  const { deploymentId } = useParams<{
     deploymentId: string;
     projectId: string;
   }>();
@@ -44,6 +44,19 @@ export function DeploymentDetails({
     const data = status === "ready" ? freshData : [preloadedDeployment];
     return data[0];
   }, [status, freshData, preloadedDeployment]);
+
+  return <DeploymentDetailsContent deployment={deployment} />;
+}
+
+export function DeploymentDetailsContent({
+  deployment,
+}: {
+  deployment: DeploymentSelect;
+}) {
+  const { deploymentId, projectId } = useParams<{
+    deploymentId: string;
+    projectId: string;
+  }>();
 
   if (!deployment) {
     return <div>Deployment not found</div>;
