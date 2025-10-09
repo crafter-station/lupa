@@ -56,13 +56,7 @@ export const CollectionsProvider = ({
     [projectId, deploymentId],
   );
 
-  const _SnapshotCollection = React.useMemo(
-    () =>
-      SnapshotCollection({
-        document_id: documentId ?? undefined,
-      }),
-    [documentId],
-  );
+  const _SnapshotCollection = React.useMemo(() => SnapshotCollection(), []);
 
   return (
     <CollectionsContext
