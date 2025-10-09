@@ -278,7 +278,7 @@ export function CreateDocument() {
         const snapshotId = generateId();
 
         // Create document with optimistic update
-        await createFileDocument({
+        createFileDocument({
           id: documentId,
           project_id: projectId,
           folder: selectedFolder || "/",
@@ -299,6 +299,7 @@ export function CreateDocument() {
               file_name: selectedFile.name,
               file_size: selectedFile.size,
             },
+            changes_detected: false,
             extracted_metadata: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

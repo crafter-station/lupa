@@ -8,7 +8,6 @@ CREATE TABLE "deployment" (
 	"vector_index_id" text,
 	"status" "deployment_status_enum" NOT NULL,
 	"logs" jsonb DEFAULT '[]'::jsonb NOT NULL,
-	"changes_detected" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

@@ -1,5 +1,5 @@
 {
-  "id": "3b7b6830-ec13-4f67-85aa-fcde4411fb5e",
+  "id": "73fa03eb-2a2e-4e3f-8b42-c83c10af87fb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -39,13 +39,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'[]'::jsonb"
-        },
-        "changes_detected": {
-          "name": "changes_detected",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",
