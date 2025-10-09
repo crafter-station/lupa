@@ -50,9 +50,8 @@ export const Deployment = pgTable(DEPLOYMENT_TABLE, {
   status: DeploymentStatus("status").notNull(),
   logs: jsonb("logs")
     .$type<DeploymentLog[]>()
-    .array()
     .notNull()
-    .default(sql`'{}'::jsonb[]`),
+    .default(sql`'[]'::jsonb`),
   changes_detected: boolean("changes_detected").notNull().default(false),
 
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
