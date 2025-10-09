@@ -7,7 +7,7 @@ CREATE TABLE "deployment" (
 	"project_id" text NOT NULL,
 	"vector_index_id" text,
 	"status" "deployment_status_enum" NOT NULL,
-	"logs" jsonb[] DEFAULT '{}' NOT NULL,
+	"logs" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"changes_detected" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -15,9 +15,11 @@ CREATE TABLE "deployment" (
 --> statement-breakpoint
 CREATE TABLE "document" (
 	"id" text PRIMARY KEY NOT NULL,
+	"folder" text DEFAULT '/' NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
 	"project_id" text NOT NULL,
+	"metadata_schema" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -39,6 +41,8 @@ CREATE TABLE "snapshot" (
 	"markdown_url" text,
 	"chunks_count" integer,
 	"metadata" jsonb,
+	"extracted_metadata" jsonb,
+	"changes_detected" boolean,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

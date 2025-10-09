@@ -53,7 +53,7 @@ export function CreateSnapshot() {
         url: formData.get("url") as string,
         metadata: null,
         extracted_metadata: null,
-        has_changed: false,
+        changes_detected: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });

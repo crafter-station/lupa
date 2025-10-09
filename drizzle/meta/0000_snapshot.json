@@ -1,5 +1,5 @@
 {
-  "id": "f5b59ca3-9872-498f-961c-9ab405eda2c9",
+  "id": "3b7b6830-ec13-4f67-85aa-fcde4411fb5e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -35,10 +35,10 @@
         },
         "logs": {
           "name": "logs",
-          "type": "jsonb[]",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{}'"
+          "default": "'[]'::jsonb"
         },
         "changes_detected": {
           "name": "changes_detected",
@@ -80,6 +80,13 @@
           "primaryKey": true,
           "notNull": true
         },
+        "folder": {
+          "name": "folder",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'/'"
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -97,6 +104,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "metadata_schema": {
+          "name": "metadata_schema",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -217,6 +230,18 @@
         "metadata": {
           "name": "metadata",
           "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "extracted_metadata": {
+          "name": "extracted_metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changes_detected": {
+          "name": "changes_detected",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": false
         },

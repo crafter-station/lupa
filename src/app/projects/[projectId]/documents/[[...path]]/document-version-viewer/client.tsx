@@ -129,7 +129,7 @@ export function DocumentVersionViewerLiveQuery({
       ) {
         const isFirstSnapshot = currentSnapshots.length === 1;
         const shouldDeploy =
-          currentSnapshot.has_changed === true || isFirstSnapshot;
+          currentSnapshot.changes_detected === true || isFirstSnapshot;
 
         if (shouldDeploy && document) {
           toast(

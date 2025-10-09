@@ -11,13 +11,15 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { type CollectionStatus, eq, useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Folder, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
+import { FileTypeBadge } from "@/components/elements/file-type-badge";
+import { SnapshotStatusBadge } from "@/components/elements/snapshot-status-badge";
 import {
   Table,
   TableBody,
@@ -131,35 +133,53 @@ export function DocumentListLiveQuery({
     return [...data];
   }, [documentsStatus, freshDocuments, preloadedDocuments]);
 
-  const { data: freshSnapshots, status: snapshotsStatus } = useLiveQuery((q) =>
-    q
-      .from({ snapshot: SnapshotCollection })
-      .select(({ snapshot }) => ({ ...snapshot }))
-      .where(({ snapshot }) =>
-        inArray(
-          snapshot.document_id,
-          allDocuments.map((d) => d.id),
-        ),
-      ),
+  // Load all snapshots for documents in this project (more efficient than filtering)
+  const documentIds = React.useMemo(
+    () => allDocuments.map((d) => d.id),
+    [allDocuments],
   );
 
+  const { data: freshSnapshots, status: snapshotsStatus } = useLiveQuery(
+    (q) =>
+      q
+        .from({ snapshot: SnapshotCollection })
+        .select(({ snapshot }) => ({ ...snapshot })),
+    [],
+  );
+
+  // Filter snapshots client-side for better performance 👀
+  const projectSnapshots = React.useMemo(() => {
+    if (!freshSnapshots) return [];
+    const documentIdSet = new Set(documentIds);
+    return freshSnapshots.filter((s) => documentIdSet.has(s.document_id));
+  }, [freshSnapshots, documentIds]);
+
   const allSnapshots = React.useMemo(() => {
-    const data =
-      snapshotsStatus === "ready" ? freshSnapshots : preloadedSnapshots;
-    return [...data];
-  }, [snapshotsStatus, freshSnapshots, preloadedSnapshots]);
+    if (snapshotsStatus === "ready") {
+      return [...projectSnapshots];
+    }
+    // Filter preloaded snapshots too
+    const documentIdSet = new Set(documentIds);
+    return preloadedSnapshots.filter((s) => documentIdSet.has(s.document_id));
+  }, [snapshotsStatus, projectSnapshots, preloadedSnapshots, documentIds]);
 
   return (
-    <DocumentListContent documents={allDocuments} snapshots={allSnapshots} />
+    <DocumentListContent
+      documents={allDocuments}
+      snapshots={allSnapshots}
+      snapshotsStatus={snapshotsStatus}
+    />
   );
 }
 
 export function DocumentListContent({
   documents: allDocuments,
   snapshots: allSnapshots,
+  snapshotsStatus = "ready",
 }: {
   documents: DocumentSelect[];
   snapshots: SnapshotSelect[];
+  snapshotsStatus?: CollectionStatus;
 }) {
   const { projectId } = useParams<{
     projectId: string;
@@ -310,6 +330,19 @@ export function DocumentListContent({
     return result;
   }, [allDocuments, currentFolder]);
 
+  const getLatestSnapshot = (documentId: string): SnapshotSelect | null => {
+    const docSnapshots = allSnapshots.filter(
+      (s) => s.document_id === documentId,
+    );
+    if (docSnapshots.length === 0) return null;
+
+    return docSnapshots.reduce((latest, current) =>
+      new Date(current.created_at) > new Date(latest.created_at)
+        ? current
+        : latest,
+    );
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -320,17 +353,19 @@ export function DocumentListContent({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-1/4">Name</TableHead>
+              <TableHead className="w-1/5">Name</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-1/4">Created</TableHead>
-              <TableHead className="w-1/4">Updated</TableHead>
+              <TableHead className="w-24">Type</TableHead>
+              <TableHead className="w-24">Status</TableHead>
+              <TableHead className="w-32">Created</TableHead>
+              <TableHead className="w-32">Updated</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={6}
                   className="text-center text-muted-foreground"
                 >
                   No documents or folders in this location
@@ -354,6 +389,8 @@ export function DocumentListContent({
                     <TableCell className="text-muted-foreground">
                       Folder
                     </TableCell>
+                    <TableCell>-</TableCell>
+                    <TableCell>-</TableCell>
                     <TableCell>-</TableCell>
                     <TableCell>-</TableCell>
                   </DroppableFolderRow>
@@ -380,12 +417,16 @@ export function DocumentListContent({
                         </TableCell>
                         <TableCell>-</TableCell>
                         <TableCell>-</TableCell>
+                        <TableCell>-</TableCell>
+                        <TableCell>-</TableCell>
                       </DroppableFolderRow>
                     );
                   }
 
                   const documentUrl = `/projects/${projectId}/documents${currentFolder}doc:${item.document.id}`;
                   const isUpdating = updatingDocuments.has(item.document.id);
+                  const latestSnapshot = getLatestSnapshot(item.document.id);
+
                   return (
                     <DraggableDocumentRow
                       key={item.document.id}
@@ -410,6 +451,28 @@ export function DocumentListContent({
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {item.document.description}
+                      </TableCell>
+                      <TableCell>
+                        {snapshotsStatus !== "ready" ? (
+                          <div className="h-5 w-16 animate-pulse rounded bg-muted" />
+                        ) : latestSnapshot ? (
+                          <FileTypeBadge snapshot={latestSnapshot} />
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {snapshotsStatus !== "ready" ? (
+                          <div className="h-5 w-20 animate-pulse rounded bg-muted" />
+                        ) : latestSnapshot ? (
+                          <SnapshotStatusBadge snapshot={latestSnapshot} />
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {documentId

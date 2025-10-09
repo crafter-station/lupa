@@ -1,1 +1,0 @@
-ALTER TABLE "deployment" DROP COLUMN "changes_detected";

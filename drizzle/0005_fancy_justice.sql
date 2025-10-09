@@ -1,1 +1,0 @@
-ALTER TABLE "snapshot" ADD COLUMN "has_changed" boolean;

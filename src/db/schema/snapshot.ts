@@ -63,7 +63,7 @@ export const Snapshot = pgTable(SNAPSHOT_TABLE, {
     "extracted_metadata",
   ).$type<ExtractedMetadata | null>(),
 
-  has_changed: boolean("has_changed"),
+  changes_detected: boolean("changes_detected"),
 
   created_at: timestamp("created_at", {
     withTimezone: true,
