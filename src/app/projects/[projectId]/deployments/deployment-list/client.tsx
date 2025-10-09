@@ -55,7 +55,6 @@ export function DeploymentListContent({
           <TableRow>
             <TableHead>ID</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Changes Detected</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Updated</TableHead>
           </TableRow>
@@ -93,9 +92,6 @@ export function DeploymentListContent({
                   >
                     {deployment.status}
                   </span>
-                </TableCell>
-                <TableCell>
-                  {deployment.changes_detected ? "Yes" : "No"}
                 </TableCell>
                 <TableCell>
                   {new Date(deployment.created_at).toLocaleString()}

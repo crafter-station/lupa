@@ -2,8 +2,8 @@
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Plus } from "lucide-react";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import React from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +19,10 @@ import { generateId } from "@/lib/generate-id";
 
 export function CreateSnapshot() {
   const [open, setOpen] = React.useState(false);
+  const [_newSnapshot, setNewSnapshot] = useQueryState(
+    "newSnapshot",
+    parseAsBoolean.withDefault(false),
+  );
 
   const { SnapshotCollection } = useCollections();
 
@@ -49,13 +53,16 @@ export function CreateSnapshot() {
         url: formData.get("url") as string,
         metadata: null,
         extracted_metadata: null,
+        changes_detected: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
 
+      setNewSnapshot(true);
+
       setOpen(false);
     },
-    [documentId, SnapshotCollection],
+    [documentId, SnapshotCollection, setNewSnapshot],
   );
 
   return (

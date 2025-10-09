@@ -11,7 +11,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { type CollectionStatus, eq, useLiveQuery } from "@tanstack/react-db";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Folder, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -164,22 +164,16 @@ export function DocumentListLiveQuery({
   }, [snapshotsStatus, projectSnapshots, preloadedSnapshots, documentIds]);
 
   return (
-    <DocumentListContent
-      documents={allDocuments}
-      snapshots={allSnapshots}
-      snapshotsStatus={snapshotsStatus}
-    />
+    <DocumentListContent documents={allDocuments} snapshots={allSnapshots} />
   );
 }
 
 export function DocumentListContent({
   documents: allDocuments,
   snapshots: allSnapshots,
-  snapshotsStatus = "ready",
 }: {
   documents: DocumentSelect[];
   snapshots: SnapshotSelect[];
-  snapshotsStatus?: CollectionStatus;
 }) {
   const { projectId } = useParams<{
     projectId: string;
@@ -453,9 +447,7 @@ export function DocumentListContent({
                         {item.document.description}
                       </TableCell>
                       <TableCell>
-                        {snapshotsStatus !== "ready" ? (
-                          <div className="h-5 w-16 animate-pulse rounded bg-muted" />
-                        ) : latestSnapshot ? (
+                        {latestSnapshot ? (
                           <FileTypeBadge snapshot={latestSnapshot} />
                         ) : (
                           <span className="text-muted-foreground text-xs">
@@ -464,9 +456,7 @@ export function DocumentListContent({
                         )}
                       </TableCell>
                       <TableCell>
-                        {snapshotsStatus !== "ready" ? (
-                          <div className="h-5 w-20 animate-pulse rounded bg-muted" />
-                        ) : latestSnapshot ? (
+                        {latestSnapshot ? (
                           <SnapshotStatusBadge snapshot={latestSnapshot} />
                         ) : (
                           <span className="text-muted-foreground text-xs">

@@ -3,7 +3,7 @@
 import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { FileText, Globe, Loader2, Upload } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
 import { FolderPathSelector } from "@/components/elements/folder-path-selector";
@@ -33,6 +33,7 @@ type DocumentType = "url" | "file";
 
 export function CreateDocument() {
   const { projectId } = useParams<{ projectId: string }>();
+  const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [documentType, setDocumentType] = React.useState<DocumentType>("url");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
@@ -123,15 +124,17 @@ export function CreateDocument() {
   const handleUrlSubmit = React.useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
       const formData = new FormData(e.target as HTMLFormElement);
 
       const documentId = generateId();
       const snapshotId = generateId();
+      const folder = selectedFolder || "/";
 
       createDocument({
         id: documentId,
         project_id: projectId,
-        folder: selectedFolder || "/",
+        folder,
         name: formData.get("name") as string,
         description: formData.get("description") as string,
         metadata_schema: metadataSchema,
@@ -147,14 +150,18 @@ export function CreateDocument() {
           url: formData.get("url") as string,
           metadata: null,
           extracted_metadata: null,
+          changes_detected: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
       });
 
+      router.push(
+        `/projects/${projectId}/documents/${folder}doc:${documentId}?newSnapshot=true`,
+      );
       setOpen(false);
     },
-    [projectId, createDocument, selectedFolder, metadataSchema],
+    [projectId, createDocument, selectedFolder, metadataSchema, router],
   );
 
   const createFileDocument = createOptimisticAction<
@@ -271,7 +278,7 @@ export function CreateDocument() {
         const snapshotId = generateId();
 
         // Create document with optimistic update
-        await createFileDocument({
+        createFileDocument({
           id: documentId,
           project_id: projectId,
           folder: selectedFolder || "/",
@@ -292,13 +299,16 @@ export function CreateDocument() {
               file_name: selectedFile.name,
               file_size: selectedFile.size,
             },
+            changes_detected: false,
             extracted_metadata: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
         });
 
-        toast.success("File uploaded and parsing started");
+        router.push(
+          `/projects/${projectId}/documents/${selectedFolder || "/"}doc:${documentId}?newSnapshot=true`,
+        );
         setOpen(false);
       } catch (error) {
         console.error("Upload error:", error);
@@ -315,6 +325,7 @@ export function CreateDocument() {
       selectedFolder,
       metadataSchema,
       createFileDocument,
+      router,
     ],
   );
 

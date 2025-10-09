@@ -2,6 +2,7 @@ import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { DOCUMENT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
@@ -135,14 +136,19 @@ export async function POST(request: Request) {
         sql`SELECT pg_current_xact_id()::xid::text as txid`,
       );
 
-      await processSnapshotTask.trigger({
-        snapshotId: snapshotId,
-      });
-
       return {
         txid: txid.rows[0].txid as string,
       };
     });
+
+    await processSnapshotTask.trigger({
+      snapshotId: snapshotId,
+    });
+
+    revalidatePath(`/projects/${project_id}/documents`);
+    if (folder && folder !== "/") {
+      revalidatePath(`/projects/${project_id}/documents${folder}`);
+    }
 
     await pool.end();
 

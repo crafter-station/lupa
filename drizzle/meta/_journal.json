@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1759733791775,
-      "tag": "0000_furry_maginty",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1759733927029,
-      "tag": "0001_dear_maria_hill",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1759782688447,
-      "tag": "0002_groovy_charles_xavier",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1759815421698,
-      "tag": "0003_empty_hellfire_club",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1759815909092,
-      "tag": "0004_brown_trauma",
+      "when": 1759982933883,
+      "tag": "0000_confused_odin",
       "breakpoints": true
     }
   ]

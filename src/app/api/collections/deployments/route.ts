@@ -2,6 +2,7 @@ import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { DEPLOYMENT_TABLE } from "@/db";
@@ -106,6 +107,8 @@ export async function POST(request: Request) {
     });
 
     await pool.end();
+
+    revalidatePath(`/projects/${data.project_id}/deployments`);
 
     await deploy.trigger({
       deploymentId: data.id,

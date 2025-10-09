@@ -5,7 +5,7 @@ import { CreateDocument } from "../create-document";
 import { DocumentList } from "../document-list";
 import { DocumentVersionViewer } from "./document-version-viewer";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 export default async function DocumentsPathPage({
   params,
@@ -78,16 +78,11 @@ export default async function DocumentsPathPage({
           />
         </div>
         <div className="overflow-y-auto border-l pl-4">
-          {preloadedDocument ? (
-            <DocumentVersionViewer
-              preloadedDocument={preloadedDocument}
-              preloadedSnapshots={snapshots}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <p>Document not found</p>
-            </div>
-          )}
+          <DocumentVersionViewer
+            documentId={documentId}
+            preloadedDocument={preloadedDocument ?? null}
+            preloadedSnapshots={snapshots}
+          />
         </div>
       </div>
     );
