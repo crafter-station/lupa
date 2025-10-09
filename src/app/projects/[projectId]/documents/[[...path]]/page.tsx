@@ -5,7 +5,7 @@ import { CreateDocument } from "../create-document";
 import { DocumentList } from "../document-list";
 import { DocumentVersionViewer } from "./document-version-viewer";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 export default async function DocumentsPathPage({
   params,

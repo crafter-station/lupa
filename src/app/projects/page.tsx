@@ -3,7 +3,7 @@ import * as schema from "@/db/schema";
 import { CreateProject } from "./create-project";
 import { ProjectList } from "./project-list";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 export default async function ProjectsPage() {
   const preloadedProjects = await db.select().from(schema.Project);

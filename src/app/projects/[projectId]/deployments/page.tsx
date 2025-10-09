@@ -4,7 +4,7 @@ import * as schema from "@/db/schema";
 import { CreateDeployment } from "./create-deployment";
 import { DeploymentList } from "./deployment-list";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 export default async function DeploymentsPage({
   params,
