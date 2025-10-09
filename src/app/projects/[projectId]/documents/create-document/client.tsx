@@ -306,7 +306,9 @@ export function CreateDocument() {
           },
         });
 
-        toast.success("File uploaded and parsing started");
+        router.push(
+          `/projects/${projectId}/documents/${selectedFolder || "/"}doc:${documentId}?newSnapshot=true`,
+        );
         setOpen(false);
       } catch (error) {
         console.error("Upload error:", error);
@@ -323,6 +325,7 @@ export function CreateDocument() {
       selectedFolder,
       metadataSchema,
       createFileDocument,
+      router,
     ],
   );
 
