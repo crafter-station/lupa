@@ -1,9 +1,10 @@
-import { nanoid } from "nanoid";
-import { after } from "next/server";
-import { logSearchRequest, logSearchResults } from "@/lib/tinybird";
 import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 
 export const preferredRegion = "iad1";
+
+export const revalidate = false;
+
+export const dynamic = "force-static";
 
 export async function GET(
   _request: Request,
@@ -13,11 +14,8 @@ export async function GET(
     params: Promise<{ projectId: string; deploymentId: string; query: string }>;
   },
 ) {
-  const startTime = Date.now();
-  const requestId = nanoid();
-
   try {
-    const { deploymentId, query, projectId } = await params;
+    const { deploymentId, query } = await params;
     const decodedQuery = decodeURIComponent(query);
 
     const vector = await getVectorIndex(deploymentId);
@@ -27,32 +25,6 @@ export async function GET(
       topK: 5,
       includeData: true,
       includeMetadata: true,
-    });
-
-    const responseTime = Date.now() - startTime;
-    const scores = results.map((r) => r.score);
-
-    after(() => {
-      Promise.all([
-        logSearchRequest({
-          requestId,
-          projectId,
-          deploymentId,
-          query: decodedQuery,
-          statusCode: 200,
-          responseTimeMs: responseTime,
-          resultsReturned: results.length,
-          avgSimilarityScore:
-            scores.length > 0
-              ? scores.reduce((a, b) => a + b, 0) / scores.length
-              : 0,
-          minSimilarityScore: scores.length > 0 ? Math.min(...scores) : 0,
-          maxSimilarityScore: scores.length > 0 ? Math.max(...scores) : 0,
-        }),
-        logSearchResults(requestId, projectId, deploymentId, results),
-      ]).catch((error) => {
-        console.error("Error logging search results:", error);
-      });
     });
 
     return new Response(
@@ -66,8 +38,7 @@ export async function GET(
     );
   } catch (error) {
     console.error("Search API error:", error);
-    const responseTime = Date.now() - startTime;
-    const { projectId, deploymentId, query } = await params;
+    const { deploymentId } = await params;
 
     let statusCode = 500;
     let errorMessage = "Internal server error";
@@ -85,19 +56,6 @@ export async function GET(
         statusCode = 404;
       }
     }
-
-    after(() => {
-      logSearchRequest({
-        requestId,
-        projectId,
-        deploymentId,
-        query: decodeURIComponent(query),
-        statusCode,
-        responseTimeMs: responseTime,
-        resultsReturned: 0,
-        errorMessage,
-      }).catch(() => {});
-    });
 
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: statusCode,
