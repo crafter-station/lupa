@@ -64,7 +64,8 @@ export async function getDeploymentOverview(
 export async function getRequestsTimeseries(
   projectId: string,
   deploymentId: string,
-  days = 7,
+  hours = 168,
+  granularity: "5m" | "1h" | "1d" = "1h",
 ) {
   return queryTinybird<
     Array<{
@@ -77,7 +78,8 @@ export async function getRequestsTimeseries(
   >("requests_timeseries", {
     project_id: projectId,
     deployment_id: deploymentId,
-    days,
+    hours,
+    granularity,
   });
 }
 
@@ -248,4 +250,53 @@ export async function getQueryDocumentMapping(
     days,
     limit,
   });
+}
+
+export async function getProjectOverview(projectId: string, hours = 24) {
+  return queryTinybird<
+    Array<{
+      total_requests: number;
+      successful_requests: number;
+      failed_requests: number;
+      avg_response_time: number;
+      p95_response_time: number;
+      avg_results_count: number;
+      avg_relevance_score: number;
+    }>
+  >("project_overview", {
+    project_id: projectId,
+    hours,
+  });
+}
+
+export async function getProjectTimeseries(
+  projectId: string,
+  hours = 168,
+  granularity: "5m" | "1h" | "1d" = "1h",
+) {
+  return queryTinybird<
+    Array<{
+      time_bucket: string;
+      requests: number;
+      avg_latency: number;
+      errors: number;
+      avg_relevance: number;
+    }>
+  >("project_timeseries", {
+    project_id: projectId,
+    hours,
+    granularity,
+  });
+}
+
+export async function getProjectErrors(projectId: string, days = 30) {
+  return queryTinybird<
+    Array<{
+      status_code: number;
+      error_message: string;
+      occurrences: number;
+      last_seen: string;
+      sample_query: string;
+    }>
+  >("project_errors", { project_id: projectId, days });
 }

@@ -1,16 +1,16 @@
 import type { NextRequest } from "next/server";
-import { getRequestsTimeseries } from "@/lib/tinybird-client";
+import { getProjectTimeseries } from "@/lib/tinybird-client";
 
 export async function GET(
   request: NextRequest,
   {
     params,
   }: {
-    params: Promise<{ projectId: string; deploymentId: string }>;
+    params: Promise<{ projectId: string }>;
   },
 ) {
   try {
-    const { projectId, deploymentId } = await params;
+    const { projectId } = await params;
     const { searchParams } = request.nextUrl;
     const hours = Number.parseInt(searchParams.get("hours") || "168", 10);
     const granularity = (searchParams.get("granularity") || "1h") as
@@ -18,12 +18,7 @@ export async function GET(
       | "1h"
       | "1d";
 
-    const data = await getRequestsTimeseries(
-      projectId,
-      deploymentId,
-      hours,
-      granularity,
-    );
+    const data = await getProjectTimeseries(projectId, hours, granularity);
 
     return Response.json({ data });
   } catch (error) {

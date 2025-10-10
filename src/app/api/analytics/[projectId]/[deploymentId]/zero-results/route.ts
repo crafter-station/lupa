@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { getRequestsTimeseries } from "@/lib/tinybird-client";
+import { getZeroResultsQueries } from "@/lib/tinybird-client";
 
 export async function GET(
   request: NextRequest,
@@ -12,24 +12,21 @@ export async function GET(
   try {
     const { projectId, deploymentId } = await params;
     const { searchParams } = request.nextUrl;
-    const hours = Number.parseInt(searchParams.get("hours") || "168", 10);
-    const granularity = (searchParams.get("granularity") || "1h") as
-      | "5m"
-      | "1h"
-      | "1d";
+    const days = Number.parseInt(searchParams.get("days") || "30", 10);
+    const limit = Number.parseInt(searchParams.get("limit") || "100", 10);
 
-    const data = await getRequestsTimeseries(
+    const data = await getZeroResultsQueries(
       projectId,
       deploymentId,
-      hours,
-      granularity,
+      days,
+      limit,
     );
 
     return Response.json({ data });
   } catch (error) {
     console.error("Analytics API error:", error);
     return Response.json(
-      { error: "Failed to fetch timeseries" },
+      { error: "Failed to fetch zero results queries" },
       { status: 500 },
     );
   }

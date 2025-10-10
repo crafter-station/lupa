@@ -1,7 +1,7 @@
 DESCRIPTION >
-    Get overview statistics for a deployment
+    Get overview statistics for all deployments in a project
 
-TOKEN "deployment_overview_endpoint" READ
+TOKEN "project_overview_endpoint" READ
 
 NODE endpoint
 SQL >
@@ -16,7 +16,6 @@ SQL >
         avg(avg_similarity_score) as avg_relevance_score
     FROM search_api_logs
     WHERE project_id = {{String(project_id, required=True)}}
-      AND deployment_id = {{String(deployment_id, required=True)}}
       AND timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
 
 TYPE endpoint

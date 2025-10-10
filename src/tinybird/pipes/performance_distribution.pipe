@@ -22,3 +22,5 @@ SQL >
       AND status_code = 200
     GROUP BY latency_bucket
     ORDER BY min(response_time_ms)
+
+TYPE endpoint

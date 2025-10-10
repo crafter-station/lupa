@@ -20,3 +20,5 @@ SQL >
     GROUP BY query
     ORDER BY frequency DESC
     LIMIT {{Int32(limit, 50)}}
+
+TYPE endpoint

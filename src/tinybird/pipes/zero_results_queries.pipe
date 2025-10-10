@@ -19,3 +19,5 @@ SQL >
     GROUP BY query
     ORDER BY occurrences DESC
     LIMIT {{Int32(limit, 100)}}
+
+TYPE endpoint

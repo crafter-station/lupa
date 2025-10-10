@@ -1,8 +1,5 @@
 import { Index as VectorIndex } from "@upstash/vector";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
 import { redis } from "@/db/redis";
-import * as schema from "@/db/schema";
 import { decrypt, encrypt } from "@/lib/crypto";
 
 interface VectorConfig {
@@ -37,23 +34,15 @@ export async function getVectorIndex(
     }
   }
 
-  const deployments = await db
-    .select()
-    .from(schema.Deployment)
-    .where(eq(schema.Deployment.id, deploymentId))
-    .limit(1);
+  const vectorIndexId = await redis.get<string>(
+    `vectorIndexId:${deploymentId}`,
+  );
 
-  if (!deployments.length) {
-    throw new Error(`Deployment ${deploymentId} not found`);
-  }
-
-  const deployment = deployments[0];
-
-  if (!deployment.vector_index_id) {
+  if (!vectorIndexId) {
     throw new Error(`Deployment ${deploymentId} does not have a vector index`);
   }
 
-  const url = `https://api.upstash.com/v2/vector/index/${deployment.vector_index_id}`;
+  const url = `https://api.upstash.com/v2/vector/index/${vectorIndexId}`;
   const upstashResponse = await fetch(url, {
     method: "GET",
     headers: {
@@ -79,7 +68,7 @@ export async function getVectorIndex(
       encryptedToken,
     },
     {
-      ex: 15 * 60, // 15 min
+      ex: 60 * 60, // 60 min
     },
   );
 

@@ -21,3 +21,5 @@ SQL >
     GROUP BY snapshot_id, document_id
     ORDER BY total_appearances DESC
     LIMIT {{Int32(limit, 100)}}
+
+TYPE endpoint

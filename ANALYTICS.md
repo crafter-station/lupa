@@ -49,38 +49,49 @@ Stores detailed information about each individual search result (embedding-level
 
 ### Analytics Endpoints
 
-All analytics endpoints follow the pattern:
+Analytics endpoints are available at two levels:
+
+**Deployment-level** (single deployment):
 ```
 GET /api/analytics/[projectId]/[deploymentId]/[endpoint]
+```
+
+**Project-level** (all deployments aggregated):
+```
+GET /api/analytics/[projectId]/[endpoint]
 ```
 
 #### Available Endpoints:
 
 1. **`/overview`** - High-level statistics
    - Query params: `hours` (default: 24)
+   - Supports: 1h, 24h, 7d, 30d
    - Returns: Total requests, success rate, avg response time, P95 latency, avg results count, avg relevance score
+   - Available at both deployment and project level
 
 2. **`/timeseries`** - Request metrics over time
    - Query params: `days` (default: 7)
    - Returns: Hourly buckets with request count, avg latency, errors, avg relevance
+   - Available at both deployment and project level
 
-3. **`/queries`** - Top search queries
+3. **`/queries`** - Top search queries (deployment-level only)
    - Query params: `days` (default: 30), `limit` (default: 50)
    - Returns: Most frequent queries with frequency, latency, results count, relevance
 
 4. **`/errors`** - Error breakdown
    - Query params: `days` (default: 30)
    - Returns: Error types, counts, last seen, sample query
+   - Available at both deployment and project level
 
-5. **`/documents`** - Top performing documents
+5. **`/documents`** - Top performing documents (deployment-level only)
    - Query params: `days` (default: 30), `limit` (default: 100)
    - Returns: Document IDs with appearance counts, avg score, avg position, times ranked first
 
-6. **`/snapshots`** - Top performing snapshots
+6. **`/snapshots`** - Top performing snapshots (deployment-level only)
    - Query params: `days` (default: 30), `limit` (default: 100)
    - Returns: Snapshot IDs with appearance counts, avg score, avg position
 
-7. **`/embeddings`** - Top performing embeddings/chunks
+7. **`/embeddings`** - Top performing embeddings/chunks (deployment-level only)
    - Query params: `days` (default: 30), `limit` (default: 100)
    - Returns: Embedding IDs with appearance counts, avg score, avg position, last retrieved
 
@@ -176,6 +187,7 @@ All data sources have a 90-day TTL (Time To Live). Data older than 90 days is au
 
 The `src/lib/tinybird-client.ts` module exports functions for querying analytics:
 
+**Deployment-level functions:**
 - `getDeploymentOverview(projectId, deploymentId, hours)`
 - `getRequestsTimeseries(projectId, deploymentId, days)`
 - `getTopQueries(projectId, deploymentId, days, limit)`
@@ -187,12 +199,41 @@ The `src/lib/tinybird-client.ts` module exports functions for querying analytics
 - `getTopEmbeddings(projectId, deploymentId, days, limit)`
 - `getQueryDocumentMapping(projectId, deploymentId, days, limit)`
 
+**Project-level functions (all deployments):**
+- `getProjectOverview(projectId, hours)`
+- `getProjectTimeseries(projectId, days)`
+- `getProjectErrors(projectId, days)`
+
+## Analytics Dashboard Features
+
+The analytics dashboard at `/projects/[projectId]` includes:
+
+1. **Time Range Filters**
+   - Last hour (1h)
+   - Last 24 hours (24h)
+   - Last 7 days (7d)
+   - Last 30 days (30d)
+
+2. **Deployment Selection**
+   - "All Deployments" - Aggregates metrics across all deployments in the project (default)
+   - Individual deployments - View metrics for a specific deployment
+   - Selection is persisted in localStorage per project
+
+3. **Metrics Displayed**
+   - Total requests
+   - Successful/failed request counts and rates
+   - Average response time and P95 latency
+   - Average results count per query
+   - Average relevance score
+   - Request volume over time chart (successful vs failed)
+   - Error breakdown table
+
 ## Dashboard Ideas
 
 Use the analytics endpoints to build dashboards showing:
 
 1. **Usage Overview**
-   - Total requests (24h, 7d, 30d)
+   - Total requests (1h, 24h, 7d, 30d)
    - Success rate percentage
    - Average response time + P95
    - Request volume chart over time

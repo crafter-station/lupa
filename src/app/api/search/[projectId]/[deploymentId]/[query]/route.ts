@@ -1,11 +1,9 @@
 import { nanoid } from "nanoid";
+import { after } from "next/server";
 import { logSearchRequest, logSearchResults } from "@/lib/tinybird";
 import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 
 export const preferredRegion = "iad1";
-
-export const revalidate = false;
-export const dynamic = "force-static";
 
 export async function GET(
   _request: Request,
@@ -34,25 +32,27 @@ export async function GET(
     const responseTime = Date.now() - startTime;
     const scores = results.map((r) => r.score);
 
-    Promise.all([
-      logSearchRequest({
-        requestId,
-        projectId,
-        deploymentId,
-        query: decodedQuery,
-        statusCode: 200,
-        responseTimeMs: responseTime,
-        resultsReturned: results.length,
-        avgSimilarityScore:
-          scores.length > 0
-            ? scores.reduce((a, b) => a + b, 0) / scores.length
-            : 0,
-        minSimilarityScore: scores.length > 0 ? Math.min(...scores) : 0,
-        maxSimilarityScore: scores.length > 0 ? Math.max(...scores) : 0,
-      }),
-      logSearchResults(requestId, projectId, deploymentId, results),
-    ]).catch((error) => {
-      console.error("Error logging search results:", error);
+    after(() => {
+      Promise.all([
+        logSearchRequest({
+          requestId,
+          projectId,
+          deploymentId,
+          query: decodedQuery,
+          statusCode: 200,
+          responseTimeMs: responseTime,
+          resultsReturned: results.length,
+          avgSimilarityScore:
+            scores.length > 0
+              ? scores.reduce((a, b) => a + b, 0) / scores.length
+              : 0,
+          minSimilarityScore: scores.length > 0 ? Math.min(...scores) : 0,
+          maxSimilarityScore: scores.length > 0 ? Math.max(...scores) : 0,
+        }),
+        logSearchResults(requestId, projectId, deploymentId, results),
+      ]).catch((error) => {
+        console.error("Error logging search results:", error);
+      });
     });
 
     return new Response(
@@ -86,16 +86,18 @@ export async function GET(
       }
     }
 
-    logSearchRequest({
-      requestId,
-      projectId,
-      deploymentId,
-      query: decodeURIComponent(query),
-      statusCode,
-      responseTimeMs: responseTime,
-      resultsReturned: 0,
-      errorMessage,
-    }).catch(() => {});
+    after(() => {
+      logSearchRequest({
+        requestId,
+        projectId,
+        deploymentId,
+        query: decodeURIComponent(query),
+        statusCode,
+        responseTimeMs: responseTime,
+        resultsReturned: 0,
+        errorMessage,
+      }).catch(() => {});
+    });
 
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: statusCode,

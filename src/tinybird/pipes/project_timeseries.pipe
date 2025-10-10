@@ -1,7 +1,7 @@
 DESCRIPTION >
-    Get request metrics over time
+    Get request metrics over time for all deployments in a project
 
-TOKEN "requests_timeseries_endpoint" READ
+TOKEN "project_timeseries_endpoint" READ
 
 NODE endpoint
 SQL >
@@ -22,7 +22,6 @@ SQL >
         avg(avg_similarity_score) as avg_relevance
     FROM search_api_logs
     WHERE project_id = {{String(project_id, required=True)}}
-      AND deployment_id = {{String(deployment_id, required=True)}}
       AND timestamp >= now() - INTERVAL {{Int32(hours, 168)}} HOUR
     GROUP BY time_bucket
     ORDER BY time_bucket DESC

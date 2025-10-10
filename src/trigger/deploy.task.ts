@@ -2,6 +2,7 @@ import { batch, logger, schemaTask, wait } from "@trigger.dev/sdk";
 import { and, desc, eq, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
+import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";
 import { invalidateVectorCache } from "@/lib/vector";
 
@@ -115,6 +116,8 @@ export const deploy = schemaTask({
           updated_at: new Date().toISOString(),
         })
         .where(eq(schema.Deployment.id, deploymentId));
+
+      await redis.set(`vectorIndexId:${deploymentId}`, vectorIndex.id);
 
       await wait.for({ seconds: 15 });
 

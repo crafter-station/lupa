@@ -20,3 +20,5 @@ SQL >
     GROUP BY document_id
     ORDER BY total_appearances DESC
     LIMIT {{Int32(limit, 100)}}
+
+TYPE endpoint

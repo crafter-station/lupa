@@ -20,3 +20,5 @@ SQL >
     GROUP BY l.query, r.document_id
     ORDER BY frequency DESC
     LIMIT {{Int32(limit, 200)}}
+
+TYPE endpoint
