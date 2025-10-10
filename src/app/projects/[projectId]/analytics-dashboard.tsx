@@ -23,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { ProjectSelect } from "@/db";
 
 interface AnalyticsDashboardProps {
@@ -51,6 +59,34 @@ interface TimeseriesData {
   avg_latency: number;
   errors: number;
   avg_relevance: number;
+}
+
+interface TopQueryData {
+  query: string;
+  frequency: number;
+  avg_latency: number;
+  avg_results: number;
+  avg_relevance: number;
+}
+
+interface TopDocumentData {
+  document_id: string;
+  total_appearances: number;
+  unique_searches: number;
+  avg_score: number;
+  avg_position: number;
+  times_ranked_first: number;
+}
+
+interface TopEmbeddingData {
+  embedding_id: string;
+  snapshot_id: string;
+  document_id: string;
+  total_appearances: number;
+  avg_score: number;
+  avg_position: number;
+  times_ranked_first: number;
+  last_retrieved: string;
 }
 
 export function AnalyticsDashboard({
@@ -156,6 +192,81 @@ export function AnalyticsDashboard({
       return json.data || [];
     },
     enabled: selectedDeployment === "all" || !!selectedDeploymentData?.project,
+  });
+
+  const days =
+    timeRange === "1h"
+      ? 1
+      : timeRange === "24h"
+        ? 1
+        : timeRange === "7d"
+          ? 7
+          : 30;
+
+  const { data: topQueriesData, isLoading: topQueriesLoading } = useQuery<
+    TopQueryData[]
+  >({
+    queryKey: [
+      "analytics",
+      "queries",
+      preloadedProject.id,
+      selectedDeployment,
+      days,
+    ],
+    queryFn: async () => {
+      if (selectedDeployment === "all" || !selectedDeploymentData?.project)
+        return [];
+      const response = await fetch(
+        `/api/analytics/${selectedDeploymentData.project.id}/${selectedDeploymentData.deployment.id}/queries?days=${days}&limit=10`,
+      );
+      const json = await response.json();
+      return json.data || [];
+    },
+    enabled: selectedDeployment !== "all" && !!selectedDeploymentData?.project,
+  });
+
+  const { data: topDocumentsData, isLoading: topDocumentsLoading } = useQuery<
+    TopDocumentData[]
+  >({
+    queryKey: [
+      "analytics",
+      "documents",
+      preloadedProject.id,
+      selectedDeployment,
+      days,
+    ],
+    queryFn: async () => {
+      if (selectedDeployment === "all" || !selectedDeploymentData?.project)
+        return [];
+      const response = await fetch(
+        `/api/analytics/${selectedDeploymentData.project.id}/${selectedDeploymentData.deployment.id}/documents?days=${days}&limit=10`,
+      );
+      const json = await response.json();
+      return json.data || [];
+    },
+    enabled: selectedDeployment !== "all" && !!selectedDeploymentData?.project,
+  });
+
+  const { data: topEmbeddingsData, isLoading: topEmbeddingsLoading } = useQuery<
+    TopEmbeddingData[]
+  >({
+    queryKey: [
+      "analytics",
+      "embeddings",
+      preloadedProject.id,
+      selectedDeployment,
+      days,
+    ],
+    queryFn: async () => {
+      if (selectedDeployment === "all" || !selectedDeploymentData?.project)
+        return [];
+      const response = await fetch(
+        `/api/analytics/${selectedDeploymentData.project.id}/${selectedDeploymentData.deployment.id}/embeddings?days=${days}&limit=10`,
+      );
+      const json = await response.json();
+      return json.data || [];
+    },
+    enabled: selectedDeployment !== "all" && !!selectedDeploymentData?.project,
   });
 
   const overview = overviewData?.[0];
@@ -437,6 +548,145 @@ export function AnalyticsDashboard({
               )}
             </CardContent>
           </Card>
+
+          {selectedDeployment !== "all" && (
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Search Queries</CardTitle>
+                  <CardDescription>Most searched terms</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {topQueriesLoading ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      Loading...
+                    </div>
+                  ) : !topQueriesData || topQueriesData.length === 0 ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      No queries yet
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">#</TableHead>
+                          <TableHead>Query</TableHead>
+                          <TableHead className="text-right">Requests</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topQueriesData.map((item, index) => (
+                          <TableRow key={`${item.query}-${index}`}>
+                            <TableCell className="font-medium text-muted-foreground">
+                              {index + 1}
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate font-mono text-xs">
+                              {item.query}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {item.frequency.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Retrieved Documents</CardTitle>
+                  <CardDescription>Most returned documents</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {topDocumentsLoading ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      Loading...
+                    </div>
+                  ) : !topDocumentsData || topDocumentsData.length === 0 ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      No documents yet
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">#</TableHead>
+                          <TableHead>Document</TableHead>
+                          <TableHead className="text-right">Appears</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topDocumentsData.map((item, index) => (
+                          <TableRow key={item.document_id}>
+                            <TableCell className="font-medium text-muted-foreground">
+                              {index + 1}
+                            </TableCell>
+                            <TableCell
+                              className="max-w-[200px] truncate font-mono text-xs"
+                              title={item.document_id}
+                            >
+                              {item.document_id}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {item.total_appearances.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Retrieved Chunks</CardTitle>
+                  <CardDescription>Most returned embeddings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {topEmbeddingsLoading ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      Loading...
+                    </div>
+                  ) : !topEmbeddingsData || topEmbeddingsData.length === 0 ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      No chunks yet
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">#</TableHead>
+                          <TableHead>Chunk</TableHead>
+                          <TableHead className="text-right">Appears</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topEmbeddingsData.map((item, index) => (
+                          <TableRow key={item.embedding_id}>
+                            <TableCell className="font-medium text-muted-foreground">
+                              {index + 1}
+                            </TableCell>
+                            <TableCell
+                              className="max-w-[200px] truncate font-mono text-xs"
+                              title={item.embedding_id}
+                            >
+                              {item.embedding_id}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {item.total_appearances.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </>
       )}
     </div>
