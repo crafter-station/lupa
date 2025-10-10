@@ -317,10 +317,10 @@ export function AnalyticsDashboard({
                 <div className="text-2xl font-bold">
                   {overviewLoading
                     ? "..."
-                    : `${overview?.avg_response_time.toFixed(0) || "0"}ms`}
+                    : `${overview?.avg_response_time?.toFixed(0) || "0"}ms`}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  P95: {overview?.p95_response_time.toFixed(0) || "0"}ms
+                  P95: {overview?.p95_response_time?.toFixed(0) || "0"}ms
                 </p>
               </CardContent>
             </Card>
@@ -335,7 +335,7 @@ export function AnalyticsDashboard({
                 <div className="text-2xl font-bold">
                   {overviewLoading
                     ? "..."
-                    : overview?.avg_results_count.toFixed(1) || "0"}
+                    : overview?.avg_results_count?.toFixed(1) || "0"}
                 </div>
               </CardContent>
             </Card>
