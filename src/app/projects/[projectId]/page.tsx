@@ -31,10 +31,16 @@ export default async function ProjectPage({
     .from(schema.Deployment)
     .where(eq(schema.Deployment.project_id, projectId));
 
+  const preloadedDocuments = await db
+    .select()
+    .from(schema.Document)
+    .where(eq(schema.Document.project_id, projectId));
+
   return (
     <AnalyticsDashboard
       preloadedProject={preloadedProject}
       preloadedDeployments={preloadedDeployments}
+      preloadedDocuments={preloadedDocuments}
     />
   );
 }

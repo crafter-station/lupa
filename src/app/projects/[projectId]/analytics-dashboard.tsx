@@ -31,7 +31,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProjectSelect } from "@/db";
+import type { DocumentSelect, ProjectSelect } from "@/db";
+
+import { TopDocumentsList } from "./analytics-dashboard/top-documents-list";
 
 interface AnalyticsDashboardProps {
   preloadedProject: ProjectSelect;
@@ -41,6 +43,7 @@ interface AnalyticsDashboardProps {
     status: string;
     created_at: string;
   }>;
+  preloadedDocuments: DocumentSelect[];
 }
 
 interface OverviewData {
@@ -92,29 +95,28 @@ interface TopEmbeddingData {
 export function AnalyticsDashboard({
   preloadedProject,
   preloadedDeployments,
+  preloadedDocuments,
 }: AnalyticsDashboardProps) {
-  const [selectedDeployment, setSelectedDeployment] = React.useState<string>(
-    () => {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem(
-          `lupa-analytics-deployment-${preloadedProject.id}`,
-        );
-        return stored || "all";
-      }
-      return "all";
-    },
-  );
+  const [selectedDeployment, setSelectedDeployment] =
+    React.useState<string>("all");
   const [timeRange, setTimeRange] = React.useState<"1h" | "24h" | "7d" | "30d">(
     "24h",
   );
 
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        `lupa-analytics-deployment-${preloadedProject.id}`,
-        selectedDeployment,
-      );
+    const stored = localStorage.getItem(
+      `lupa-analytics-deployment-${preloadedProject.id}`,
+    );
+    if (stored) {
+      setSelectedDeployment(stored);
     }
+  }, [preloadedProject.id]);
+
+  React.useEffect(() => {
+    localStorage.setItem(
+      `lupa-analytics-deployment-${preloadedProject.id}`,
+      selectedDeployment,
+    );
   }, [selectedDeployment, preloadedProject.id]);
 
   const selectedDeploymentData = React.useMemo(() => {
@@ -609,33 +611,11 @@ export function AnalyticsDashboard({
                       No documents yet
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[50px]">#</TableHead>
-                          <TableHead>Document</TableHead>
-                          <TableHead className="text-right">Appears</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {topDocumentsData.map((item, index) => (
-                          <TableRow key={item.document_id}>
-                            <TableCell className="font-medium text-muted-foreground">
-                              {index + 1}
-                            </TableCell>
-                            <TableCell
-                              className="max-w-[200px] truncate font-mono text-xs"
-                              title={item.document_id}
-                            >
-                              {item.document_id}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {item.total_appearances.toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <TopDocumentsList
+                      topDocumentsData={topDocumentsData}
+                      preloadedDocuments={preloadedDocuments}
+                      projectId={preloadedProject.id}
+                    />
                   )}
                 </CardContent>
               </Card>
