@@ -1,0 +1,21 @@
+DESCRIPTION >
+    Get queries that returned zero results
+
+TOKEN "zero_results_queries_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        query,
+        count() as occurrences,
+        avg(response_time_ms) as avg_latency
+    FROM search_api_logs
+    WHERE project_id = {{String(project_id, required=True)}}
+      AND deployment_id = {{String(deployment_id, required=True)}}
+      AND results_returned = 0
+      AND status_code = 200
+      AND timestamp >= now() - INTERVAL {{Int32(days, 30)}} DAY
+    GROUP BY query
+    ORDER BY occurrences DESC
+    LIMIT {{Int32(limit, 100)}}

@@ -1,0 +1,14 @@
+{
+    "host": "https://api.us-east.aws.tinybird.co",
+    "id": "500684a4-2fff-42ae-b9b5-32f0cff48ce0",
+    "name": "lupa_dev_0",
+    "scope": "user",
+    "token": "p.eyJ1IjogIjUwMDY4NGE0LTJmZmYtNDJhZS1iOWI1LTMyZjBjZmY0OGNlMCIsICJpZCI6ICIwMzczMzUzZC0wMmYxLTRhMmUtOGI4NC1kN2Y4MTE0MGQ0ZjUiLCAiaG9zdCI6ICJ1cy1lYXN0LWF3cyJ9.6EFkVaNdiH-uHWMsrEOz1GzcPF23h1knMBRlXG7txMU",
+    "tokens": {
+        "https://api.us-east.aws.tinybird.co": "p.eyJ1IjogIjUwMDY4NGE0LTJmZmYtNDJhZS1iOWI1LTMyZjBjZmY0OGNlMCIsICJpZCI6ICIwMzczMzUzZC0wMmYxLTRhMmUtOGI4NC1kN2Y4MTE0MGQ0ZjUiLCAiaG9zdCI6ICJ1cy1lYXN0LWF3cyJ9.6EFkVaNdiH-uHWMsrEOz1GzcPF23h1knMBRlXG7txMU"
+    },
+    "user_email": "hi@cueva.io",
+    "user_id": "595da7ad-2989-4f4f-a074-a9e038640ccd",
+    "user_token": "p.eyJ1IjogIjU5NWRhN2FkLTI5ODktNGY0Zi1hMDc0LWE5ZTAzODY0MGNjZCIsICJpZCI6ICI1Zjc3NTdmMy03ZmEwLTRjNDUtOTQ2My1mODE2NTU2YTdiYzUiLCAiaG9zdCI6ICJ1cy1lYXN0LWF3cyJ9.gCLOrctpQHgLYbf80PW_Y2cyz8s4nXBgI4jb0PVUsLo",
+    "version": "0.0.1.dev304"
+}

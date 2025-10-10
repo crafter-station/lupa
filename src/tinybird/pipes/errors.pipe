@@ -1,0 +1,22 @@
+DESCRIPTION >
+    Get error breakdown
+
+TOKEN "errors_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        status_code,
+        error_message,
+        count() as occurrences,
+        max(timestamp) as last_seen,
+        any(query) as sample_query
+    FROM search_api_logs
+    WHERE project_id = {{String(project_id, required=True)}}
+      AND deployment_id = {{String(deployment_id, required=True)}}
+      AND status_code >= 400
+      AND timestamp >= now() - INTERVAL {{Int32(days, 30)}} DAY
+    GROUP BY status_code, error_message
+    ORDER BY occurrences DESC
+    LIMIT 100

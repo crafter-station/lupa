@@ -1,0 +1,20 @@
+DESCRIPTION >
+    Get overview statistics for a deployment
+
+TOKEN "deployment_overview_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        count() as total_requests,
+        countIf(status_code = 200) as successful_requests,
+        countIf(status_code >= 400) as failed_requests,
+        avg(response_time_ms) as avg_response_time,
+        quantile(0.95)(response_time_ms) as p95_response_time,
+        avg(results_returned) as avg_results_count,
+        avg(avg_similarity_score) as avg_relevance_score
+    FROM search_api_logs
+    WHERE project_id = {{String(project_id, required=True)}}
+      AND deployment_id = {{String(deployment_id, required=True)}}
+      AND timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
