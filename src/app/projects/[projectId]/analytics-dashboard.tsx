@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -23,14 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { ProjectSelect } from "@/db";
 
 interface AnalyticsDashboardProps {
@@ -59,14 +51,6 @@ interface TimeseriesData {
   avg_latency: number;
   errors: number;
   avg_relevance: number;
-}
-
-interface ErrorData {
-  status_code: number;
-  error_message: string;
-  occurrences: number;
-  last_seen: string;
-  sample_query: string;
 }
 
 export function AnalyticsDashboard({
@@ -174,53 +158,12 @@ export function AnalyticsDashboard({
     enabled: selectedDeployment === "all" || !!selectedDeploymentData?.project,
   });
 
-  const { data: errorsData, isLoading: errorsLoading } = useQuery<ErrorData[]>({
-    queryKey: [
-      "analytics",
-      "errors",
-      preloadedProject.id,
-      selectedDeployment,
-      hours,
-    ],
-    queryFn: async () => {
-      const days = Math.ceil(hours / 24);
-      if (selectedDeployment === "all") {
-        const response = await fetch(
-          `/api/analytics/${preloadedProject.id}/errors?days=${days}`,
-        );
-        const json = await response.json();
-        return json.data || [];
-      }
-      if (!selectedDeploymentData?.project) return [];
-      const response = await fetch(
-        `/api/analytics/${selectedDeploymentData.project.id}/${selectedDeploymentData.deployment.id}/errors?days=${days}`,
-      );
-      const json = await response.json();
-      return json.data || [];
-    },
-    enabled: selectedDeployment === "all" || !!selectedDeploymentData?.project,
-  });
-
   const overview = overviewData?.[0];
 
-  const successRate = overview
-    ? ((overview.successful_requests / overview.total_requests) * 100).toFixed(
-        1,
-      )
-    : "0.0";
-
-  const failureRate = overview
-    ? ((overview.failed_requests / overview.total_requests) * 100).toFixed(1)
-    : "0.0";
-
   const timeseriesChartConfig = {
-    successful: {
-      label: "Successful",
-      color: "hsl(142.1 76.2% 36.3%)",
-    },
-    failed: {
-      label: "Failed",
-      color: "hsl(0 84.2% 60.2%)",
+    requests: {
+      label: "Requests",
+      color: "hsl(217 91% 60%)",
     },
   } satisfies ChartConfig;
 
@@ -230,9 +173,7 @@ export function AnalyticsDashboard({
     const now = new Date();
     const dataPoints: Array<{
       time: string;
-      successful: number;
-      failed: number;
-      total: number;
+      requests: number;
     }> = [];
 
     const intervalMs =
@@ -302,9 +243,7 @@ export function AnalyticsDashboard({
 
       dataPoints.push({
         time: timeLabel,
-        successful: item ? item.requests - item.errors : 0,
-        failed: item ? item.errors : 0,
-        total: item ? item.requests : 0,
+        requests: item ? item.requests : 0,
       });
     }
 
@@ -312,13 +251,13 @@ export function AnalyticsDashboard({
   }, [timeseriesData, granularity, timeRange]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-4">
+    <div className="space-y-8">
+      <div className="flex items-center gap-3">
         <Select
           value={selectedDeployment}
           onValueChange={setSelectedDeployment}
         >
-          <SelectTrigger className="w-[400px]">
+          <SelectTrigger className="w-[280px]">
             <SelectValue placeholder="Select a deployment" />
           </SelectTrigger>
           <SelectContent>
@@ -338,7 +277,7 @@ export function AnalyticsDashboard({
           value={timeRange}
           onValueChange={(v) => setTimeRange(v as typeof timeRange)}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -354,104 +293,95 @@ export function AnalyticsDashboard({
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Requests</CardDescription>
-                <CardTitle className="text-3xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Requests
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
                   {overviewLoading
                     ? "..."
                     : overview?.total_requests.toLocaleString() || "0"}
-                </CardTitle>
-              </CardHeader>
+                </div>
+              </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Successful</CardDescription>
-                <CardTitle className="text-3xl text-green-600">
-                  {overviewLoading
-                    ? "..."
-                    : overview?.successful_requests.toLocaleString() || "0"}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Avg Response Time
                 </CardTitle>
-                <CardDescription className="text-xs">
-                  {successRate}% success rate
-                </CardDescription>
               </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Failed</CardDescription>
-                <CardTitle className="text-3xl text-red-600">
-                  {overviewLoading
-                    ? "..."
-                    : overview?.failed_requests.toLocaleString() || "0"}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {failureRate}% failure rate
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Avg Response Time</CardDescription>
-                <CardTitle className="text-3xl">
+              <CardContent>
+                <div className="text-2xl font-bold">
                   {overviewLoading
                     ? "..."
                     : `${overview?.avg_response_time.toFixed(0) || "0"}ms`}
-                </CardTitle>
-                <CardDescription className="text-xs">
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
                   P95: {overview?.p95_response_time.toFixed(0) || "0"}ms
-                </CardDescription>
-              </CardHeader>
+                </p>
+              </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Avg Results Count</CardDescription>
-                <CardTitle className="text-3xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Avg Results Count
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
                   {overviewLoading
                     ? "..."
                     : overview?.avg_results_count.toFixed(1) || "0"}
-                </CardTitle>
-              </CardHeader>
+                </div>
+              </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Avg Relevance Score</CardDescription>
-                <CardTitle className="text-3xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Avg Relevance Score
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
                   {overviewLoading
                     ? "..."
                     : overview?.avg_relevance_score.toFixed(3) || "0"}
-                </CardTitle>
-              </CardHeader>
+                </div>
+              </CardContent>
             </Card>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Request Volume Over Time</CardTitle>
-              <CardDescription>Successful vs failed requests</CardDescription>
+              <CardTitle>Requests</CardTitle>
+              <CardDescription>Request volume over time</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pl-2">
               {timeseriesLoading ? (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                <div className="h-[350px] flex items-center justify-center text-muted-foreground">
                   Loading...
                 </div>
               ) : timeseriesChartData.length === 0 ? (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                <div className="h-[350px] flex items-center justify-center text-muted-foreground">
                   No data available
                 </div>
               ) : (
                 <ChartContainer
                   config={timeseriesChartConfig}
-                  className="h-[300px] w-full"
+                  className="h-[350px] w-full"
                 >
-                  <AreaChart data={timeseriesChartData}>
+                  <AreaChart
+                    data={timeseriesChartData}
+                    margin={{ left: 12, right: 12 }}
+                  >
                     <defs>
                       <linearGradient
-                        id="fillSuccessful"
+                        id="fillRequests"
                         x1="0"
                         y1="0"
                         x2="0"
@@ -459,113 +389,48 @@ export function AnalyticsDashboard({
                       >
                         <stop
                           offset="5%"
-                          stopColor="var(--color-successful)"
-                          stopOpacity={0.8}
+                          stopColor="var(--color-requests)"
+                          stopOpacity={0.3}
                         />
                         <stop
                           offset="95%"
-                          stopColor="var(--color-successful)"
-                          stopOpacity={0.1}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="fillFailed"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="var(--color-failed)"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="var(--color-failed)"
-                          stopOpacity={0.1}
+                          stopColor="var(--color-requests)"
+                          stopOpacity={0}
                         />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      className="stroke-muted"
+                    />
                     <XAxis
                       dataKey="time"
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
                       minTickGap={32}
+                      className="text-xs"
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      className="text-xs"
                     />
                     <ChartTooltip
                       cursor={false}
-                      content={ChartTooltipContent}
+                      content={<ChartTooltipContent indicator="line" />}
                     />
                     <Area
-                      dataKey="successful"
+                      dataKey="requests"
                       type="monotone"
-                      fill="url(#fillSuccessful)"
-                      stroke="var(--color-successful)"
-                      stackId="a"
-                    />
-                    <Area
-                      dataKey="failed"
-                      type="monotone"
-                      fill="url(#fillFailed)"
-                      stroke="var(--color-failed)"
-                      stackId="a"
+                      fill="url(#fillRequests)"
+                      stroke="var(--color-requests)"
+                      strokeWidth={2}
                     />
                   </AreaChart>
                 </ChartContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Error Breakdown</CardTitle>
-              <CardDescription>
-                Errors by status code and message
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {errorsLoading ? (
-                <div className="text-muted-foreground">Loading...</div>
-              ) : !errorsData || errorsData.length === 0 ? (
-                <div className="text-muted-foreground">No errors found</div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Status Code</TableHead>
-                        <TableHead>Error Message</TableHead>
-                        <TableHead className="text-right">
-                          Occurrences
-                        </TableHead>
-                        <TableHead>Last Seen</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {errorsData.map((error) => (
-                        <TableRow
-                          key={`${error.status_code}-${error.error_message}-${error.last_seen}`}
-                        >
-                          <TableCell className="font-medium">
-                            {error.status_code}
-                          </TableCell>
-                          <TableCell className="max-w-md truncate">
-                            {error.error_message || "N/A"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {error.occurrences}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(error.last_seen).toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
               )}
             </CardContent>
           </Card>
