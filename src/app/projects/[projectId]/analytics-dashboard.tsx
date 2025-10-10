@@ -350,7 +350,7 @@ export function AnalyticsDashboard({
                 <div className="text-2xl font-bold">
                   {overviewLoading
                     ? "..."
-                    : overview?.avg_relevance_score.toFixed(3) || "0"}
+                    : overview?.avg_relevance_score?.toFixed(3) || "0"}
                 </div>
               </CardContent>
             </Card>
