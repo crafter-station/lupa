@@ -420,7 +420,10 @@ export function AnalyticsDashboard({
                     />
                     <ChartTooltip
                       cursor={false}
-                      content={<ChartTooltipContent indicator="line" />}
+                      content={
+                        // @ts-expect-error shadcn error
+                        <ChartTooltipContent indicator="line" />
+                      }
                     />
                     <Area
                       dataKey="requests"
