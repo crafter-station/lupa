@@ -1,0 +1,842 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Documentation",
+    "version": "1.0.0",
+    "description": "This is the OpenAPI specification for your project."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "WhereParamsSchema": {
+        "type": "object",
+        "properties": {
+          "where": {
+            "type": "string",
+            "nullable": true
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "GetDeploymentResponseSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateDeploymentBodySchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "vector_index_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "completed", "failed"]
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "timestamp": {
+                  "type": "string",
+                  "description": "ISO 8601 format"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": ["timestamp", "message"]
+            }
+          }
+        },
+        "required": ["id", "project_id", "status", "logs"]
+      },
+      "CreateDeploymentSuccessResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "txid": {
+            "type": "number"
+          }
+        },
+        "required": ["success", "txid"]
+      },
+      "ErrorResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [false]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success", "error"]
+      },
+      "DocumentUpdateSchema": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DeploymentLogSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "level": {
+            "type": "object"
+          }
+        },
+        "required": ["message", "timestamp", "level", "level"]
+      },
+      "DeploymentLogLevelSchema": {
+        "type": "object"
+      },
+      "DeploymentLog": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "level": {
+            "type": "object"
+          }
+        },
+        "required": ["message", "timestamp", "level", "level"]
+      },
+      "MetadataSchemaConfigSchema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["infer", "custom"]
+          },
+          "schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "required": ["mode"]
+      },
+      "SnapshotSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["queued", "error", "running"]
+              },
+              "type": {
+                "type": "string",
+                "enum": ["website", "upload"]
+              }
+            },
+            "required": ["status", "type"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["success"]
+              },
+              "chunks_count": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["website"]
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "favicon": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "screenshot": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "required": ["status", "chunks_count", "type", "metadata"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["success"]
+              },
+              "chunks_count": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["upload"]
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "file_name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "file_size": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "modified_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "required": ["status", "chunks_count", "type", "metadata"]
+          }
+        ]
+      },
+      "Snapshot": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["queued", "error", "running"]
+              },
+              "type": {
+                "type": "string",
+                "enum": ["website", "upload"]
+              }
+            },
+            "required": ["status", "type"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["success"]
+              },
+              "chunks_count": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["website"]
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "favicon": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "screenshot": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "required": ["status", "chunks_count", "type", "metadata"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["success"]
+              },
+              "chunks_count": {
+                "type": "number"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["upload"]
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "file_name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "file_size": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "modified_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "required": ["status", "chunks_count", "type", "metadata"]
+          }
+        ]
+      },
+      "defaultMetadataSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "description": "The category or topic of the content"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Key terms and concepts"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true,
+            "description": "A brief summary of the content"
+          },
+          "language": {
+            "type": "string",
+            "nullable": true,
+            "description": "The primary language of the content"
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Type of content (article, documentation, tutorial, etc.)"
+          }
+        }
+      },
+      "DefaultMetadata": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "description": "The category or topic of the content"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Key terms and concepts"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true,
+            "description": "A brief summary of the content"
+          },
+          "language": {
+            "type": "string",
+            "nullable": true,
+            "description": "The primary language of the content"
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Type of content (article, documentation, tutorial, etc.)"
+          }
+        }
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Invalid request parameters"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "400"
+                }
+              }
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Authentication required"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "401"
+                }
+              }
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Access denied"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "403"
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Resource not found"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "404"
+                }
+              }
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Resource already exists"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "409"
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "An unexpected error occurred"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "500"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputDir": "./public",
+  "paths": {
+    "/chat/{projectId}/{deploymentId}": {
+      "post": {
+        "operationId": "post-chat-{projectId}-{deploymentId}",
+        "summary": "",
+        "description": "",
+        "tags": ["Chat"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/collections/deployments": {
+      "get": {
+        "operationId": "get-collections-deployments",
+        "summary": "Get deployments",
+        "description": "Fetch a list of deployments with optional filtering.",
+        "tags": ["Collections"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "where",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "params",
+            "schema": {
+              "type": "object"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDeploymentResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-collections-deployments",
+        "summary": "Create deployment",
+        "description": "Create a new deployment record.",
+        "tags": ["Collections"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeploymentBodySchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDeploymentSuccessResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/collections/documents": {
+      "get": {
+        "operationId": "get-collections-documents",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-collections-documents",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/collections/projects": {
+      "get": {
+        "operationId": "get-collections-projects",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-collections-projects",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/collections/snapshot-and-deployment-rel": {
+      "get": {
+        "operationId": "get-collections-snapshot-and-deployment-rel",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-collections-snapshot-and-deployment-rel",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/collections/snapshots": {
+      "get": {
+        "operationId": "get-collections-snapshots",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-collections-snapshots",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/collections/documents/{id}": {
+      "patch": {
+        "operationId": "patch-collections-documents-{id}",
+        "summary": "",
+        "description": "",
+        "tags": ["Collections"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/documents/upload": {
+      "post": {
+        "operationId": "post-documents-upload",
+        "summary": "",
+        "description": "",
+        "tags": ["Documents"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/documents/upload-blob": {
+      "post": {
+        "operationId": "post-documents-upload-blob",
+        "summary": "",
+        "description": "",
+        "tags": ["Documents"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/search/{projectId}/{deploymentId}/{query}": {
+      "get": {
+        "operationId": "get-search-{projectId}-{deploymentId}-{query}",
+        "summary": "",
+        "description": "",
+        "tags": ["Search"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  }
+}
