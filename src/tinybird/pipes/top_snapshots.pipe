@@ -1,0 +1,25 @@
+DESCRIPTION >
+    Get top snapshots by search appearances
+
+TOKEN "top_snapshots_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        snapshot_id,
+        document_id,
+        count() as total_appearances,
+        countDistinct(request_id) as unique_searches,
+        avg(similarity_score) as avg_score,
+        avg(rank) as avg_position,
+        countIf(rank = 1) as times_ranked_first
+    FROM search_results
+    WHERE project_id = {{String(project_id, required=True)}}
+      AND deployment_id = {{String(deployment_id, required=True)}}
+      AND timestamp >= now() - INTERVAL {{Int32(days, 30)}} DAY
+    GROUP BY snapshot_id, document_id
+    ORDER BY total_appearances DESC
+    LIMIT {{Int32(limit, 100)}}
+
+TYPE endpoint

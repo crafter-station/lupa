@@ -45,7 +45,7 @@ export async function POST(
               .describe("The search query to find relevant information"),
           }),
           execute: async ({ query }) => {
-            const searchUrl = `${request.headers.get("origin")}/api/search/${projectId}/${deploymentId}/${encodeURIComponent(query)}`;
+            const searchUrl = `${request.headers.get("origin")}/api/search?projectId=${projectId}&deploymentId=${deploymentId}&query=${encodeURIComponent(query)}`;
 
             const response = await fetch(searchUrl);
 

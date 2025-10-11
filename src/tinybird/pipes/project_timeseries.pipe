@@ -1,0 +1,29 @@
+DESCRIPTION >
+    Get request metrics over time for all deployments in a project
+
+TOKEN "project_timeseries_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        if(
+            {{String(granularity, '1h')}} = '5m',
+            toStartOfInterval(timestamp, INTERVAL 5 MINUTE),
+            if(
+                {{String(granularity, '1h')}} = '1h',
+                toStartOfHour(timestamp),
+                toStartOfDay(timestamp)
+            )
+        ) as time_bucket,
+        count() as requests,
+        avg(response_time_ms) as avg_latency,
+        countIf(status_code >= 400) as errors,
+        avg(avg_similarity_score) as avg_relevance
+    FROM search_api_logs
+    WHERE project_id = {{String(project_id, required=True)}}
+      AND timestamp >= now() - INTERVAL {{Int32(hours, 168)}} HOUR
+    GROUP BY time_bucket
+    ORDER BY time_bucket DESC
+
+TYPE endpoint

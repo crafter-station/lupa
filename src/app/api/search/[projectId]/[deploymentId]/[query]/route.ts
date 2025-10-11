@@ -3,6 +3,7 @@ import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 export const preferredRegion = "iad1";
 
 export const revalidate = false;
+
 export const dynamic = "force-static";
 
 export async function GET(
@@ -15,11 +16,12 @@ export async function GET(
 ) {
   try {
     const { deploymentId, query } = await params;
+    const decodedQuery = decodeURIComponent(query);
 
     const vector = await getVectorIndex(deploymentId);
 
     const results = await vector.query({
-      data: query,
+      data: decodedQuery,
       topK: 5,
       includeData: true,
       includeMetadata: true,
@@ -27,7 +29,7 @@ export async function GET(
 
     return new Response(
       JSON.stringify({
-        query,
+        query: decodedQuery,
         results,
       }),
       {
@@ -36,34 +38,27 @@ export async function GET(
     );
   } catch (error) {
     console.error("Search API error:", error);
+    const { deploymentId } = await params;
+
+    let statusCode = 500;
+    let errorMessage = "Internal server error";
 
     if (error instanceof Error) {
       if (error.message.includes("ENCRYPTION_SECRET")) {
-        return new Response(
-          JSON.stringify({ error: "Server configuration error" }),
-          { status: 500 },
-        );
-      }
-
-      if (error.message.includes("Invalid encrypted data")) {
-        const { deploymentId } = await params;
+        errorMessage = "Server configuration error";
+        statusCode = 500;
+      } else if (error.message.includes("Invalid encrypted data")) {
         await invalidateVectorCache(deploymentId);
-
-        return new Response(
-          JSON.stringify({ error: "Cache corrupted, please retry" }),
-          { status: 500 },
-        );
-      }
-
-      if (error.message.includes("not found")) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 404,
-        });
+        errorMessage = "Cache corrupted, please retry";
+        statusCode = 500;
+      } else if (error.message.includes("not found")) {
+        errorMessage = error.message;
+        statusCode = 404;
       }
     }
 
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: statusCode,
     });
   }
 }

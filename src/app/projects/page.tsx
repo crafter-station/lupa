@@ -10,7 +10,7 @@ export default async function ProjectsPage() {
 
   return (
     <>
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start mb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
         <CreateProject />
       </div>

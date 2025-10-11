@@ -1,0 +1,24 @@
+DESCRIPTION >
+    Get most frequent search queries
+
+TOKEN "top_queries_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        query,
+        count() as frequency,
+        avg(response_time_ms) as avg_latency,
+        avg(results_returned) as avg_results,
+        avg(avg_similarity_score) as avg_relevance
+    FROM search_api_logs
+    WHERE project_id = {{String(project_id, required=True)}}
+      AND deployment_id = {{String(deployment_id, required=True)}}
+      AND timestamp >= now() - INTERVAL {{Int32(days, 30)}} DAY
+      AND status_code = 200
+    GROUP BY query
+    ORDER BY frequency DESC
+    LIMIT {{Int32(limit, 50)}}
+
+TYPE endpoint
