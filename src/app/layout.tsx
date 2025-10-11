@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lupa - Vector Search API for Developers",
+  title: "Lupa - The Knowledge API for AI Agents",
   description:
-    "Search your documents in milliseconds. Vector search API that just works. Upload documents, get search endpoints. No infrastructure, no complexity.",
+    "Give your AI agents instant access to your knowledge base. RAG-ready vector search with semantic retrieval in milliseconds. Built for AI SDK, LangChain, and custom agents.",
 };
 
 export default function RootLayout({

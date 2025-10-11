@@ -44,11 +44,11 @@ export default function Home() {
               Alpha
             </Badge>
             <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-              Search your documents in milliseconds
+              The Knowledge API for AI Agents
             </h1>
             <p className="mb-8 text-xl text-muted-foreground">
-              Vector search API that just works. Upload documents, get search
-              endpoints. No infrastructure, no complexity.
+              Give your AI agents instant access to your knowledge base.
+              RAG-ready vector search with semantic retrieval in milliseconds.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button size="lg" asChild>
@@ -67,32 +67,36 @@ export default function Home() {
                 <div className="h-3 w-3 rounded-full bg-yellow-500" />
                 <div className="h-3 w-3 rounded-full bg-green-500" />
                 <span className="ml-2 text-xs text-muted-foreground font-mono">
-                  search.ts
+                  agent.ts
                 </span>
               </div>
               <pre className="overflow-x-auto p-4 text-sm">
                 <code className="font-mono text-foreground">
-                  {`const response = await fetch(
-  'https://api.lupa.dev/v1/search/proj_abc/dep_xyz/refund policy',
-  { headers: { 'Authorization': 'Bearer <token>' } }
-);
+                  {`import { streamText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
-const results = await response.json();
-// {
-//   results: [
-//     {
-//       content: "Refunds are processed within 5-7 business days...",
-//       similarity: 0.94,
-//       metadata: { title: "Refund Policy", page: 3 }
-//     }
-//   ],
-//   took_ms: 12
-// }`}
+const result = streamText({
+  model: openai('gpt-4o'),
+  tools: {
+    searchKnowledge: tool({
+      description: 'Search company knowledge base',
+      parameters: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        const res = await fetch(
+          \`https://api.lupa.dev/v1/search/proj/dep/\${query}\`,
+          { headers: { 'Authorization': 'Bearer <token>' } }
+        );
+        return res.json();
+      }
+    })
+  }
+});`}
                 </code>
               </pre>
             </div>
             <div className="absolute -right-4 -top-4 rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground shadow-lg">
-              12ms response time
+              AI SDK compatible
             </div>
           </div>
         </section>
@@ -139,10 +143,13 @@ const results = await response.json();
                     />
                   </svg>
                 </div>
-                <h3 className="mb-2 text-xl font-semibold">Fast by default</h3>
+                <h3 className="mb-2 text-xl font-semibold">
+                  RAG-optimized retrieval
+                </h3>
                 <p className="text-muted-foreground">
-                  Average p95 latency under 50ms. Vector search optimized with
-                  pgvector and Redis caching. No cold starts.
+                  Semantic search with pgvector embeddings. P95 latency under
+                  50ms. Perfect for LLM context augmentation and AI agent tool
+                  calls.
                 </p>
               </div>
 
@@ -164,11 +171,12 @@ const results = await response.json();
                   </svg>
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Any document format
+                  Intelligent chunking
                 </h3>
                 <p className="text-muted-foreground">
-                  PDF, DOCX, Markdown, HTML, plain text. Automatic parsing and
-                  chunking with LlamaParse integration.
+                  Automatic document parsing and embedding generation. PDF,
+                  DOCX, Markdown, HTML. Optimized chunk sizes for LLM context
+                  windows.
                 </p>
               </div>
 
@@ -190,11 +198,11 @@ const results = await response.json();
                   </svg>
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Built-in analytics
+                  Agent observability
                 </h3>
                 <p className="text-muted-foreground">
-                  Query patterns, relevance scores, latency tracking. Powered by
-                  Tinybird for real-time insights.
+                  Track AI agent queries, relevance scores, and retrieval
+                  patterns. Real-time analytics to improve your RAG pipeline.
                 </p>
               </div>
             </div>
@@ -205,10 +213,11 @@ const results = await response.json();
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
               <h2 className="mb-4 text-3xl font-bold">
-                Deploy and iterate in seconds
+                Ship AI agents with live knowledge
               </h2>
               <p className="text-muted-foreground">
-                Snapshot your document collections, deploy with zero downtime
+                Version your knowledge base with snapshots. Update agent context
+                without redeployment.
               </p>
             </div>
 
@@ -219,10 +228,10 @@ const results = await response.json();
                     1
                   </div>
                   <div>
-                    <h4 className="mb-1 font-semibold">Upload documents</h4>
+                    <h4 className="mb-1 font-semibold">Upload knowledge</h4>
                     <p className="text-sm text-muted-foreground">
-                      Drag and drop files or use the API. Automatic parsing and
-                      embedding generation.
+                      Drag and drop or use the API. Automatic embedding
+                      generation with OpenAI or custom models.
                     </p>
                   </div>
                 </div>
@@ -245,10 +254,10 @@ const results = await response.json();
                     3
                   </div>
                   <div>
-                    <h4 className="mb-1 font-semibold">Deploy to production</h4>
+                    <h4 className="mb-1 font-semibold">Connect to AI agents</h4>
                     <p className="text-sm text-muted-foreground">
-                      Zero-downtime deployment with instant activation. Monitor
-                      performance in real-time.
+                      Use as tool in AI SDK, LangChain, or any framework.
+                      Zero-downtime updates to agent knowledge.
                     </p>
                   </div>
                 </div>
@@ -257,24 +266,28 @@ const results = await response.json();
               <div className="rounded-lg border border-border bg-card p-4">
                 <pre className="overflow-x-auto text-sm">
                   <code className="font-mono text-foreground">
-                    {`// Create a deployment
-const deployment = await fetch(
-  'https://api.lupa.dev/v1/deployments',
-  {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer <token>',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      project_id: 'proj_abc',
-      snapshot_id: 'snap_xyz'
-    })
-  }
-);
+                    {`// LangChain integration
+import { ChatOpenAI } from "@langchain/openai";
+import { DynamicStructuredTool } from "@langchain/core/tools";
+import { z } from "zod";
 
-// Live in seconds
-// GET /search/proj_abc/dep_123/query`}
+const searchTool = new DynamicStructuredTool({
+  name: "search_knowledge",
+  description: "Search company knowledge base",
+  schema: z.object({ query: z.string() }),
+  func: async ({ query }) => {
+    const res = await fetch(
+      \`https://api.lupa.dev/v1/search/proj/dep/\${query}\`,
+      { headers: { Authorization: 'Bearer <token>' } }
+    );
+    return JSON.stringify(await res.json());
+  }
+});
+
+const agent = createOpenAIFunctionsAgent({
+  llm: new ChatOpenAI({ model: "gpt-4o" }),
+  tools: [searchTool]
+});`}
                   </code>
                 </pre>
               </div>
@@ -284,9 +297,9 @@ const deployment = await fetch(
 
         <section className="border-t border-border py-24">
           <div className="container mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
-            <h2 className="mb-4 text-3xl font-bold">Start building today</h2>
+            <h2 className="mb-4 text-3xl font-bold">Build smarter AI agents</h2>
             <p className="mb-8 text-lg text-muted-foreground">
-              Join engineering teams using Lupa in production
+              Join engineering teams building production AI agents with Lupa
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button size="lg" asChild>
@@ -317,7 +330,7 @@ const deployment = await fetch(
                 <span className="font-semibold">Lupa</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Vector search API for developers
+                The Knowledge API for AI Agents
               </p>
             </div>
 
