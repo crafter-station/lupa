@@ -18,10 +18,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   DocumentSelect,
   MetadataSchemaConfig,
+  RefreshFrequency,
   SnapshotSelect,
 } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
@@ -45,6 +53,9 @@ export function CreateDocument() {
   );
   const [metadataSchema, setMetadataSchema] =
     React.useState<MetadataSchemaConfig | null>(null);
+  const [refreshFrequency, setRefreshFrequency] = React.useState<
+    RefreshFrequency | "none"
+  >("none");
 
   const { DocumentCollection, SnapshotCollection } = useCollections();
 
@@ -64,6 +75,7 @@ export function CreateDocument() {
       setSelectedFile(null);
       setDocumentType("url");
       setIsUploading(false);
+      setRefreshFrequency("none");
     }
   }, [open, contextFolder]);
 
@@ -80,6 +92,9 @@ export function CreateDocument() {
         name: document.name,
         description: document.description,
         metadata_schema: document.metadata_schema,
+        refresh_enabled: document.refresh_enabled,
+        refresh_frequency: document.refresh_frequency,
+        refresh_schedule_id: document.refresh_schedule_id,
         created_at: document.created_at,
         updated_at: document.updated_at,
       });
@@ -138,6 +153,10 @@ export function CreateDocument() {
         name: formData.get("name") as string,
         description: formData.get("description") as string,
         metadata_schema: metadataSchema,
+        refresh_enabled: refreshFrequency !== "none",
+        refresh_frequency:
+          refreshFrequency !== "none" ? refreshFrequency : null,
+        refresh_schedule_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         snapshot: {
@@ -161,7 +180,14 @@ export function CreateDocument() {
       );
       setOpen(false);
     },
-    [projectId, createDocument, selectedFolder, metadataSchema, router],
+    [
+      projectId,
+      createDocument,
+      selectedFolder,
+      metadataSchema,
+      refreshFrequency,
+      router,
+    ],
   );
 
   const createFileDocument = createOptimisticAction<
@@ -177,6 +203,9 @@ export function CreateDocument() {
         name: document.name,
         description: document.description,
         metadata_schema: document.metadata_schema,
+        refresh_enabled: document.refresh_enabled,
+        refresh_frequency: document.refresh_frequency,
+        refresh_schedule_id: document.refresh_schedule_id,
         created_at: document.created_at,
         updated_at: document.updated_at,
       });
@@ -285,6 +314,9 @@ export function CreateDocument() {
           name,
           description,
           metadata_schema: metadataSchema,
+          refresh_enabled: false,
+          refresh_frequency: null,
+          refresh_schedule_id: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           snapshot: {
@@ -394,6 +426,31 @@ export function CreateDocument() {
               placeholder="Document Description"
               name="description"
             />
+            <div className="space-y-2">
+              <Label htmlFor="refresh-frequency">
+                Automatically refetch this website?
+              </Label>
+              <Select
+                value={refreshFrequency}
+                onValueChange={(value) =>
+                  setRefreshFrequency(value as RefreshFrequency | "none")
+                }
+              >
+                <SelectTrigger id="refresh-frequency">
+                  <SelectValue placeholder="Select refresh frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No automatic refresh</SelectItem>
+                  <SelectItem value="daily">Daily (midnight UTC)</SelectItem>
+                  <SelectItem value="weekly">
+                    Weekly (Sundays at midnight UTC)
+                  </SelectItem>
+                  <SelectItem value="monthly">
+                    Monthly (1st day at midnight UTC)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <MetadataSchemaEditor
               value={metadataSchema}
               onChange={setMetadataSchema}

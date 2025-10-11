@@ -1,4 +1,11 @@
-import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,6 +15,13 @@ export type MetadataSchemaConfig = {
   mode: "infer" | "custom";
   schema?: Record<string, unknown>;
 };
+
+export const RefreshFrequency = pgEnum("refresh_frequency_enum", [
+  "daily",
+  "weekly",
+  "monthly",
+]);
+export type RefreshFrequency = (typeof RefreshFrequency.enumValues)[number];
 
 export const Document = pgTable(DOCUMENT_TABLE, {
   id: text("id").primaryKey(),
@@ -22,6 +36,10 @@ export const Document = pgTable(DOCUMENT_TABLE, {
   project_id: text("project_id").notNull(),
 
   metadata_schema: jsonb("metadata_schema").$type<MetadataSchemaConfig>(),
+
+  refresh_enabled: boolean("refresh_enabled").notNull().default(false),
+  refresh_frequency: RefreshFrequency("refresh_frequency"),
+  refresh_schedule_id: text("refresh_schedule_id"),
 
   created_at: timestamp("created_at", {
     withTimezone: true,
