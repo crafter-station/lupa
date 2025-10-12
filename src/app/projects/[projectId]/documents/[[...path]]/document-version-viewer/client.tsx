@@ -1,7 +1,7 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Globe } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -9,9 +9,17 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+import { InlineEditableField } from "@/components/elements/inline-editable-field";
+import { InlineEditableFolder } from "@/components/elements/inline-editable-folder";
+import { InlineEditableRefreshSettings } from "@/components/elements/inline-editable-refresh-settings";
+import { InlineEditableTextarea } from "@/components/elements/inline-editable-textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { DocumentSelect, SnapshotSelect } from "@/db";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { DocumentSelect, RefreshFrequency, SnapshotSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { useMarkdown } from "@/hooks/use-markdown";
@@ -65,6 +73,17 @@ export function DocumentVersionViewerLiveQuery({
       snapshotsStatus === "ready" ? freshSnapshotsData : preloadedSnapshots;
     return [...data];
   }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
+
+  const { data: allDocumentsData } = useLiveQuery((q) =>
+    q
+      .from({ document: DocumentCollection })
+      .select(({ document }) => ({ ...document }))
+      .where(({ document }) => eq(document.project_id, projectId)),
+  );
+
+  const allDocuments = React.useMemo(() => {
+    return allDocumentsData || [];
+  }, [allDocumentsData]);
 
   const prevSnapshotsRef = React.useRef(preloadedSnapshots);
 
@@ -177,22 +196,80 @@ export function DocumentVersionViewerLiveQuery({
   }
 
   return (
-    <DocumentVersionViewerContent document={document} snapshots={snapshots} />
+    <DocumentVersionViewerContent
+      document={document}
+      snapshots={snapshots}
+      allDocuments={allDocuments}
+    />
   );
 }
 
 export function DocumentVersionViewerContent({
   document: preloadedDocument,
   snapshots: snapshotsData,
+  allDocuments,
 }: {
   document: DocumentSelect;
   snapshots: SnapshotSelect[];
+  allDocuments: DocumentSelect[];
 }) {
+  const router = useRouter();
   const { projectId } = useParams<{
     projectId: string;
   }>();
+  const { DocumentCollection } = useCollections();
 
   const { folder, version } = useFolderDocumentVersion();
+
+  const handleUpdateDocument = React.useCallback(
+    async (changes: Partial<DocumentSelect>) => {
+      try {
+        DocumentCollection.update(preloadedDocument.id, (doc) => {
+          Object.assign(doc, changes);
+          doc.updated_at = new Date().toISOString();
+        });
+        toast.success("Document updated");
+      } catch (error) {
+        console.error("Failed to update document:", error);
+        toast.error("Failed to update document");
+        throw error;
+      }
+    },
+    [DocumentCollection, preloadedDocument.id],
+  );
+
+  const handleUpdateName = React.useCallback(
+    async (name: string) => {
+      await handleUpdateDocument({ name });
+    },
+    [handleUpdateDocument],
+  );
+
+  const handleUpdateDescription = React.useCallback(
+    async (description: string | null) => {
+      await handleUpdateDocument({ description });
+    },
+    [handleUpdateDocument],
+  );
+
+  const handleUpdateFolder = React.useCallback(
+    async (newFolder: string) => {
+      await handleUpdateDocument({ folder: newFolder });
+      const newUrl = `/projects/${projectId}/documents${newFolder}doc:${preloadedDocument.id}`;
+      router.push(newUrl);
+    },
+    [handleUpdateDocument, router, projectId, preloadedDocument.id],
+  );
+
+  const handleUpdateRefreshSettings = React.useCallback(
+    async (enabled: boolean, frequency: RefreshFrequency | null) => {
+      await handleUpdateDocument({
+        refresh_enabled: enabled,
+        refresh_frequency: frequency,
+      });
+    },
+    [handleUpdateDocument],
+  );
 
   const snapshots = React.useMemo(() => {
     return [...snapshotsData].sort(
@@ -225,81 +302,194 @@ export function DocumentVersionViewerContent({
 
   return (
     <div className="space-y-4 pb-8">
-      <div className="flex items-center justify-between sticky top-0 bg-background pb-4 border-b mb-4">
-        <h2 className="text-xl font-semibold">{preloadedDocument.name}</h2>
-        <div className="flex items-center gap-2">
-          <CreateSnapshot />
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={currentVersionIndex <= 0}
-            asChild={currentVersionIndex > 0}
-          >
-            {currentVersionIndex > 0 ? (
-              <Link href={`${baseUrl}/v${currentVersionIndex - 1}`}>
-                <ChevronLeft className="h-4 w-4" />
-              </Link>
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-          <span className="text-sm font-medium px-3">
-            v{currentVersionIndex}
-          </span>
+      <div className="space-y-4 sticky top-0 bg-background pb-4 border-b mb-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs text-muted-foreground">Name</Label>
+            <div className="flex items-center gap-2">
+              <InlineEditableField
+                value={preloadedDocument.name}
+                onSave={handleUpdateName}
+                className="text-xl font-semibold"
+                required
+              />
+            </div>
+          </div>
 
-          {currentVersionIndex === latestVersionIndex ? (
-            <Badge variant="outline">L</Badge>
-          ) : null}
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={currentVersionIndex >= latestVersionIndex}
-            asChild={currentVersionIndex < latestVersionIndex}
-          >
-            {currentVersionIndex < latestVersionIndex ? (
-              <Link
-                href={
-                  currentVersionIndex === latestVersionIndex - 1
-                    ? baseUrl
-                    : `${baseUrl}/v${currentVersionIndex + 1}`
-                }
-              >
+          <div>
+            <Label className="text-xs text-muted-foreground">Description</Label>
+            <InlineEditableTextarea
+              value={preloadedDocument.description}
+              onSave={handleUpdateDescription}
+              className="text-sm"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground">Folder</Label>
+            <InlineEditableFolder
+              value={preloadedDocument.folder}
+              onSave={handleUpdateFolder}
+              documents={allDocuments}
+              className="text-sm"
+            />
+          </div>
+
+          {currentSnapshot?.type === "website" && (
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Refresh Schedule
+              </Label>
+              <InlineEditableRefreshSettings
+                refreshEnabled={preloadedDocument.refresh_enabled}
+                refreshFrequency={preloadedDocument.refresh_frequency}
+                onSave={handleUpdateRefreshSettings}
+                className="text-sm"
+              />
+            </div>
+          )}
+
+          <div className="text-xs text-muted-foreground">
+            Updated: {new Date(preloadedDocument.updated_at).toLocaleString()}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="flex items-center justify-between">
+          <CreateSnapshot />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentVersionIndex <= 0}
+              asChild={currentVersionIndex > 0}
+            >
+              {currentVersionIndex > 0 ? (
+                <Link href={`${baseUrl}/v${currentVersionIndex - 1}`}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Link>
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
+            <span className="text-sm font-medium px-3">
+              v{currentVersionIndex}
+            </span>
+
+            {currentVersionIndex === latestVersionIndex ? (
+              <Badge variant="outline">L</Badge>
+            ) : null}
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentVersionIndex >= latestVersionIndex}
+              asChild={currentVersionIndex < latestVersionIndex}
+            >
+              {currentVersionIndex < latestVersionIndex ? (
+                <Link
+                  href={
+                    currentVersionIndex === latestVersionIndex - 1
+                      ? baseUrl
+                      : `${baseUrl}/v${currentVersionIndex + 1}`
+                  }
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : (
                 <ChevronRight className="h-4 w-4" />
-              </Link>
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </Button>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-        <Badge>{currentSnapshot.status}</Badge>
-        <Badge variant="secondary">{currentSnapshot.type}</Badge>
-        <span>•</span>
-        <span>{new Date(currentSnapshot.created_at).toLocaleString()}</span>
-        {currentSnapshot.chunks_count && (
-          <>
-            <span>•</span>
-            <span>{currentSnapshot.chunks_count} chunks</span>
-          </>
-        )}
+      <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
+        <div className="flex items-center gap-2">
+          <Badge>{currentSnapshot.status}</Badge>
+          <Badge variant="secondary">{currentSnapshot.type}</Badge>
+          <span>•</span>
+          {currentSnapshot.type === "website" && currentSnapshot.url && (
+            <a
+              href={currentSnapshot.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+            >
+              {currentSnapshot.url}
+            </a>
+          )}
+          <span>•</span>
+          <span>{new Date(currentSnapshot.created_at).toLocaleString()}</span>
+          {currentSnapshot.chunks_count && (
+            <>
+              <span>•</span>
+              <span>{currentSnapshot.chunks_count} chunks</span>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="border rounded-lg p-6 prose prose-sm max-w-none dark:prose-invert">
-        {loading && (
-          <p className="text-sm text-muted-foreground">Loading content...</p>
-        )}
-        {!loading && markdown && (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
-        )}
-        {!loading && !markdown && !isError && (
-          <p className="text-sm text-muted-foreground">No content available</p>
-        )}
-        {isError && (
-          <p className="text-sm text-red-600">Failed to load content</p>
-        )}
-      </div>
+      <Tabs defaultValue="raw" className="w-full">
+        <div className="flex justify-end">
+          <TabsList className="mr-1 z-10">
+            <TabsTrigger value="raw">Raw Markdown</TabsTrigger>
+            <TabsTrigger value="rendered">Rendered</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="raw" className="-mt-12">
+          <div className="border rounded-lg bg-muted/50">
+            <ScrollArea className="h-[calc(100vh-24rem)]">
+              <div className="p-6">
+                {loading && (
+                  <p className="text-sm text-muted-foreground">
+                    Loading content...
+                  </p>
+                )}
+                {!loading && markdown && (
+                  <pre className="text-sm whitespace-pre-wrap font-mono overflow-x-auto">
+                    {markdown}
+                  </pre>
+                )}
+                {!loading && !markdown && !isError && (
+                  <p className="text-sm text-muted-foreground">
+                    No content available
+                  </p>
+                )}
+                {isError && (
+                  <p className="text-sm text-red-600">Failed to load content</p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </TabsContent>
+        <TabsContent value="rendered" className="-mt-12">
+          <div className="border rounded-lg">
+            <ScrollArea className="h-[calc(100vh-24rem)]">
+              <div className="p-6 prose prose-sm max-w-none dark:prose-invert">
+                {loading && (
+                  <p className="text-sm text-muted-foreground">
+                    Loading content...
+                  </p>
+                )}
+                {!loading && markdown && (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {markdown}
+                  </ReactMarkdown>
+                )}
+                {!loading && !markdown && !isError && (
+                  <p className="text-sm text-muted-foreground">
+                    No content available
+                  </p>
+                )}
+                {isError && (
+                  <p className="text-sm text-red-600">Failed to load content</p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

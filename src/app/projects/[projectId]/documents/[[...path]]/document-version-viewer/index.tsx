@@ -11,6 +11,7 @@ export type DocumentVersionViewerLoadingContextProps = {
   documentId: string;
   preloadedDocument: DocumentSelect | null;
   preloadedSnapshots: SnapshotSelect[];
+  preloadedAllDocuments: DocumentSelect[];
 };
 
 const DocumentVersionViewerLoadingContext =
@@ -18,6 +19,7 @@ const DocumentVersionViewerLoadingContext =
     documentId: "",
     preloadedDocument: null,
     preloadedSnapshots: [],
+    preloadedAllDocuments: [],
   });
 
 export const DocumentVersionViewerDynamic = dynamic(
@@ -27,9 +29,8 @@ export const DocumentVersionViewerDynamic = dynamic(
     ssr: false,
 
     loading: () => {
-      const { preloadedDocument, preloadedSnapshots } = React.useContext(
-        DocumentVersionViewerLoadingContext,
-      );
+      const { preloadedDocument, preloadedSnapshots, preloadedAllDocuments } =
+        React.useContext(DocumentVersionViewerLoadingContext);
 
       if (!preloadedDocument) {
         return (
@@ -43,6 +44,7 @@ export const DocumentVersionViewerDynamic = dynamic(
         <DocumentVersionViewerContent
           document={preloadedDocument}
           snapshots={preloadedSnapshots}
+          allDocuments={preloadedAllDocuments}
         />
       );
     },
@@ -53,15 +55,22 @@ export const DocumentVersionViewer = ({
   documentId,
   preloadedDocument,
   preloadedSnapshots,
+  preloadedAllDocuments,
 }: DocumentVersionViewerLoadingContextProps) => {
   return (
     <DocumentVersionViewerLoadingContext.Provider
-      value={{ documentId, preloadedDocument, preloadedSnapshots }}
+      value={{
+        documentId,
+        preloadedDocument,
+        preloadedSnapshots,
+        preloadedAllDocuments,
+      }}
     >
       <DocumentVersionViewerDynamic
         documentId={documentId}
         preloadedDocument={preloadedDocument}
         preloadedSnapshots={preloadedSnapshots}
+        preloadedAllDocuments={preloadedAllDocuments}
       />
     </DocumentVersionViewerLoadingContext.Provider>
   );

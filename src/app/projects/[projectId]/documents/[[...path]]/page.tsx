@@ -82,6 +82,7 @@ export default async function DocumentsPathPage({
             documentId={documentId}
             preloadedDocument={preloadedDocument ?? null}
             preloadedSnapshots={snapshots}
+            preloadedAllDocuments={preloadedDocuments}
           />
         </div>
       </div>

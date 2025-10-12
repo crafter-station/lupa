@@ -1,16 +1,11 @@
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { z } from "zod";
+
 import * as schema from "@/db/schema";
+import { DocumentSelectSchema } from "@/db/schema";
 
 export const preferredRegion = "iad1";
-
-const DocumentUpdateSchema = z.object({
-  folder: z.string().optional(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-});
 
 export async function PATCH(
   request: Request,
@@ -21,7 +16,7 @@ export async function PATCH(
     const { id: documentId } = await params;
     const json = await request.json();
 
-    const updates = DocumentUpdateSchema.parse(json);
+    const updates = DocumentSelectSchema.partial().parse(json);
 
     if (Object.keys(updates).length === 0) {
       return Response.json(
