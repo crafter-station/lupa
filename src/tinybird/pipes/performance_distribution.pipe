@@ -1,0 +1,26 @@
+DESCRIPTION >
+    Get performance latency distribution
+
+TOKEN "performance_distribution_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        CASE
+            WHEN response_time_ms < 100 THEN '<100ms'
+            WHEN response_time_ms < 500 THEN '100-500ms'
+            WHEN response_time_ms < 1000 THEN '500ms-1s'
+            WHEN response_time_ms < 2000 THEN '1-2s'
+            ELSE '>2s'
+        END as latency_bucket,
+        count() as requests
+    FROM search_api_logs
+    WHERE project_id = {{String(project_id, required=True)}}
+      AND deployment_id = {{String(deployment_id, required=True)}}
+      AND timestamp >= now() - INTERVAL {{Int32(days, 7)}} DAY
+      AND status_code = 200
+    GROUP BY latency_bucket
+    ORDER BY min(response_time_ms)
+
+TYPE endpoint

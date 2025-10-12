@@ -53,7 +53,7 @@ async function searchDeployment(
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
   const response = await fetch(
-    `/api/search/${projectId}/${deploymentId}/${query}`,
+    `/api/search?projectId=${projectId}&deploymentId=${deploymentId}&query=${query}`,
     {
       signal,
     },

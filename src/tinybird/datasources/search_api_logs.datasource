@@ -1,0 +1,20 @@
+SCHEMA >
+    `timestamp` DateTime64(3) DEFAULT now64() `json:$.timestamp`,
+    `timestamp_date` DateTime DEFAULT now() `json:$.timestamp_date`,
+    `request_id` String `json:$.request_id`,
+    `project_id` String `json:$.project_id`,
+    `deployment_id` String `json:$.deployment_id`,
+    `query` String `json:$.query`,
+    `query_length` UInt32 `json:$.query_length`,
+    `status_code` UInt16 `json:$.status_code`,
+    `response_time_ms` UInt32 `json:$.response_time_ms`,
+    `results_returned` UInt8 `json:$.results_returned`,
+    `error_message` String `json:$.error_message`,
+    `avg_similarity_score` Float32 `json:$.avg_similarity_score`,
+    `min_similarity_score` Float32 `json:$.min_similarity_score`,
+    `max_similarity_score` Float32 `json:$.max_similarity_score`
+
+ENGINE "MergeTree"
+ENGINE_SORTING_KEY "project_id, deployment_id, timestamp"
+ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"
+ENGINE_TTL "timestamp_date + INTERVAL 90 DAY"

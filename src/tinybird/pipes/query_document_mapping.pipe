@@ -1,0 +1,24 @@
+DESCRIPTION >
+    Get which queries return which documents most often
+
+TOKEN "query_document_mapping_endpoint" READ
+
+NODE endpoint
+SQL >
+    %
+    SELECT
+        l.query,
+        r.document_id,
+        count() as frequency,
+        avg(r.similarity_score) as avg_score,
+        avg(r.rank) as avg_position
+    FROM search_results r
+    JOIN search_api_logs l ON r.request_id = l.request_id
+    WHERE r.project_id = {{String(project_id, required=True)}}
+      AND r.deployment_id = {{String(deployment_id, required=True)}}
+      AND r.timestamp >= now() - INTERVAL {{Int32(days, 30)}} DAY
+    GROUP BY l.query, r.document_id
+    ORDER BY frequency DESC
+    LIMIT {{Int32(limit, 200)}}
+
+TYPE endpoint
