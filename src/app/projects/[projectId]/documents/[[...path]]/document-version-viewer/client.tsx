@@ -408,16 +408,18 @@ export function DocumentVersionViewerContent({
         <div className="flex items-center gap-2">
           <Badge>{currentSnapshot.status}</Badge>
           <Badge variant="secondary">{currentSnapshot.type}</Badge>
-          <span>•</span>
           {currentSnapshot.type === "website" && currentSnapshot.url && (
-            <a
-              href={currentSnapshot.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-            >
-              {currentSnapshot.url}
-            </a>
+            <>
+              <span>•</span>
+              <a
+                href={currentSnapshot.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+              >
+                {currentSnapshot.url}
+              </a>
+            </>
           )}
           <span>•</span>
           <span>{new Date(currentSnapshot.created_at).toLocaleString()}</span>

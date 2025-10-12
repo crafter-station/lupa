@@ -79,15 +79,21 @@ export async function POST(request: Request) {
         metadata_schema: metadataSchema,
       });
 
+      const snapshotMetadata: Record<string, unknown> = {
+        file_name: filename,
+      };
+
+      if (parsingInstruction?.trim()) {
+        snapshotMetadata.parsing_instruction = parsingInstruction.trim();
+      }
+
       await tx.insert(schema.Snapshot).values({
         id: snapshotId,
         document_id: documentId,
         url: blobUrl,
         status: "queued",
         type: "upload",
-        metadata: {
-          file_name: filename,
-        },
+        metadata: snapshotMetadata,
       });
 
       const txid = await tx.execute(
