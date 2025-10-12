@@ -1,7 +1,7 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { ChevronLeft, ChevronRight, FileText, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -16,7 +16,6 @@ import { InlineEditableTextarea } from "@/components/elements/inline-editable-te
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DocumentSelect, RefreshFrequency, SnapshotSelect } from "@/db";
@@ -220,6 +219,7 @@ export function DocumentVersionViewerContent({
   const { DocumentCollection } = useCollections();
 
   const { folder, version } = useFolderDocumentVersion();
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   const handleUpdateDocument = React.useCallback(
     async (changes: Partial<DocumentSelect>) => {
@@ -301,9 +301,21 @@ export function DocumentVersionViewerContent({
   }
 
   return (
-    <div className="space-y-4 pb-8">
-      <div className="space-y-4 sticky top-0 bg-background pb-4 border-b mb-4">
-        <div className="grid grid-cols-2 gap-3">
+    <div
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-50 bg-background overflow-auto"
+          : "space-y-2 pb-4"
+      }
+    >
+      <div
+        className={
+          isFullscreen
+            ? "space-y-2 pb-2 border-b mb-2 p-4"
+            : "space-y-2 sticky top-0 bg-background pb-2 border-b mb-2 z-10"
+        }
+      >
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <Label className="text-xs text-muted-foreground">Name</Label>
             <div className="flex items-center gap-2">
@@ -404,7 +416,7 @@ export function DocumentVersionViewerContent({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
+      <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-2">
         <div className="flex items-center gap-2">
           <Badge>{currentSnapshot.status}</Badge>
           <Badge variant="secondary">{currentSnapshot.type}</Badge>
@@ -433,62 +445,104 @@ export function DocumentVersionViewerContent({
       </div>
 
       <Tabs defaultValue="raw" className="w-full">
-        <div className="flex justify-end">
-          <TabsList className="mr-1 z-10">
+        <div className="flex justify-between items-center mb-2">
+          <TabsList>
             <TabsTrigger value="raw">Raw Markdown</TabsTrigger>
             <TabsTrigger value="rendered">Rendered</TabsTrigger>
+            <TabsTrigger value="metadata">Metadata</TabsTrigger>
           </TabsList>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </Button>
         </div>
-        <TabsContent value="raw" className="-mt-12">
-          <div className="border rounded-lg bg-muted/50">
-            <ScrollArea className="h-[calc(100vh-24rem)]">
-              <div className="p-6">
-                {loading && (
-                  <p className="text-sm text-muted-foreground">
-                    Loading content...
-                  </p>
-                )}
-                {!loading && markdown && (
-                  <pre className="text-sm whitespace-pre-wrap font-mono overflow-x-auto">
-                    {markdown}
-                  </pre>
-                )}
-                {!loading && !markdown && !isError && (
-                  <p className="text-sm text-muted-foreground">
-                    No content available
-                  </p>
-                )}
-                {isError && (
-                  <p className="text-sm text-red-600">Failed to load content</p>
-                )}
-              </div>
-            </ScrollArea>
+        <TabsContent value="raw" className="mt-0">
+          <div
+            className={`border rounded-lg bg-muted/50 ${isFullscreen ? "h-[calc(100vh-16rem)]" : "max-h-[calc(100vh-28.5rem)]"} overflow-auto`}
+          >
+            <div className="p-4">
+              {loading && (
+                <p className="text-sm text-muted-foreground">
+                  Loading content...
+                </p>
+              )}
+              {!loading && markdown && (
+                <pre className="text-sm whitespace-pre-wrap font-mono overflow-x-auto">
+                  {markdown}
+                </pre>
+              )}
+              {!loading && !markdown && !isError && (
+                <p className="text-sm text-muted-foreground">
+                  No content available
+                </p>
+              )}
+              {isError && (
+                <p className="text-sm text-red-600">Failed to load content</p>
+              )}
+            </div>
           </div>
         </TabsContent>
-        <TabsContent value="rendered" className="-mt-12">
-          <div className="border rounded-lg">
-            <ScrollArea className="h-[calc(100vh-24rem)]">
-              <div className="p-6 prose prose-sm max-w-none dark:prose-invert">
-                {loading && (
-                  <p className="text-sm text-muted-foreground">
-                    Loading content...
-                  </p>
-                )}
-                {!loading && markdown && (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {markdown}
-                  </ReactMarkdown>
-                )}
-                {!loading && !markdown && !isError && (
-                  <p className="text-sm text-muted-foreground">
-                    No content available
-                  </p>
-                )}
-                {isError && (
-                  <p className="text-sm text-red-600">Failed to load content</p>
-                )}
+        <TabsContent value="rendered" className="mt-0">
+          <div
+            className={`border rounded-lg bg-muted/50 ${isFullscreen ? "h-[calc(100vh-16rem)]" : "max-h-[calc(100vh-28.5rem)]"} overflow-auto`}
+          >
+            <div className="p-4 prose prose-sm max-w-none dark:prose-invert">
+              {loading && (
+                <p className="text-sm text-muted-foreground">
+                  Loading content...
+                </p>
+              )}
+              {!loading && markdown && (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {markdown}
+                </ReactMarkdown>
+              )}
+              {!loading && !markdown && !isError && (
+                <p className="text-sm text-muted-foreground">
+                  No content available
+                </p>
+              )}
+              {isError && (
+                <p className="text-sm text-red-600">Failed to load content</p>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="metadata" className="mt-0">
+          <div
+            className={`border rounded-lg bg-muted/50 ${isFullscreen ? "h-[calc(100vh-16rem)]" : "max-h-[calc(100vh-28.5rem)]"} overflow-auto`}
+          >
+            <div className="p-4 space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold mb-2">
+                  Snapshot Metadata
+                </h3>
+                <pre className="text-xs whitespace-pre font-mono overflow-x-auto">
+                  {JSON.stringify(currentSnapshot.metadata, null, 2)}
+                </pre>
               </div>
-            </ScrollArea>
+              {currentSnapshot.extracted_metadata && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">
+                    Extracted Metadata
+                  </h3>
+                  <pre className="text-xs whitespace-pre font-mono overflow-x-auto">
+                    {JSON.stringify(
+                      currentSnapshot.extracted_metadata,
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
       </Tabs>
