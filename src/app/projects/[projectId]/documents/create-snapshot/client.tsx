@@ -202,11 +202,21 @@ export function CreateSnapshot() {
           updated_at: new Date().toISOString(),
         });
 
-        if (currentDocument && metadataSchema) {
-          DocumentCollection.update(currentDocument.id, (doc) => {
-            doc.metadata_schema = metadataSchema;
-            doc.updated_at = new Date().toISOString();
-          });
+        if (currentDocument) {
+          if (currentDocument.refresh_schedule_id) {
+            DocumentCollection.update(currentDocument.id, (doc) => {
+              doc.refresh_enabled = false;
+              doc.refresh_frequency = null;
+              doc.refresh_schedule_id = null;
+              doc.metadata_schema = metadataSchema;
+              doc.updated_at = new Date().toISOString();
+            });
+          } else if (metadataSchema) {
+            DocumentCollection.update(currentDocument.id, (doc) => {
+              doc.metadata_schema = metadataSchema;
+              doc.updated_at = new Date().toISOString();
+            });
+          }
         }
 
         setNewSnapshot(true);
