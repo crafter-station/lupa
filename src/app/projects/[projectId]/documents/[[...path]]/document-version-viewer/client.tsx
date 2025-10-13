@@ -229,7 +229,6 @@ export function DocumentVersionViewerContent({
           Object.assign(doc, changes);
           doc.updated_at = new Date().toISOString();
         });
-        toast.success("Document updated");
       } catch (error) {
         console.error("Failed to update document:", error);
         toast.error("Failed to update document");
