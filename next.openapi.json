@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "www.lupa.build/api",
+      "url": "https://www.lupa.build/api",
       "description": "Local development server"
     }
   ],
