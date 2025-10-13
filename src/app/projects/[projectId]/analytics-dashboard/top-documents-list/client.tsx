@@ -20,7 +20,6 @@ import type { TopDocumentsListProps } from "./index";
 export function TopDocumentsListLiveQuery({
   topDocumentsData,
   preloadedDocuments,
-  projectId,
 }: TopDocumentsListProps) {
   const { DocumentCollection } = useCollections();
 

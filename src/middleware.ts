@@ -41,7 +41,7 @@ export default clerkMiddleware(
           // Extract results and scores for analytics
           const results = data.results || [];
           const scores = results
-            .map((r: any) => r.score)
+            .map((r: { score: number }) => r.score)
             .filter((s: number) => typeof s === "number");
 
           // Log analytics asynchronously in the background
