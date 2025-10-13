@@ -405,18 +405,31 @@ export function CreateDocument() {
             onChange={setSelectedFolder}
           />
 
-          <Input
-            id="name"
-            type="text"
-            placeholder={
-              snapshotType === "upload"
-                ? "Name (optional, defaults to filename)"
-                : "Name"
-            }
-            name="name"
-            required={snapshotType === "website"}
-            disabled={isUploading}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder={
+                snapshotType === "upload"
+                  ? "Name (optional, defaults to filename)"
+                  : "Name"
+              }
+              name="name"
+              required={snapshotType === "website"}
+              disabled={isUploading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Document Description (Optional)"
+              name="description"
+              disabled={isUploading}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="snapshot-type">Snapshot Type</Label>
@@ -446,14 +459,17 @@ export function CreateDocument() {
 
           {snapshotType === "website" ? (
             <>
-              <Input
-                id="url"
-                type="url"
-                placeholder="https://example.com"
-                name="url"
-                required
-                disabled={isUploading}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="url">URL</Label>
+                <Input
+                  id="url"
+                  type="url"
+                  placeholder="https://example.com"
+                  name="url"
+                  required
+                  disabled={isUploading}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="refresh-frequency">
                   Automatically refetch this website?
@@ -524,13 +540,6 @@ export function CreateDocument() {
               </div>
             </>
           )}
-
-          <Textarea
-            id="description"
-            placeholder="Document Description (Optional)"
-            name="description"
-            disabled={isUploading}
-          />
 
           <MetadataSchemaEditor
             value={metadataSchema}

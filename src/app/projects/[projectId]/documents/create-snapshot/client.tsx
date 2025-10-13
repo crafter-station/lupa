@@ -286,14 +286,17 @@ export function CreateSnapshot() {
             onSubmit={handleWebsiteSubmit}
             className="grid grid-cols-1 gap-3"
           >
-            <Input
-              id="url"
-              type="url"
-              placeholder="https://example.com"
-              name="url"
-              required
-              defaultValue={latestSnapshot?.url}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="url">URL</Label>
+              <Input
+                id="url"
+                type="url"
+                placeholder="https://example.com"
+                name="url"
+                required
+                defaultValue={latestSnapshot?.url}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="refresh-frequency">
                 Automatically refetch this website?
