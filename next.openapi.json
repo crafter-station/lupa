@@ -95,7 +95,7 @@
   "docsUrl": "docs",
   "ui": "scalar",
   "outputFile": "openapi.json",
-  "outputDir": "./public",
+  "outputDir": "./src/app/docs",
   "includeOpenApiRoutes": true,
   "debug": false
 }
