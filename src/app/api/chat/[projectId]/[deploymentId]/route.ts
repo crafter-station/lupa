@@ -10,38 +10,6 @@ import { z } from "zod";
 
 export const maxDuration = 120;
 
-export const CreateChatRequestSchema = z.object({
-  messages: z
-    .array(
-      z.object({
-        id: z.string().describe("Unique ID of the message"),
-        role: z
-          .enum(["user", "assistant", "system"])
-          .describe("Role of the message sender"),
-        content: z.string().describe("Text content of the message"),
-      }),
-    )
-    .describe("Conversation messages including user and assistant turns"),
-  model: z
-    .string()
-    .default("gpt-5")
-    .describe("Model name to use for the chat (e.g., gpt-5)"),
-});
-
-export const ErrorResponseSchema = z.object({
-  error: z.string().describe("Error message"),
-});
-
-/**
- * Create a chat session using an OpenAI model with integrated knowledge search.
- * @description Creates a conversational session with an AI model (`gpt-5` by default) that can query a knowledge base for contextual information using the `search-knowledge` tool.
- * @param projectId Path parameter representing the project ID.
- * @param deploymentId Path parameter representing the deployment ID.
- * @body CreateChatRequestSchema
- * @response 200 application/stream+json:Stream of chat responses in UIMessage format
- * @response 500:ErrorResponseSchema:Internal server error
- * @openapi
- */
 export async function POST(
   request: Request,
   {
