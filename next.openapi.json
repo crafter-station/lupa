@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000/api",
+      "url": "www.lupa.build/api",
       "description": "Local development server"
     }
   ],
@@ -88,7 +88,7 @@
   "apiDir": "./src/app/api",
   "schemaDir": "./src",
   "schemaType": "zod",
-  "docsUrl": "api-docs",
+  "docsUrl": "docs",
   "ui": "scalar",
   "outputFile": "openapi.json",
   "outputDir": "./public",
