@@ -11,6 +11,23 @@ export default clerkMiddleware(
   async (_auth, req: NextRequest, event: NextFetchEvent) => {
     const url = req.nextUrl;
 
+    // Redirect www.lupa.build/docs/* to docs.lupa.build/*
+    if (url.hostname === "www.lupa.build" && url.pathname.startsWith("/docs")) {
+      const redirectUrl = new URL(url.href);
+      redirectUrl.hostname = "docs.lupa.build";
+      redirectUrl.pathname = url.pathname.replace(/^\/docs/, "") || "/";
+
+      return NextResponse.redirect(redirectUrl, 301);
+    }
+
+    // Rewrite docs subdomain requests to /docs route
+    if (url.hostname === "docs.lupa.build") {
+      const rewriteUrl = new URL(`/docs${url.pathname}`, req.url);
+      rewriteUrl.search = url.search;
+
+      return NextResponse.rewrite(rewriteUrl);
+    }
+
     if (url.pathname === "/api/search") {
       const projectId = url.searchParams.get("projectId");
       const deploymentId = url.searchParams.get("deploymentId");

@@ -19,7 +19,9 @@ export default function Home() {
           </div>
           <nav className="flex items-center gap-6">
             <a
-              href="#docs"
+              href="https://docs.lupa.build"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Docs
@@ -55,7 +57,13 @@ export default function Home() {
                 <Link href="/projects">Start Building</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <a href="#docs">View Docs</a>
+                <a
+                  href="https://docs.lupa.build"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Docs
+                </a>
               </Button>
             </div>
           </div>
@@ -339,7 +347,9 @@ const agent = createOpenAIFunctionsAgent({
               <ul className="space-y-2 text-sm">
                 <li>
                   <a
-                    href="#docs"
+                    href="https://docs.lupa.build"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Documentation
@@ -407,7 +417,7 @@ const agent = createOpenAIFunctionsAgent({
                 </li>
                 <li>
                   <a
-                    href="https://github.com"
+                    href="https://github.com/crafter-station/lupa"
                     className="text-muted-foreground transition-colors hover:text-foreground"
                   >
                     GitHub
