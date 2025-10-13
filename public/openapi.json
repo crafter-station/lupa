@@ -54,26 +54,6 @@
         },
         "required": ["messages", "model"]
       },
-      "WhereParamsSchema": {
-        "type": "object",
-        "properties": {
-          "where": {
-            "type": "string",
-            "nullable": true
-          },
-          "params": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        }
-      },
-      "GetDeploymentResponseSchema": {
-        "type": "object",
-        "properties": {}
-      },
       "CreateDeploymentBodySchema": {
         "type": "object",
         "properties": {
@@ -124,110 +104,6 @@
           }
         },
         "required": ["success", "txid"]
-      },
-      "UploadDocumentBodySchema": {
-        "type": "object",
-        "properties": {
-          "documentId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "snapshotId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "blobUrl": {
-            "type": "string"
-          },
-          "filename": {
-            "type": "string",
-            "minLength": 1
-          },
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "projectId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "folder": {
-            "type": "string",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "metadataSchema": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "nullable": true,
-            "description": "Optional JSON schema for metadata"
-          },
-          "parsingInstruction": {
-            "type": "string",
-            "nullable": true,
-            "description": "Optional instructions for how to parse the document"
-          }
-        },
-        "required": [
-          "documentId",
-          "snapshotId",
-          "blobUrl",
-          "filename",
-          "projectId"
-        ]
-      },
-      "UploadDocumentResponseSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [true]
-          },
-          "txid": {
-            "type": "number"
-          },
-          "documentId": {
-            "type": "string"
-          },
-          "snapshotId": {
-            "type": "string"
-          }
-        },
-        "required": ["success", "txid", "documentId", "snapshotId"]
-      },
-      "UploadDocumentBlobSchema": {
-        "type": "object",
-        "properties": {
-          "file": {
-            "type": "string",
-            "format": "binary",
-            "description": "File to upload (image, PDF, or document)"
-          }
-        },
-        "required": ["file"]
-      },
-      "UploadDocumentBlobResponseSchema": {
-        "type": "object",
-        "properties": {
-          "blobUrl": {
-            "type": "string",
-            "description": "Public URL of the uploaded blob"
-          },
-          "filename": {
-            "type": "string",
-            "description": "Original file name"
-          },
-          "size": {
-            "type": "number",
-            "description": "File size in bytes"
-          }
-        },
-        "required": ["blobUrl", "filename", "size"]
       },
       "SearchResponseSchema": {
         "type": "object",
@@ -304,6 +180,22 @@
           }
         },
         "required": ["error"]
+      },
+      "WhereParamsSchema": {
+        "type": "object",
+        "properties": {
+          "where": {
+            "type": "string",
+            "nullable": true
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
       },
       "DeploymentLogSchema": {
         "type": "object",
@@ -767,50 +659,6 @@
         }
       }
     },
-    "/collections/deployments": {
-      "get": {
-        "operationId": "get-collections-deployments",
-        "summary": "Get deployments",
-        "description": "Fetch a list of deployments with optional filtering.",
-        "tags": ["Collections"],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "where",
-            "schema": {
-              "type": "string"
-            },
-            "required": false
-          },
-          {
-            "in": "query",
-            "name": "params",
-            "schema": {
-              "type": "object"
-            },
-            "required": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetDeploymentResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
     "/deployments": {
       "post": {
         "operationId": "post-deployments",
@@ -834,78 +682,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateDeploymentSuccessResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/documents/upload": {
-      "post": {
-        "operationId": "post-documents-upload",
-        "summary": "Upload a document",
-        "description": "Upload a document to the system for processing and storage.",
-        "tags": ["Documents"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadDocumentBodySchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UploadDocumentResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/documents/upload-blob": {
-      "post": {
-        "operationId": "post-documents-upload-blob",
-        "summary": "Upload a document file",
-        "description": "Uploads a file to storage and returns its public URL.",
-        "tags": ["Documents"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadDocumentBlobSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UploadDocumentBlobResponseSchema"
                 }
               }
             }

@@ -32,31 +32,6 @@ export const DocumentCollection = ({
               },
       },
       getKey: (item) => item.id,
-      onInsert: async (item) => {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/documents`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ ...item.transaction.mutations[0].changes }),
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to insert document: ${response.statusText}`);
-        }
-
-        const data = (await response.json()) as {
-          success: boolean;
-          txid: number;
-        };
-
-        return {
-          txid: data.txid,
-        };
-      },
       onUpdate: async (item) => {
         const documentId = item.transaction.mutations[0].key;
         const changes = item.transaction.mutations[0].changes;

@@ -82,6 +82,7 @@ export function CreateDocument() {
   const createDocument = createOptimisticAction<
     DocumentSelect & {
       snapshot: SnapshotSelect;
+      file?: File;
     }
   >({
     onMutate: (document) => {
@@ -103,14 +104,50 @@ export function CreateDocument() {
       });
     },
     mutationFn: async (document) => {
+      const formData = new FormData();
+
+      formData.append("id", document.id);
+      formData.append("project_id", document.project_id);
+      formData.append("folder", document.folder);
+      formData.append("name", document.name);
+      if (document.description) {
+        formData.append("description", document.description);
+      }
+      if (document.metadata_schema) {
+        formData.append(
+          "metadata_schema",
+          JSON.stringify(document.metadata_schema),
+        );
+      }
+      formData.append("refresh_enabled", document.refresh_enabled.toString());
+      if (document.refresh_frequency) {
+        formData.append("refresh_frequency", document.refresh_frequency);
+      }
+
+      formData.append("snapshot.id", document.snapshot.id);
+      formData.append("snapshot.type", document.snapshot.type);
+      formData.append("snapshot.status", document.snapshot.status);
+
+      if (document.snapshot.type === "website" && document.snapshot.url) {
+        formData.append("snapshot.url", document.snapshot.url);
+      }
+
+      if (document.snapshot.type === "upload" && document.file) {
+        formData.append("snapshot.file", document.file);
+      }
+
+      if (document.snapshot.metadata) {
+        formData.append(
+          "snapshot.metadata",
+          JSON.stringify(document.snapshot.metadata),
+        );
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_URL}/api/documents`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(document),
+          body: formData,
         },
       );
 
@@ -190,75 +227,6 @@ export function CreateDocument() {
     ],
   );
 
-  const createFileDocument = createOptimisticAction<
-    DocumentSelect & {
-      snapshot: SnapshotSelect;
-    }
-  >({
-    onMutate: (document) => {
-      DocumentCollection.insert({
-        id: document.id,
-        project_id: document.project_id,
-        folder: document.folder,
-        name: document.name,
-        description: document.description,
-        metadata_schema: document.metadata_schema,
-        refresh_enabled: document.refresh_enabled,
-        refresh_frequency: document.refresh_frequency,
-        refresh_schedule_id: document.refresh_schedule_id,
-        created_at: document.created_at,
-        updated_at: document.updated_at,
-      });
-      SnapshotCollection.insert({
-        ...document.snapshot,
-      });
-    },
-    mutationFn: async (document) => {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/documents/upload`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            documentId: document.id,
-            snapshotId: document.snapshot.id,
-            blobUrl: document.snapshot.url,
-            filename:
-              (document.snapshot.metadata as { file_name?: string })
-                ?.file_name || document.name,
-            name: document.name,
-            projectId: document.project_id,
-            folder: document.folder,
-            description: document.description,
-            metadataSchema: document.metadata_schema,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to create document: ${response.statusText}`);
-      }
-
-      const data = (await response.json()) as {
-        success: boolean;
-        txid: number;
-      };
-
-      await (DocumentCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
-      await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
-
-      return {
-        txid: data.txid,
-      };
-    },
-  });
-
   const handleFileSubmit = React.useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -286,24 +254,6 @@ export function CreateDocument() {
           | string
           | null;
 
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", selectedFile);
-
-        const uploadResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/documents/upload-blob`,
-          {
-            method: "POST",
-            body: uploadFormData,
-          },
-        );
-
-        if (!uploadResponse.ok) {
-          const error = await uploadResponse.json();
-          throw new Error(error.error || "Upload failed");
-        }
-
-        const { blobUrl } = await uploadResponse.json();
-
         const documentId = generateId();
         const snapshotId = generateId();
 
@@ -316,7 +266,7 @@ export function CreateDocument() {
           snapshotMetadata.parsing_instruction = parsingInstruction.trim();
         }
 
-        createFileDocument({
+        createDocument({
           id: documentId,
           project_id: projectId,
           folder: selectedFolder || "/",
@@ -335,13 +285,14 @@ export function CreateDocument() {
             chunks_count: null,
             type: "upload",
             status: "queued",
-            url: blobUrl,
+            url: "",
             metadata: snapshotMetadata,
             changes_detected: false,
             extracted_metadata: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
+          file: selectedFile,
         });
 
         router.push(
@@ -362,7 +313,7 @@ export function CreateDocument() {
       projectId,
       selectedFolder,
       metadataSchema,
-      createFileDocument,
+      createDocument,
       router,
     ],
   );

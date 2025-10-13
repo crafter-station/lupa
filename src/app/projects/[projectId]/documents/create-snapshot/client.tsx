@@ -1,6 +1,7 @@
 "use client";
 
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
+import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { FileText, Globe, Loader2, Plus, Upload } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import React from "react";
@@ -27,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type {
   MetadataSchemaConfig,
   RefreshFrequency,
+  SnapshotSelect,
   SnapshotType,
 } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
@@ -84,52 +86,138 @@ export function CreateSnapshot() {
     }
   }, [open, currentDocument]);
 
+  const createSnapshot = createOptimisticAction<
+    SnapshotSelect & {
+      file?: File;
+      parsingInstruction?: string;
+    }
+  >({
+    onMutate: (snapshot) => {
+      SnapshotCollection.insert({
+        id: snapshot.id,
+        document_id: snapshot.document_id,
+        type: snapshot.type,
+        status: snapshot.status,
+        url: snapshot.url,
+        metadata: snapshot.metadata,
+        extracted_metadata: snapshot.extracted_metadata,
+        markdown_url: snapshot.markdown_url,
+        chunks_count: snapshot.chunks_count,
+        changes_detected: snapshot.changes_detected,
+        created_at: snapshot.created_at,
+        updated_at: snapshot.updated_at,
+      });
+    },
+    mutationFn: async (snapshot) => {
+      const formData = new FormData();
+
+      formData.append("id", snapshot.id);
+      formData.append("document_id", snapshot.document_id);
+      formData.append("type", snapshot.type);
+      formData.append("status", snapshot.status);
+
+      if (snapshot.type === "website" && snapshot.url) {
+        formData.append("url", snapshot.url);
+      }
+
+      if (snapshot.type === "upload" && snapshot.file) {
+        formData.append("file", snapshot.file);
+      }
+
+      if (snapshot.metadata) {
+        formData.append("metadata", JSON.stringify(snapshot.metadata));
+      }
+
+      if (snapshot.parsingInstruction) {
+        formData.append("parsingInstruction", snapshot.parsingInstruction);
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_URL}/api/snapshots`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to create snapshot: ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as {
+        success: boolean;
+        txid: number;
+      };
+
+      await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
+        data.txid,
+      );
+
+      return {
+        txid: data.txid,
+      };
+    },
+  });
+
   const handleWebsiteSubmit = React.useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
       if (!documentId) return;
 
-      const formData = new FormData(e.target as HTMLFormElement);
+      setIsUploading(true);
 
-      SnapshotCollection.insert({
-        id: generateId(),
-        document_id: documentId,
-        markdown_url: null,
-        chunks_count: null,
-        type: "website",
-        status: "queued",
-        url: formData.get("url") as string,
-        metadata: null,
-        extracted_metadata: null,
-        changes_detected: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      try {
+        const formData = new FormData(e.target as HTMLFormElement);
+        const snapshotId = generateId();
+        const url = formData.get("url") as string;
 
-      if (currentDocument) {
-        const enabled = refreshFrequency !== "none";
-        const frequency = enabled
-          ? (refreshFrequency as RefreshFrequency)
-          : null;
-
-        DocumentCollection.update(currentDocument.id, (doc) => {
-          doc.refresh_enabled = enabled;
-          doc.refresh_frequency = frequency;
-          doc.metadata_schema = metadataSchema;
-          doc.updated_at = new Date().toISOString();
+        createSnapshot({
+          id: snapshotId,
+          document_id: documentId,
+          markdown_url: null,
+          chunks_count: null,
+          type: "website",
+          status: "queued",
+          url,
+          metadata: null,
+          extracted_metadata: null,
+          changes_detected: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
-      }
 
-      setNewSnapshot(true);
-      setOpen(false);
+        if (currentDocument) {
+          const enabled = refreshFrequency !== "none";
+          const frequency = enabled
+            ? (refreshFrequency as RefreshFrequency)
+            : null;
+
+          DocumentCollection.update(currentDocument.id, (doc) => {
+            doc.refresh_enabled = enabled;
+            doc.refresh_frequency = frequency;
+            doc.metadata_schema = metadataSchema;
+            doc.updated_at = new Date().toISOString();
+          });
+        }
+
+        setNewSnapshot(true);
+        setOpen(false);
+      } catch (error) {
+        console.error("Snapshot creation error:", error);
+        toast.error(
+          error instanceof Error ? error.message : "Failed to create snapshot",
+        );
+      } finally {
+        setIsUploading(false);
+      }
     },
     [
       documentId,
       currentDocument,
       refreshFrequency,
       metadataSchema,
-      SnapshotCollection,
+      createSnapshot,
       DocumentCollection,
       setNewSnapshot,
     ],
@@ -160,23 +248,7 @@ export function CreateSnapshot() {
           | string
           | null;
 
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", selectedFile);
-
-        const uploadResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/documents/upload-blob`,
-          {
-            method: "POST",
-            body: uploadFormData,
-          },
-        );
-
-        if (!uploadResponse.ok) {
-          const error = await uploadResponse.json();
-          throw new Error(error.error || "Upload failed");
-        }
-
-        const { blobUrl } = await uploadResponse.json();
+        const snapshotId = generateId();
 
         const snapshotMetadata: Record<string, unknown> = {
           file_name: selectedFile.name,
@@ -187,19 +259,21 @@ export function CreateSnapshot() {
           snapshotMetadata.parsing_instruction = parsingInstruction.trim();
         }
 
-        SnapshotCollection.insert({
-          id: generateId(),
+        createSnapshot({
+          id: snapshotId,
           document_id: documentId,
           markdown_url: null,
           chunks_count: null,
           type: "upload",
           status: "queued",
-          url: blobUrl,
+          url: "",
           metadata: snapshotMetadata,
           extracted_metadata: null,
           changes_detected: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          file: selectedFile,
+          parsingInstruction: parsingInstruction || undefined,
         });
 
         if (currentDocument) {
@@ -235,7 +309,7 @@ export function CreateSnapshot() {
       currentDocument,
       selectedFile,
       metadataSchema,
-      SnapshotCollection,
+      createSnapshot,
       DocumentCollection,
       setNewSnapshot,
     ],
@@ -305,6 +379,7 @@ export function CreateSnapshot() {
                 name="url"
                 required
                 defaultValue={latestSnapshot?.url}
+                disabled={isUploading}
               />
             </div>
             <div className="space-y-2">
@@ -316,6 +391,7 @@ export function CreateSnapshot() {
                 onValueChange={(value) =>
                   setRefreshFrequency(value as RefreshFrequency | "none")
                 }
+                disabled={isUploading}
               >
                 <SelectTrigger id="refresh-frequency">
                   <SelectValue placeholder="Select refresh frequency" />
@@ -335,8 +411,18 @@ export function CreateSnapshot() {
             <MetadataSchemaEditor
               value={metadataSchema}
               onChange={setMetadataSchema}
+              disabled={isUploading}
             />
-            <Button type="submit">Create Snapshot</Button>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Snapshot"
+              )}
+            </Button>
           </form>
         ) : (
           <form onSubmit={handleFileSubmit} className="grid grid-cols-1 gap-3">
@@ -382,6 +468,7 @@ export function CreateSnapshot() {
             <MetadataSchemaEditor
               value={metadataSchema}
               onChange={setMetadataSchema}
+              disabled={isUploading}
             />
             <Button type="submit" disabled={isUploading || !selectedFile}>
               {isUploading ? (
