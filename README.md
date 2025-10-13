@@ -8,6 +8,7 @@ Lupa is a production-ready RAG (Retrieval-Augmented Generation) infrastructure t
 📄 **Smart Parsing**: Automatic chunking for PDF, DOCX, XLSX, CSV, HTML, and more  
 📊 **Agent Observability**: Track queries, relevance scores, and retrieval patterns  
 🔄 **Version Control**: Snapshot-based deployments with zero-downtime updates  
+⏰ **Auto-Refresh**: Schedule automatic updates for web-scraped documents (daily, weekly, monthly)  
 
 ## Features
 
@@ -15,6 +16,7 @@ Lupa is a production-ready RAG (Retrieval-Augmented Generation) infrastructure t
 - **Multi-Format Parsing**: Support for PDF, Word, Excel, PowerPoint, CSV, HTML, and text documents
 - **Real-Time Sync**: TanStack Electric for live data synchronization across clients
 - **Versioned Knowledge**: Snapshot system for rolling updates and rollbacks
+- **Automatic Refresh**: Schedule periodic updates for web-scraped documents to keep knowledge current
 - **Analytics Pipeline**: Tinybird-powered observability for search performance and content analytics
 - **AI Framework Ready**: Drop-in integration with Vercel AI SDK, LangChain, and more
 
@@ -191,6 +193,9 @@ Connect snapshots to search endpoints. Update deployments to roll out new knowle
 
 ### Embeddings
 Vector representations of document chunks, stored in Upstash Vector for semantic search.
+
+### Document Refresh Scheduling
+Configure automatic updates for web-scraped documents. Set documents to refresh daily, weekly, or monthly to keep your knowledge base current without manual intervention. Schedules are managed via Trigger.dev and automatically cleaned up when documents are replaced with file uploads.
 
 ## API Usage
 
