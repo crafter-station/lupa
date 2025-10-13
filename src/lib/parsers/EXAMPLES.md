@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const file = formData.get("file") as File;
-  
+
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
@@ -83,7 +83,7 @@ export function DocumentUpload() {
       const data = await response.json();
       toast.success("Document uploaded and parsing started");
       console.log("Task ID:", data.taskId);
-      
+
       // Optionally poll for task completion
       await pollTaskStatus(data.taskId);
     } catch (error) {
@@ -339,10 +339,10 @@ async function processMultipleFiles(
     if (result.status === "fulfilled") {
       return { success: true, ...result.value };
     } else {
-      return { 
-        success: false, 
-        filename: files[index].name, 
-        error: result.reason 
+      return {
+        success: false,
+        filename: files[index].name,
+        error: result.reason
       };
     }
   });
@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
   if (payload.taskId && payload.status === "completed") {
     // Find associated snapshot by task metadata
     const documentId = payload.metadata?.documentId;
-    
+
     const snapshots = await db
       .select()
       .from(schema.Snapshot)
@@ -456,13 +456,12 @@ export async function POST(request: NextRequest) {
 // Example: Stream large file upload
 async function uploadLargeFile(file: File) {
   const stream = file.stream();
-  
+
   // Use streaming upload to Blob
   const blob = await put(file.name, stream, {
     access: "public",
   });
-  
+
   return blob;
 }
 ```
-

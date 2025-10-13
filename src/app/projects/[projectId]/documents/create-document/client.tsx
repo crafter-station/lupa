@@ -18,24 +18,32 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   DocumentSelect,
   MetadataSchemaConfig,
+  RefreshFrequency,
   SnapshotSelect,
+  SnapshotType,
 } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
 
-type DocumentType = "url" | "file";
-
 export function CreateDocument() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
-  const [documentType, setDocumentType] = React.useState<DocumentType>("url");
+  const [snapshotType, setSnapshotType] =
+    React.useState<SnapshotType>("website");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
 
@@ -45,6 +53,9 @@ export function CreateDocument() {
   );
   const [metadataSchema, setMetadataSchema] =
     React.useState<MetadataSchemaConfig | null>(null);
+  const [refreshFrequency, setRefreshFrequency] = React.useState<
+    RefreshFrequency | "none"
+  >("none");
 
   const { DocumentCollection, SnapshotCollection } = useCollections();
 
@@ -62,8 +73,9 @@ export function CreateDocument() {
       setSelectedFolder(contextFolder ?? "/");
       setMetadataSchema(null);
       setSelectedFile(null);
-      setDocumentType("url");
+      setSnapshotType("website");
       setIsUploading(false);
+      setRefreshFrequency("none");
     }
   }, [open, contextFolder]);
 
@@ -80,6 +92,9 @@ export function CreateDocument() {
         name: document.name,
         description: document.description,
         metadata_schema: document.metadata_schema,
+        refresh_enabled: document.refresh_enabled,
+        refresh_frequency: document.refresh_frequency,
+        refresh_schedule_id: document.refresh_schedule_id,
         created_at: document.created_at,
         updated_at: document.updated_at,
       });
@@ -138,6 +153,10 @@ export function CreateDocument() {
         name: formData.get("name") as string,
         description: formData.get("description") as string,
         metadata_schema: metadataSchema,
+        refresh_enabled: refreshFrequency !== "none",
+        refresh_frequency:
+          refreshFrequency !== "none" ? refreshFrequency : null,
+        refresh_schedule_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         snapshot: {
@@ -161,7 +180,14 @@ export function CreateDocument() {
       );
       setOpen(false);
     },
-    [projectId, createDocument, selectedFolder, metadataSchema, router],
+    [
+      projectId,
+      createDocument,
+      selectedFolder,
+      metadataSchema,
+      refreshFrequency,
+      router,
+    ],
   );
 
   const createFileDocument = createOptimisticAction<
@@ -177,6 +203,9 @@ export function CreateDocument() {
         name: document.name,
         description: document.description,
         metadata_schema: document.metadata_schema,
+        refresh_enabled: document.refresh_enabled,
+        refresh_frequency: document.refresh_frequency,
+        refresh_schedule_id: document.refresh_schedule_id,
         created_at: document.created_at,
         updated_at: document.updated_at,
       });
@@ -253,8 +282,10 @@ export function CreateDocument() {
         const formData = new FormData(e.target as HTMLFormElement);
         const name = (formData.get("name") as string) || selectedFile.name;
         const description = (formData.get("description") as string) || null;
+        const parsingInstruction = formData.get("parsingInstruction") as
+          | string
+          | null;
 
-        // First, upload the file to get the blob URL
         const uploadFormData = new FormData();
         uploadFormData.append("file", selectedFile);
 
@@ -273,11 +304,18 @@ export function CreateDocument() {
 
         const { blobUrl } = await uploadResponse.json();
 
-        // Generate IDs
         const documentId = generateId();
         const snapshotId = generateId();
 
-        // Create document with optimistic update
+        const snapshotMetadata: Record<string, unknown> = {
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+        };
+
+        if (parsingInstruction?.trim()) {
+          snapshotMetadata.parsing_instruction = parsingInstruction.trim();
+        }
+
         createFileDocument({
           id: documentId,
           project_id: projectId,
@@ -285,6 +323,9 @@ export function CreateDocument() {
           name,
           description,
           metadata_schema: metadataSchema,
+          refresh_enabled: false,
+          refresh_frequency: null,
+          refresh_schedule_id: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           snapshot: {
@@ -295,10 +336,7 @@ export function CreateDocument() {
             type: "upload",
             status: "queued",
             url: blobUrl,
-            metadata: {
-              file_name: selectedFile.name,
-              file_size: selectedFile.size,
-            },
+            metadata: snapshotMetadata,
             changes_detected: false,
             extracted_metadata: null,
             created_at: new Date().toISOString(),
@@ -336,6 +374,19 @@ export function CreateDocument() {
     }
   };
 
+  const handleSubmit = React.useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+
+      if (snapshotType === "website") {
+        handleUrlSubmit(e);
+      } else {
+        await handleFileSubmit(e);
+      }
+    },
+    [snapshotType, handleUrlSubmit, handleFileSubmit],
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -347,141 +398,173 @@ export function CreateDocument() {
           <DialogTitle>Create Document</DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-2 border-b pb-3">
-          <Button
-            type="button"
-            variant={documentType === "url" ? "default" : "ghost"}
-            onClick={() => setDocumentType("url")}
-            className="flex-1"
-          >
-            <Globe className="mr-2 h-4 w-4" />
-            URL
-          </Button>
-          <Button
-            type="button"
-            variant={documentType === "file" ? "default" : "ghost"}
-            onClick={() => setDocumentType("file")}
-            className="flex-1"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            File Upload
-          </Button>
-        </div>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3">
+          <FolderPathSelector
+            documents={allDocuments}
+            initialFolder={selectedFolder}
+            onChange={setSelectedFolder}
+          />
 
-        {documentType === "url" ? (
-          <form onSubmit={handleUrlSubmit} className="grid grid-cols-1 gap-3">
-            <FolderPathSelector
-              documents={allDocuments}
-              initialFolder={selectedFolder}
-              onChange={setSelectedFolder}
-            />
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
             <Input
               id="name"
               type="text"
-              placeholder="Name"
+              placeholder={
+                snapshotType === "upload"
+                  ? "Name (optional, defaults to filename)"
+                  : "Name"
+              }
               name="name"
-              required
+              required={snapshotType === "website"}
+              disabled={isUploading}
             />
-            <Input
-              id="url"
-              type="url"
-              placeholder="https://example.com"
-              name="url"
-              required
-            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              placeholder="Document Description"
+              placeholder="Document Description (Optional)"
               name="description"
+              disabled={isUploading}
             />
-            <MetadataSchemaEditor
-              value={metadataSchema}
-              onChange={setMetadataSchema}
-            />
-            <Button type="submit">Create Document</Button>
-          </form>
-        ) : (
-          <form onSubmit={handleFileSubmit} className="grid grid-cols-1 gap-3">
-            <FolderPathSelector
-              documents={allDocuments}
-              initialFolder={selectedFolder}
-              onChange={setSelectedFolder}
-            />
-            <Input
-              id="name"
-              type="text"
-              placeholder="Name (optional, defaults to filename)"
-              name="name"
-            />
-            <div className="space-y-2">
-              <Label htmlFor="file">File</Label>
-              <div className="flex gap-2">
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="snapshot-type">Snapshot Type</Label>
+            <div className="flex gap-2 border-b pb-3">
+              <Button
+                type="button"
+                variant={snapshotType === "website" ? "default" : "ghost"}
+                onClick={() => setSnapshotType("website")}
+                className="flex-1"
+                disabled={isUploading}
+              >
+                <Globe className="mr-2 h-4 w-4" />
+                Website
+              </Button>
+              <Button
+                type="button"
+                variant={snapshotType === "upload" ? "default" : "ghost"}
+                onClick={() => setSnapshotType("upload")}
+                className="flex-1"
+                disabled={isUploading}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                File Upload
+              </Button>
+            </div>
+          </div>
+
+          {snapshotType === "website" ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="url">URL</Label>
                 <Input
-                  id="file"
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".pdf,.docx,.xlsx,.csv,.txt,.html,.md,.json,.pptx,.doc,.xls"
+                  id="url"
+                  type="url"
+                  placeholder="https://example.com"
+                  name="url"
                   required
                   disabled={isUploading}
                 />
               </div>
-              {selectedFile && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Upload className="h-3 w-3" />
-                  <span>
-                    {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)}{" "}
-                    KB)
-                  </span>
-                  {selectedFile.type &&
-                    isSupportedFileType(selectedFile.type) && (
-                      <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        {getMimeTypeLabel(selectedFile.type)}
-                      </span>
-                    )}
-                </div>
-              )}
-            </div>
-            <Textarea
-              id="description"
-              placeholder="Document Description"
-              name="description"
-              disabled={isUploading}
-            />
-            <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                Advanced Options
-              </summary>
-              <div className="mt-2 space-y-3">
-                <div>
-                  <Label htmlFor="parsingInstruction">
-                    Parsing Instruction
-                  </Label>
-                  <Textarea
-                    id="parsingInstruction"
-                    name="parsingInstruction"
-                    placeholder="Optional: Custom instructions for parsing (e.g., 'Focus on extracting tables and numerical data')"
-                    className="mt-1"
+              <div className="space-y-2">
+                <Label htmlFor="refresh-frequency">
+                  Automatically refetch this website?
+                </Label>
+                <Select
+                  value={refreshFrequency}
+                  onValueChange={(value) =>
+                    setRefreshFrequency(value as RefreshFrequency | "none")
+                  }
+                  disabled={isUploading}
+                >
+                  <SelectTrigger id="refresh-frequency">
+                    <SelectValue placeholder="Select refresh frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No automatic refresh</SelectItem>
+                    <SelectItem value="daily">Daily (midnight UTC)</SelectItem>
+                    <SelectItem value="weekly">
+                      Weekly (Sundays at midnight UTC)
+                    </SelectItem>
+                    <SelectItem value="monthly">
+                      Monthly (1st day at midnight UTC)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="file">File</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.docx,.xlsx,.csv,.txt,.html,.md,.json,.pptx,.doc,.xls"
+                    required
                     disabled={isUploading}
                   />
                 </div>
-                <MetadataSchemaEditor
-                  value={metadataSchema}
-                  onChange={setMetadataSchema}
+                {selectedFile && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Upload className="h-3 w-3" />
+                    <span>
+                      {selectedFile.name} (
+                      {(selectedFile.size / 1024).toFixed(2)} KB)
+                    </span>
+                    {selectedFile.type &&
+                      isSupportedFileType(selectedFile.type) && (
+                        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          {getMimeTypeLabel(selectedFile.type)}
+                        </span>
+                      )}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="parsingInstruction">
+                  Parsing Instructions (Optional)
+                </Label>
+                <Textarea
+                  id="parsingInstruction"
+                  name="parsingInstruction"
+                  placeholder="e.g., 'Focus on extracting tables and numerical data'"
+                  disabled={isUploading}
                 />
               </div>
-            </details>
-            <Button type="submit" disabled={isUploading || !selectedFile}>
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading & Parsing...
-                </>
-              ) : (
-                "Upload Document"
-              )}
-            </Button>
-          </form>
-        )}
+            </>
+          )}
+
+          <MetadataSchemaEditor
+            value={metadataSchema}
+            onChange={setMetadataSchema}
+            disabled={isUploading}
+          />
+
+          <Button
+            type="submit"
+            disabled={
+              isUploading || (snapshotType === "upload" && !selectedFile)
+            }
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {snapshotType === "upload"
+                  ? "Uploading & Parsing..."
+                  : "Creating..."}
+              </>
+            ) : (
+              "Create Document"
+            )}
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   );

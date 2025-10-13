@@ -13,13 +13,11 @@ import {
 } from "@dnd-kit/core";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, Folder, Loader2 } from "lucide-react";
+import { FileText, Folder, Globe, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
-import { FileTypeBadge } from "@/components/elements/file-type-badge";
-import { SnapshotStatusBadge } from "@/components/elements/snapshot-status-badge";
 import {
   Table,
   TableBody,
@@ -349,8 +347,6 @@ export function DocumentListContent({
             <TableRow>
               <TableHead className="w-1/5">Name</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-24">Type</TableHead>
-              <TableHead className="w-24">Status</TableHead>
               <TableHead className="w-32">Created</TableHead>
               <TableHead className="w-32">Updated</TableHead>
             </TableRow>
@@ -359,7 +355,7 @@ export function DocumentListContent({
             {items.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={4}
                   className="text-center text-muted-foreground"
                 >
                   No documents or folders in this location
@@ -385,8 +381,6 @@ export function DocumentListContent({
                     </TableCell>
                     <TableCell>-</TableCell>
                     <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
                   </DroppableFolderRow>
                 )}
                 {items.map((item) => {
@@ -409,8 +403,6 @@ export function DocumentListContent({
                         <TableCell className="text-muted-foreground">
                           Folder
                         </TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>-</TableCell>
                         <TableCell>-</TableCell>
                         <TableCell>-</TableCell>
                       </DroppableFolderRow>
@@ -439,30 +431,16 @@ export function DocumentListContent({
                           }
                           className="font-medium hover:underline flex items-center gap-2"
                         >
-                          <FileText className="h-4 w-4" />
+                          {latestSnapshot?.type === "website" ? (
+                            <Globe className="h-4 w-4" />
+                          ) : (
+                            <FileText className="h-4 w-4" />
+                          )}
                           {item.document.name}
                         </Link>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {item.document.description}
-                      </TableCell>
-                      <TableCell>
-                        {latestSnapshot ? (
-                          <FileTypeBadge snapshot={latestSnapshot} />
-                        ) : (
-                          <span className="text-muted-foreground text-xs">
-                            -
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {latestSnapshot ? (
-                          <SnapshotStatusBadge snapshot={latestSnapshot} />
-                        ) : (
-                          <span className="text-muted-foreground text-xs">
-                            -
-                          </span>
-                        )}
                       </TableCell>
                       <TableCell>
                         {documentId

@@ -1,11 +1,12 @@
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { Pool } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { z } from "zod";
 import { SNAPSHOT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
+import { deleteDocumentSchedule } from "@/lib/schedules";
 import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
 export const preferredRegion = "iad1";
@@ -88,10 +89,48 @@ export async function POST(request: Request) {
       schema,
     });
 
+    const document = await db.query.Document.findFirst({
+      where: eq(schema.Document.id, data.document_id),
+    });
+
+    if (!document) {
+      return Response.json(
+        { success: false, error: "Document not found" },
+        { status: 404 },
+      );
+    }
+
+    const existingSnapshots = await db.query.Snapshot.findMany({
+      where: eq(schema.Snapshot.document_id, data.document_id),
+      orderBy: (snapshots, { desc }) => [desc(snapshots.created_at)],
+      limit: 1,
+    });
+
+    const previousSnapshot = existingSnapshots[0];
+    const isTypeChange =
+      previousSnapshot?.type === "website" && data.type === "upload";
+
     const result = await db.transaction(async (tx) => {
       await tx
         .insert(schema.Snapshot)
         .values(data as typeof schema.Snapshot.$inferInsert);
+
+      if (isTypeChange && document.refresh_schedule_id) {
+        try {
+          await deleteDocumentSchedule(document.refresh_schedule_id);
+          await tx
+            .update(schema.Document)
+            .set({
+              refresh_enabled: false,
+              refresh_frequency: null,
+              refresh_schedule_id: null,
+              updated_at: sql`NOW()`,
+            })
+            .where(eq(schema.Document.id, data.document_id));
+        } catch (error) {
+          console.error("Failed to delete schedule:", error);
+        }
+      }
 
       const txid = await tx.execute(
         sql`SELECT pg_current_xact_id()::xid::text as txid`,

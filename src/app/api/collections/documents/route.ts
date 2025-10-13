@@ -7,6 +7,7 @@ import { z } from "zod";
 import { DOCUMENT_TABLE } from "@/db";
 import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
+import { createDocumentSchedule } from "@/lib/schedules";
 import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
 export const preferredRegion = "iad1";
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
       name,
       description,
       metadata_schema,
+      refresh_enabled,
+      refresh_frequency,
     } = schema.DocumentInsertSchema.parse(json);
 
     const {
@@ -122,6 +125,9 @@ export async function POST(request: Request) {
         description,
         project_id,
         metadata_schema,
+        refresh_enabled,
+        refresh_frequency,
+        refresh_schedule_id: null,
       });
 
       await tx.insert(schema.Snapshot).values({
@@ -144,6 +150,24 @@ export async function POST(request: Request) {
     await processSnapshotTask.trigger({
       snapshotId: snapshotId,
     });
+
+    if (refresh_enabled && refresh_frequency) {
+      try {
+        const schedule = await createDocumentSchedule(
+          documentId,
+          refresh_frequency,
+        );
+
+        await db
+          .update(schema.Document)
+          .set({
+            refresh_schedule_id: schedule.id,
+          })
+          .where(eq(schema.Document.id, documentId));
+      } catch (error) {
+        console.error("Failed to create schedule:", error);
+      }
+    }
 
     revalidatePath(`/projects/${project_id}/documents`);
     if (folder && folder !== "/") {

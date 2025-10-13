@@ -13,7 +13,6 @@ import type {
   ProjectSelect,
   SnapshotSelect,
 } from "@/db/schema";
-import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 
 export const CollectionsContext = React.createContext<{
   ProjectCollection: Collection<ProjectSelect>;
@@ -31,8 +30,6 @@ export const CollectionsProvider = ({
     projectId: string;
     deploymentId: string;
   }>();
-
-  const { documentId } = useFolderDocumentVersion();
 
   const _ProjectCollection = React.useMemo(
     () => ProjectCollection({ project_id: projectId }),
