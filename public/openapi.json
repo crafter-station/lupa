@@ -20,6 +20,40 @@
       }
     },
     "schemas": {
+      "CreateChatRequestSchema": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique ID of the message"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": ["user", "assistant", "system"],
+                  "description": "Role of the message sender"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Text content of the message"
+                }
+              },
+              "required": ["id", "role", "content"]
+            },
+            "description": "Conversation messages including user and assistant turns"
+          },
+          "model": {
+            "type": "string",
+            "default": "gpt-5",
+            "description": "Model name to use for the chat (e.g., gpt-5)"
+          }
+        },
+        "required": ["messages", "model"]
+      },
       "WhereParamsSchema": {
         "type": "object",
         "properties": {
@@ -91,18 +125,185 @@
         },
         "required": ["success", "txid"]
       },
-      "ErrorResponseSchema": {
+      "UploadDocumentBodySchema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "snapshotId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blobUrl": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "folder": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadataSchema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Optional JSON schema for metadata"
+          },
+          "parsingInstruction": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional instructions for how to parse the document"
+          }
+        },
+        "required": [
+          "documentId",
+          "snapshotId",
+          "blobUrl",
+          "filename",
+          "projectId"
+        ]
+      },
+      "UploadDocumentResponseSchema": {
         "type": "object",
         "properties": {
           "success": {
             "type": "boolean",
-            "enum": [false]
+            "enum": [true]
           },
-          "error": {
+          "txid": {
+            "type": "number"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "snapshotId": {
             "type": "string"
           }
         },
-        "required": ["success", "error"]
+        "required": ["success", "txid", "documentId", "snapshotId"]
+      },
+      "UploadDocumentBlobSchema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "File to upload (image, PDF, or document)"
+          }
+        },
+        "required": ["file"]
+      },
+      "UploadDocumentBlobResponseSchema": {
+        "type": "object",
+        "properties": {
+          "blobUrl": {
+            "type": "string",
+            "description": "Public URL of the uploaded blob"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Original file name"
+          },
+          "size": {
+            "type": "number",
+            "description": "File size in bytes"
+          }
+        },
+        "required": ["blobUrl", "filename", "size"]
+      },
+      "SearchResponseSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "score": {
+                  "type": "number"
+                },
+                "vector": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "nullable": true
+                },
+                "sparseVector": {
+                  "type": "object",
+                  "properties": {
+                    "indices": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "required": ["indices", "values"],
+                  "nullable": true
+                },
+                "data": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "metadata": {
+                  "type": "object",
+                  "properties": {},
+                  "nullable": true
+                }
+              },
+              "required": ["id", "score"]
+            }
+          }
+        },
+        "required": ["query", "results"]
+      },
+      "ErrorResponseSchema": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "required": ["error"]
       },
       "DocumentUpdateSchema": {
         "type": "object",
@@ -547,14 +748,254 @@
   },
   "outputDir": "./public",
   "paths": {
+    "/analytics/{projectId}/errors": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-errors",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/overview": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-overview",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/timeseries": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-timeseries",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/documents": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-documents",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/embeddings": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-embeddings",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/errors": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-errors",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/overview": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-overview",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/performance": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-performance",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/queries": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-queries",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/query-document-mapping": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-query-document-mapping",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/snapshots": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-snapshots",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/timeseries": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-timeseries",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/analytics/{projectId}/{deploymentId}/zero-results": {
+      "get": {
+        "operationId": "get-analytics-{projectId}-{deploymentId}-zero-results",
+        "summary": "",
+        "description": "",
+        "tags": ["Analytics"],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/chat/{projectId}/{deploymentId}": {
       "post": {
         "operationId": "post-chat-{projectId}-{deploymentId}",
-        "summary": "",
-        "description": "",
+        "summary": "Create a chat session using an OpenAI model with integrated knowledge search.",
+        "description": "Creates a conversational session with an AI model (`gpt-5` by default) that can query a knowledge base for contextual information using the `search-knowledge` tool.",
         "tags": ["Chat"],
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChatRequestSchema"
+              }
+            }
+          }
+        },
         "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/200 application/stream+json:Stream of chat responses in UIMessage format"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -790,11 +1231,30 @@
     "/documents/upload": {
       "post": {
         "operationId": "post-documents-upload",
-        "summary": "",
-        "description": "",
+        "summary": "Upload a document",
+        "description": "Upload a document to the system for processing and storage.",
         "tags": ["Documents"],
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocumentBodySchema"
+              }
+            }
+          }
+        },
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadDocumentResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -807,11 +1267,30 @@
     "/documents/upload-blob": {
       "post": {
         "operationId": "post-documents-upload-blob",
-        "summary": "",
-        "description": "",
+        "summary": "Upload a document file",
+        "description": "Uploads a file to storage and returns its public URL.",
         "tags": ["Documents"],
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocumentBlobSchema"
+              }
+            }
+          }
+        },
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadDocumentBlobResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -824,11 +1303,21 @@
     "/search/{projectId}/{deploymentId}/{query}": {
       "get": {
         "operationId": "get-search-{projectId}-{deploymentId}-{query}",
-        "summary": "",
-        "description": "",
+        "summary": "Search within a deployment",
+        "description": "Perform a search query against the specified deployment.",
         "tags": ["Search"],
         "parameters": [],
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
