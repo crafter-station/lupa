@@ -7,14 +7,14 @@ import content from "./openapi.json";
 export const revalidate = false;
 export const dynamic = "force-static";
 
-export default async function ApiDocsPage() {
+export default function ApiDocsPage() {
   return (
     <ApiReferenceReact
       configuration={{
         _integration: "nextjs",
+        content,
         hideModels: true,
         hideClientButton: true,
-        content,
       }}
     />
   );
