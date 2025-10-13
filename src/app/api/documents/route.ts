@@ -2,11 +2,72 @@ import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import * as schema from "@/db/schema";
 import { createDocumentSchedule } from "@/lib/schedules";
 
 export const preferredRegion = "iad1";
 
+export const CreateDocumentRequestSchema = z.object({
+  id: z.string().min(1, "id is required"),
+  project_id: z.string().min(1, "project_id is required"),
+  folder: z
+    .string()
+    .default("/")
+    .describe("Folder path (starts and ends with slash)"),
+  name: z.string().min(1, "name is required"),
+  description: z.string().nullable().optional(),
+  metadata_schema: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("JSON stringified metadata schema configuration"),
+  refresh_enabled: z
+    .enum(["true", "false"])
+    .optional()
+    .describe("Enable automatic refresh (string boolean)"),
+  refresh_frequency: z
+    .enum(["daily", "weekly", "monthly"])
+    .nullable()
+    .optional(),
+  "snapshot.id": z.string().min(1, "snapshot.id is required"),
+  "snapshot.type": z.enum(["website", "upload"]),
+  "snapshot.status": z.enum(["queued", "error", "running", "success"]),
+  "snapshot.url": z
+    .string()
+    .nullable()
+    .optional()
+    .describe("URL for website snapshots"),
+  "snapshot.file": z.any().optional().describe("File for upload snapshots"),
+  "snapshot.metadata": z
+    .string()
+    .nullable()
+    .optional()
+    .describe("JSON stringified snapshot metadata"),
+  "snapshot.parsingInstruction": z.string().nullable().optional(),
+});
+
+export const DocumentSuccessResponseSchema = z.object({
+  success: z.literal(true),
+  txid: z.number(),
+});
+
+export const ErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+});
+
+/**
+ * Create a new document with snapshot
+ * @description Creates a new document and its initial snapshot. Accepts multipart/form-data for file uploads or website URLs. Optionally configures automatic refresh scheduling.
+ * @body CreateDocumentRequestSchema
+ * @contentType multipart/form-data
+ * @response 200:DocumentSuccessResponseSchema
+ * @response 400:ErrorResponseSchema
+ * @response 404:ErrorResponseSchema
+ * @response 500:ErrorResponseSchema
+ * @openapi
+ */
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {

@@ -8,6 +8,10 @@
   "servers": [
     {
       "url": "https://www.lupa.build/api",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000/api",
       "description": "Local development server"
     }
   ],

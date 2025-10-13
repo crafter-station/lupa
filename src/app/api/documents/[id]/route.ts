@@ -1,6 +1,7 @@
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { z } from "zod";
 import type { RefreshFrequency } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { DocumentSelectSchema } from "@/db/schema";
@@ -12,6 +13,49 @@ import {
 
 export const preferredRegion = "iad1";
 
+export const UpdateDocumentRequestSchema = z
+  .object({
+    folder: z.string().describe("Folder path (starts and ends with slash)"),
+    name: z.string().describe("Document name"),
+    description: z.string().describe("Document description"),
+    metadata_schema: z
+      .object({
+        mode: z.enum(["infer", "custom"]),
+        schema: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional()
+      .describe("Metadata schema configuration"),
+    refresh_enabled: z.boolean().describe("Enable automatic refresh"),
+    refresh_frequency: z
+      .enum(["daily", "weekly", "monthly"])
+      .nullable()
+      .optional()
+      .describe("Refresh frequency"),
+  })
+  .describe("All fields are optional for partial updates")
+  .partial();
+
+export const DocumentSuccessResponseSchema = z.object({
+  success: z.literal(true),
+  txid: z.number(),
+});
+
+export const ErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+});
+
+/**
+ * Update an existing document
+ * @description Updates document properties including name, description, folder, metadata schema, and refresh settings. All fields are optional for partial updates.
+ * @param id Path parameter representing the document ID.
+ * @body UpdateDocumentRequestSchema
+ * @response 200:DocumentSuccessResponseSchema
+ * @response 400:ErrorResponseSchema
+ * @response 404:ErrorResponseSchema
+ * @response 500:ErrorResponseSchema
+ * @openapi
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

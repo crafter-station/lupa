@@ -8,6 +8,10 @@
   "servers": [
     {
       "url": "https://www.lupa.build/api",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000/api",
       "description": "Local development server"
     }
   ],
@@ -104,6 +108,148 @@
           }
         },
         "required": ["success", "txid"]
+      },
+      "UpdateDocumentRequestSchema": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "description": "Folder path (starts and ends with slash)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Document name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Document description"
+          },
+          "metadata_schema": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": ["infer", "custom"]
+              },
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            },
+            "required": ["mode"],
+            "nullable": true,
+            "description": "Metadata schema configuration"
+          },
+          "refresh_enabled": {
+            "type": "boolean",
+            "description": "Enable automatic refresh"
+          },
+          "refresh_frequency": {
+            "type": "string",
+            "enum": ["daily", "weekly", "monthly"],
+            "nullable": true,
+            "description": "Refresh frequency"
+          }
+        },
+        "required": ["folder", "name", "description", "refresh_enabled"],
+        "description": "All fields are optional for partial updates"
+      },
+      "DocumentSuccessResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "txid": {
+            "type": "number"
+          }
+        },
+        "required": ["success", "txid"]
+      },
+      "CreateDocumentRequestSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "folder": {
+            "type": "string",
+            "default": "/",
+            "description": "Folder path (starts and ends with slash)"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata_schema": {
+            "type": "string",
+            "nullable": true,
+            "description": "JSON stringified metadata schema configuration"
+          },
+          "refresh_enabled": {
+            "type": "string",
+            "enum": ["true", "false"],
+            "nullable": true,
+            "description": "Enable automatic refresh (string boolean)"
+          },
+          "refresh_frequency": {
+            "type": "string",
+            "enum": ["daily", "weekly", "monthly"],
+            "nullable": true
+          },
+          "snapshot.id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "snapshot.type": {
+            "type": "string",
+            "enum": ["website", "upload"]
+          },
+          "snapshot.status": {
+            "type": "string",
+            "enum": ["queued", "error", "running", "success"]
+          },
+          "snapshot.url": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL for website snapshots"
+          },
+          "snapshot.file": {
+            "nullable": true,
+            "description": "File for upload snapshots"
+          },
+          "snapshot.metadata": {
+            "type": "string",
+            "nullable": true,
+            "description": "JSON stringified snapshot metadata"
+          },
+          "snapshot.parsingInstruction": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "folder",
+          "name",
+          "snapshot.id",
+          "snapshot.type",
+          "snapshot.status"
+        ]
       },
       "SearchResponseSchema": {
         "type": "object",
@@ -682,6 +828,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateDeploymentSuccessResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/documents": {
+      "post": {
+        "operationId": "post-documents",
+        "summary": "Create a new document with snapshot",
+        "description": "Creates a new document and its initial snapshot. Accepts multipart/form-data for file uploads or website URLs. Optionally configures automatic refresh scheduling.",
+        "tags": ["Documents"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentSuccessResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/documents/{id}": {
+      "patch": {
+        "operationId": "patch-documents-{id}",
+        "summary": "Update an existing document",
+        "description": "Updates document properties including name, description, folder, metadata schema, and refresh settings. All fields are optional for partial updates.",
+        "tags": ["Documents"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentSuccessResponseSchema"
                 }
               }
             }
