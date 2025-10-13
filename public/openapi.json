@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000/api",
+      "url": "https://www.lupa.build/api",
       "description": "Local development server"
     }
   ],
@@ -304,23 +304,6 @@
           }
         },
         "required": ["error"]
-      },
-      "DocumentUpdateSchema": {
-        "type": "object",
-        "properties": {
-          "folder": {
-            "type": "string",
-            "nullable": true
-          },
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          }
-        }
       },
       "DeploymentLogSchema": {
         "type": "object",
@@ -748,227 +731,6 @@
   },
   "outputDir": "./public",
   "paths": {
-    "/analytics/{projectId}/errors": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-errors",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/overview": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-overview",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/timeseries": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-timeseries",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/documents": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-documents",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/embeddings": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-embeddings",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/errors": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-errors",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/overview": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-overview",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/performance": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-performance",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/queries": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-queries",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/query-document-mapping": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-query-document-mapping",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/snapshots": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-snapshots",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/timeseries": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-timeseries",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/analytics/{projectId}/{deploymentId}/zero-results": {
-      "get": {
-        "operationId": "get-analytics-{projectId}-{deploymentId}-zero-results",
-        "summary": "",
-        "description": "",
-        "tags": ["Analytics"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
     "/chat/{projectId}/{deploymentId}": {
       "post": {
         "operationId": "post-chat-{projectId}-{deploymentId}",
@@ -1047,12 +809,14 @@
             "$ref": "#/components/responses/500"
           }
         }
-      },
+      }
+    },
+    "/deployments": {
       "post": {
-        "operationId": "post-collections-deployments",
+        "operationId": "post-deployments",
         "summary": "Create deployment",
         "description": "Create a new deployment record.",
-        "tags": ["Collections"],
+        "tags": ["Deployments"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -1074,151 +838,6 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/collections/documents": {
-      "get": {
-        "operationId": "get-collections-documents",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-collections-documents",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/collections/projects": {
-      "get": {
-        "operationId": "get-collections-projects",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-collections-projects",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/collections/snapshot-and-deployment-rel": {
-      "get": {
-        "operationId": "get-collections-snapshot-and-deployment-rel",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-collections-snapshot-and-deployment-rel",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/collections/snapshots": {
-      "get": {
-        "operationId": "get-collections-snapshots",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-collections-snapshots",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/collections/documents/{id}": {
-      "patch": {
-        "operationId": "patch-collections-documents-{id}",
-        "summary": "",
-        "description": "",
-        "tags": ["Collections"],
-        "parameters": [],
-        "responses": {
           "400": {
             "$ref": "#/components/responses/400"
           },

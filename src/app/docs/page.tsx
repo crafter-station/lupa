@@ -10,6 +10,8 @@ export default function ApiDocsPage() {
       configuration={{
         _integration: "nextjs",
         url: `${process.env.NEXT_PUBLIC_URL}/openapi.json`,
+        hideModels: true,
+        hideClientButton: true,
       }}
     />
   );

@@ -34,7 +34,7 @@ export const DocumentCollection = ({
       getKey: (item) => item.id,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/documents`,
+          `${process.env.NEXT_PUBLIC_URL}/api/documents`,
           {
             method: "POST",
             headers: {
@@ -62,7 +62,7 @@ export const DocumentCollection = ({
         const changes = item.transaction.mutations[0].changes;
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/documents/${documentId}`,
+          `${process.env.NEXT_PUBLIC_URL}/api/documents/${documentId}`,
           {
             method: "PATCH",
             headers: {

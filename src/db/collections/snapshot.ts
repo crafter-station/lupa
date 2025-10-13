@@ -34,7 +34,7 @@ export const SnapshotCollection = ({
       getKey: (item) => item.id,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
+          `${process.env.NEXT_PUBLIC_URL}/api/snapshots`,
           {
             method: "POST",
             headers: {

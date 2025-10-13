@@ -104,7 +104,7 @@ export function CreateDocument() {
     },
     mutationFn: async (document) => {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/collections/documents`,
+        `${process.env.NEXT_PUBLIC_URL}/api/documents`,
         {
           method: "POST",
           headers: {

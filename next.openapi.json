@@ -92,6 +92,6 @@
   "ui": "scalar",
   "outputFile": "openapi.json",
   "outputDir": "./public",
-  "includeOpenApiRoutes": false,
+  "includeOpenApiRoutes": true,
   "debug": false
 }
