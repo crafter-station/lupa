@@ -4,12 +4,52 @@ import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { NextResponse } from "next/server";
+import z from "zod";
 import * as schema from "@/db/schema";
 import { getMimeTypeFromFilename } from "@/lib/parsers";
 import { parseDocumentTask } from "@/trigger/parse-document.task";
 
 export const preferredRegion = "iad1";
 
+export const UploadDocumentBodySchema = z.object({
+  documentId: z.string().min(1, "documentId is required"),
+  snapshotId: z.string().min(1, "snapshotId is required"),
+  blobUrl: z.url("blobUrl must be a valid URL"),
+  filename: z.string().min(1, "filename is required"),
+  name: z.string().optional(),
+  projectId: z.string().min(1, "projectId is required"),
+  folder: z.string().optional(),
+  description: z.string().optional(),
+  metadataSchema: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe("Optional JSON schema for metadata"),
+  parsingInstruction: z
+    .string()
+    .optional()
+    .describe("Optional instructions for how to parse the document"),
+});
+
+export const UploadDocumentResponseSchema = z.object({
+  success: z.literal(true),
+  txid: z.number(),
+  documentId: z.string(),
+  snapshotId: z.string(),
+});
+
+export const ErrorResponseSchema = z.object({
+  error: z.string(),
+});
+
+/**
+ * Upload a document
+ * @description Upload a document to the system for processing and storage.
+ * @body UploadDocumentBodySchema
+ * @response 200:UploadDocumentResponseSchema
+ * @response 400:ErrorResponseSchema
+ * @response 500:ErrorResponseSchema
+ * @openapi
+ */
 export async function POST(request: Request) {
   let pool: Pool | undefined;
 

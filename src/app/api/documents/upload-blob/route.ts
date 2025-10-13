@@ -1,8 +1,33 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
+import z from "zod";
 
 export const preferredRegion = "iad1";
 
+export const UploadDocumentBlobSchema = z.object({
+  file: z.custom<File>().describe("File to upload (image, PDF, or document)"),
+});
+
+export const UploadDocumentBlobResponseSchema = z.object({
+  blobUrl: z.url().describe("Public URL of the uploaded blob"),
+  filename: z.string().describe("Original file name"),
+  size: z.number().describe("File size in bytes"),
+});
+
+export const ErrorResponseSchema = z.object({
+  error: z.string().describe("Error message"),
+});
+
+/**
+ * Upload a document file
+ * @description Uploads a file to storage and returns its public URL.
+ * @body UploadDocumentBlobSchema
+ * @contentType multipart/form-data
+ * @response 200:UploadDocumentBlobResponseSchema
+ * @response 400:ErrorResponseSchema
+ * @response 500:ErrorResponseSchema
+ * @openapi
+ */
 export async function POST(request: Request) {
   try {
     // TODO: Uncomment when Clerk is configured
