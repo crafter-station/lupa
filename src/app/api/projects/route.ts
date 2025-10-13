@@ -2,8 +2,37 @@ import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import * as schema from "@/db/schema";
 
+export const CreateProjectRequestSchema = z.object({
+  id: z
+    .string()
+    .min(1, "id is required")
+    .describe("Unique project ID (use generateId with 'proj_' prefix)"),
+  name: z.string().min(1, "name is required").describe("Project name"),
+  description: z.string().nullable().optional().describe("Project description"),
+});
+
+export const ProjectSuccessResponseSchema = z.object({
+  success: z.literal(true),
+  txid: z.number(),
+});
+
+export const ProjectErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+});
+
+/**
+ * Create a new project
+ * @description Creates a new project in the system. Projects are top-level organization units that contain documents and deployments.
+ * @body CreateProjectRequestSchema
+ * @response 200:ProjectSuccessResponseSchema
+ * @response 400:ProjectErrorResponseSchema
+ * @response 500:ProjectErrorResponseSchema
+ * @openapi
+ */
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {

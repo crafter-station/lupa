@@ -2,6 +2,7 @@ import { Pool } from "@neondatabase/serverless";
 import { put } from "@vercel/blob";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { z } from "zod";
 import * as schema from "@/db/schema";
 import { getMimeTypeFromFilename } from "@/lib/parsers";
 import { deleteDocumentSchedule } from "@/lib/schedules";
@@ -10,6 +11,63 @@ import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
 export const preferredRegion = "iad1";
 
+export const CreateSnapshotRequestSchema = z.object({
+  id: z
+    .string()
+    .min(1, "id is required")
+    .describe("Unique snapshot ID (use generateId with 'snap_' prefix)"),
+  document_id: z
+    .string()
+    .min(1, "document_id is required")
+    .describe("ID of the parent document"),
+  type: z.enum(["website", "upload"]).describe("Snapshot type"),
+  status: z
+    .enum(["queued", "error", "running", "success"])
+    .describe("Initial snapshot status"),
+  url: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("URL for website snapshots (required when type is 'website')"),
+  file: z
+    .any()
+    .optional()
+    .describe(
+      "File for upload snapshots (required when type is 'upload'). Supported formats: PDF, DOCX, XLSX, PPTX, CSV, HTML, TXT",
+    ),
+  metadata: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("JSON stringified snapshot metadata"),
+  parsingInstruction: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("Custom parsing instructions for document processing"),
+});
+
+export const SnapshotSuccessResponseSchema = z.object({
+  success: z.literal(true),
+  txid: z.number(),
+});
+
+export const SnapshotErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+});
+
+/**
+ * Create a new snapshot
+ * @description Creates a new snapshot for a document. Snapshots are immutable versions of documents that can be either website scrapes or file uploads. Website snapshots trigger the process-snapshot background task to scrape content with Firecrawl. Upload snapshots upload files to Vercel Blob and trigger the parse-document task to extract and chunk content using LlamaParse. If switching from website to upload type, any existing refresh schedule will be automatically deleted.
+ * @body CreateSnapshotRequestSchema
+ * @contentType multipart/form-data
+ * @response 200:SnapshotSuccessResponseSchema
+ * @response 400:SnapshotErrorResponseSchema
+ * @response 404:SnapshotErrorResponseSchema
+ * @response 500:SnapshotErrorResponseSchema
+ * @openapi
+ */
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {

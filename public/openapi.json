@@ -24,40 +24,6 @@
       }
     },
     "schemas": {
-      "CreateChatRequestSchema": {
-        "type": "object",
-        "properties": {
-          "messages": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "Unique ID of the message"
-                },
-                "role": {
-                  "type": "string",
-                  "enum": ["user", "assistant", "system"],
-                  "description": "Role of the message sender"
-                },
-                "content": {
-                  "type": "string",
-                  "description": "Text content of the message"
-                }
-              },
-              "required": ["id", "role", "content"]
-            },
-            "description": "Conversation messages including user and assistant turns"
-          },
-          "model": {
-            "type": "string",
-            "default": "gpt-5",
-            "description": "Model name to use for the chat (e.g., gpt-5)"
-          }
-        },
-        "required": ["messages", "model"]
-      },
       "CreateDeploymentBodySchema": {
         "type": "object",
         "properties": {
@@ -251,6 +217,40 @@
           "snapshot.status"
         ]
       },
+      "CreateProjectRequestSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique project ID (use generateId with 'proj_' prefix)"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Project name"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Project description"
+          }
+        },
+        "required": ["id", "name"]
+      },
+      "ProjectSuccessResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "txid": {
+            "type": "number"
+          }
+        },
+        "required": ["success", "txid"]
+      },
       "SearchResponseSchema": {
         "type": "object",
         "properties": {
@@ -317,15 +317,63 @@
         },
         "required": ["query", "results"]
       },
-      "ErrorResponseSchema": {
+      "CreateSnapshotRequestSchema": {
         "type": "object",
         "properties": {
-          "error": {
+          "id": {
             "type": "string",
-            "description": "Error message"
+            "minLength": 1,
+            "description": "Unique snapshot ID (use generateId with 'snap_' prefix)"
+          },
+          "document_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "ID of the parent document"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["website", "upload"],
+            "description": "Snapshot type"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "error", "running", "success"],
+            "description": "Initial snapshot status"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL for website snapshots (required when type is 'website')"
+          },
+          "file": {
+            "nullable": true,
+            "description": "File for upload snapshots (required when type is 'upload'). Supported formats: PDF, DOCX, XLSX, PPTX, CSV, HTML, TXT"
+          },
+          "metadata": {
+            "type": "string",
+            "nullable": true,
+            "description": "JSON stringified snapshot metadata"
+          },
+          "parsingInstruction": {
+            "type": "string",
+            "nullable": true,
+            "description": "Custom parsing instructions for document processing"
           }
         },
-        "required": ["error"]
+        "required": ["id", "document_id", "type", "status"]
+      },
+      "SnapshotSuccessResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "txid": {
+            "type": "number"
+          }
+        },
+        "required": ["success", "txid"]
       },
       "WhereParamsSchema": {
         "type": "object",
@@ -342,6 +390,45 @@
             "nullable": true
           }
         }
+      },
+      "ErrorResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [false]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success", "error"]
+      },
+      "ProjectErrorResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [false]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success", "error"]
+      },
+      "SnapshotErrorResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [false]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success", "error"]
       },
       "DeploymentLogSchema": {
         "type": "object",
@@ -769,42 +856,6 @@
   },
   "outputDir": "./public",
   "paths": {
-    "/chat/{projectId}/{deploymentId}": {
-      "post": {
-        "operationId": "post-chat-{projectId}-{deploymentId}",
-        "summary": "Create a chat session using an OpenAI model with integrated knowledge search.",
-        "description": "Creates a conversational session with an AI model (`gpt-5` by default) that can query a knowledge base for contextual information using the `search-knowledge` tool.",
-        "tags": ["Chat"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateChatRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/200 application/stream+json:Stream of chat responses in UIMessage format"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
     "/deployments": {
       "post": {
         "operationId": "post-deployments",
@@ -913,6 +964,42 @@
         }
       }
     },
+    "/projects": {
+      "post": {
+        "operationId": "post-projects",
+        "summary": "Create a new project",
+        "description": "Creates a new project in the system. Projects are top-level organization units that contain documents and deployments.",
+        "tags": ["Projects"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectSuccessResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/search/{projectId}/{deploymentId}/{query}": {
       "get": {
         "operationId": "get-search-{projectId}-{deploymentId}-{query}",
@@ -927,6 +1014,42 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SearchResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/snapshots": {
+      "post": {
+        "operationId": "post-snapshots",
+        "summary": "Create a new snapshot",
+        "description": "Creates a new snapshot for a document. Snapshots are immutable versions of documents that can be either website scrapes or file uploads. Website snapshots trigger the process-snapshot background task to scrape content with Firecrawl. Upload snapshots upload files to Vercel Blob and trigger the parse-document task to extract and chunk content using LlamaParse. If switching from website to upload type, any existing refresh schedule will be automatically deleted.",
+        "tags": ["Snapshots"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotSuccessResponseSchema"
                 }
               }
             }
