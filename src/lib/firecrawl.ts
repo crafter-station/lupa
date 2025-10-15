@@ -5,7 +5,7 @@ export const firecrawl = new Firecrawl({
 });
 
 export const FIRECRAWL_API_KEYS = [
-  process.env.FIRECRAWL_API_KEY,
+  process.env.FIRECRAWL_API_KEY_1,
   process.env.FIRECRAWL_API_KEY_2,
   process.env.FIRECRAWL_API_KEY_3,
   process.env.FIRECRAWL_API_KEY_4,

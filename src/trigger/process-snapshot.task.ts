@@ -7,18 +7,12 @@ import * as schema from "@/db/schema";
 import { extractMetadata } from "@/lib/metadata";
 import { parseWebsiteTask } from "./parsers/website";
 
-export const parsingQueue1 = queue({
-  name: "parsing-queue-1",
-  concurrencyLimit: 1,
-});
-
 // TODO: handle errors
 export const processSnapshotTask = schemaTask({
   id: "process-snapshot",
   schema: z.object({
     snapshotId: z.string(),
   }),
-  queue: parsingQueue1,
   run: async ({ snapshotId }, { ctx }) => {
     const snapshots = await db
       .select()
@@ -42,7 +36,9 @@ export const processSnapshotTask = schemaTask({
 
     const doc = await parseWebsiteTask.triggerAndWait(
       { url: snapshot.url },
-      { tags: ctx.run.tags, queue: `website-${ctx.queue.name}` },
+      {
+        queue: ctx.queue?.name ? `website-${ctx.queue.name}` : undefined,
+      },
     );
 
     if (!doc.ok) {
@@ -108,6 +104,11 @@ export const processSnapshotTask = schemaTask({
       })
       .where(eq(schema.Snapshot.id, snapshotId));
   },
+});
+
+export const parsingQueue1 = queue({
+  name: "parsing-queue-1",
+  concurrencyLimit: 1,
 });
 
 export const parsingQueue2 = queue({

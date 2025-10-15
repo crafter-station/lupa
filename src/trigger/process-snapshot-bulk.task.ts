@@ -24,7 +24,6 @@ export const processSnapshotBulkTask = schemaTask({
           payload: { snapshotId: snapshotIds[snapshotIndex] },
           ...(offset > 0 && {
             options: {
-              tags: [`firecrawl_${offset + 1}`],
               queue: `parsing-queue-${offset + 1}`,
             },
           }),
