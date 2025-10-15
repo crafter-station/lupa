@@ -22,11 +22,9 @@ export const processSnapshotBulkTask = schemaTask({
 
         const run = {
           payload: { snapshotId: snapshotIds[snapshotIndex] },
-          ...(offset > 0 && {
-            options: {
-              queue: `parsing-queue-${offset + 1}`,
-            },
-          }),
+          options: {
+            queue: `parsing-queue-${offset + 1}`,
+          },
         };
 
         runs.push(run);
