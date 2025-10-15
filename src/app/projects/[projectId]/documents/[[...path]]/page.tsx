@@ -1,4 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { CreateDocument } from "../create-document";
@@ -70,7 +72,12 @@ export default async function DocumentsPathPage({
         <div className="overflow-y-auto flex flex-col gap-2">
           <div className="flex justify-between items-start">
             <h1 className="text-2xl font-bold">Documents</h1>
-            <CreateDocument />
+            <div className="flex gap-2">
+              <Link href={`/projects/${projectId}/documents/bulk-create`}>
+                <Button variant="outline">Bulk Create from Website</Button>
+              </Link>
+              <CreateDocument />
+            </div>
           </div>
           <DocumentList
             preloadedDocuments={preloadedDocuments}
@@ -111,7 +118,12 @@ export default async function DocumentsPathPage({
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-start">
         <h1 className="text-2xl font-bold">Documents</h1>
-        <CreateDocument />
+        <div className="flex gap-2">
+          <Link href={`/projects/${projectId}/documents/bulk-create`}>
+            <Button variant="outline">Bulk Create from Website</Button>
+          </Link>
+          <CreateDocument />
+        </div>
       </div>
       <DocumentList
         preloadedDocuments={preloadedDocuments}

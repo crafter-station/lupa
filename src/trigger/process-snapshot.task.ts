@@ -4,8 +4,8 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { firecrawl } from "@/lib/firecrawl";
 import { extractMetadata } from "@/lib/metadata";
+import { parseWebsiteTask } from "./parsers/website";
 
 // TODO: handle errors
 export const processSnapshotTask = schemaTask({
@@ -13,7 +13,10 @@ export const processSnapshotTask = schemaTask({
   schema: z.object({
     snapshotId: z.string(),
   }),
-  run: async ({ snapshotId }) => {
+  queue: {
+    concurrencyLimit: 10,
+  },
+  run: async ({ snapshotId }, { ctx }) => {
     const snapshots = await db
       .select()
       .from(schema.Snapshot)
@@ -34,21 +37,20 @@ export const processSnapshotTask = schemaTask({
       })
       .where(eq(schema.Snapshot.id, snapshotId));
 
-    const doc = await firecrawl.scrape(snapshot.url, {
-      formats: [
-        "markdown",
-        {
-          type: "screenshot",
-          fullPage: true,
-        },
-      ],
-    });
+    const doc = await parseWebsiteTask.triggerAndWait(
+      { url: snapshot.url },
+      { tags: ctx.run.tags },
+    );
 
-    if (!doc.markdown) {
+    if (!doc.ok) {
+      throw new Error(`Failed to parse website at ${snapshot.url}`);
+    }
+
+    if (!doc.output.markdown) {
       throw new Error("Markdown content is missing");
     }
 
-    const { url } = await put(`parsed/${snapshot.id}.md`, doc.markdown, {
+    const { url } = await put(`parsed/${snapshot.id}.md`, doc.output.markdown, {
       access: "public",
     });
 
@@ -76,7 +78,7 @@ export const processSnapshotTask = schemaTask({
             previousSnapshot.markdown_url,
           );
           const previousMarkdown = await previousMarkdownResponse.text();
-          hasChanged = previousMarkdown !== doc.markdown;
+          hasChanged = previousMarkdown !== doc.output.markdown;
         } catch (error) {
           console.error("Failed to fetch previous markdown:", error);
         }
@@ -84,7 +86,7 @@ export const processSnapshotTask = schemaTask({
     }
 
     const extractedMetadata = document?.metadata_schema
-      ? await extractMetadata(doc.markdown, document.metadata_schema)
+      ? await extractMetadata(doc.output.markdown, document.metadata_schema)
       : {};
 
     await db
@@ -93,9 +95,9 @@ export const processSnapshotTask = schemaTask({
         status: "success",
         markdown_url: url,
         metadata: {
-          title: doc.metadata?.title,
-          favicon: doc.metadata?.favicon as string | undefined,
-          screenshot: doc.screenshot,
+          title: doc.output.metadata?.title,
+          favicon: doc.output.metadata?.favicon as string | undefined,
+          screenshot: doc.output.screenshot,
         },
         extracted_metadata: extractedMetadata,
         changes_detected: hasChanged,
