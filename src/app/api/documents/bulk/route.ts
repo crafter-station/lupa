@@ -1,4 +1,5 @@
 import { Pool } from "@neondatabase/serverless";
+import { auth } from "@trigger.dev/sdk/v3";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
@@ -90,8 +91,17 @@ export async function POST(request: Request) {
       };
     });
 
-    await processSnapshotBulkTask.trigger({
+    const handle = await processSnapshotBulkTask.trigger({
       snapshotIds: snapshots.map((snapshot) => snapshot.id),
+    });
+
+    const publicAccessToken = await auth.createPublicToken({
+      scopes: {
+        read: {
+          runs: [handle.id],
+        },
+      },
+      expirationTime: "1hr",
     });
 
     revalidatePath(`/projects/${project_id}/documents`);
@@ -104,6 +114,8 @@ export async function POST(request: Request) {
         txid: Number.parseInt(result.txid, 10),
         created_count: documents.length,
         snapshot_ids: snapshots.map((snapshot) => snapshot.id),
+        run_id: handle.id,
+        public_access_token: publicAccessToken,
       },
       { status: 200 },
     );

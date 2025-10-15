@@ -1,13 +1,15 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Loader2, Trash2 } from "lucide-react";
+import { useRealtimeRun } from "@trigger.dev/react-hooks";
+import { CheckCircle2, Circle, Loader2, Trash2, XCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { FolderPathSelector } from "@/components/elements/folder-path-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -35,7 +37,20 @@ export function BulkCreateClient() {
   const router = useRouter();
   const { folder: contextFolder } = useFolderDocumentVersion();
 
-  const { DocumentCollection } = useCollections();
+  const [rootUrl, setRootUrl] = React.useState("");
+  const [rootFolder, setRootFolder] = React.useState(contextFolder ?? "/");
+  const [isMapping, setIsMapping] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [discoveredLinks, setDiscoveredLinks] = React.useState<
+    DiscoveredLink[]
+  >([]);
+  const [snapshotIds, setSnapshotIds] = React.useState<string[]>([]);
+  const [runHandle, setRunHandle] = React.useState<{
+    id: string;
+    publicAccessToken: string;
+  } | null>(null);
+
+  const { DocumentCollection, SnapshotCollection } = useCollections();
 
   const { data: allDocuments = [] } = useLiveQuery(
     (q) =>
@@ -46,13 +61,23 @@ export function BulkCreateClient() {
     [],
   );
 
-  const [rootUrl, setRootUrl] = React.useState("");
-  const [rootFolder, setRootFolder] = React.useState(contextFolder ?? "/");
-  const [isMapping, setIsMapping] = React.useState(false);
-  const [isCreating, setIsCreating] = React.useState(false);
-  const [discoveredLinks, setDiscoveredLinks] = React.useState<
-    DiscoveredLink[]
-  >([]);
+  const { data: allSnapshots = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ snapshot: SnapshotCollection })
+        .select(({ snapshot }) => ({ ...snapshot })),
+    [],
+  );
+
+  const snapshots = React.useMemo(
+    () => allSnapshots.filter((s) => snapshotIds.includes(s.id)),
+    [allSnapshots, snapshotIds],
+  );
+
+  const { run } = useRealtimeRun(runHandle?.id, {
+    accessToken: runHandle?.publicAccessToken,
+    enabled: !!runHandle,
+  });
 
   const extractNameFromUrl = React.useCallback((url: string): string => {
     try {
@@ -147,19 +172,23 @@ export function BulkCreateClient() {
         success: boolean;
         txid: number;
         created_count: number;
+        snapshot_ids: string[];
+        run_id: string;
+        public_access_token: string;
       };
 
-      if (data.success && documentsToCreate.length > 0) {
-        const firstFolder = documentsToCreate[0].folder;
-        router.push(
-          `/projects/${projectId}/documents/${firstFolder}doc:${documentsToCreate[0].id}`,
-        );
+      if (data.success) {
+        setSnapshotIds(data.snapshot_ids);
+        setRunHandle({
+          id: data.run_id,
+          publicAccessToken: data.public_access_token,
+        });
       }
     } catch (error) {
       console.error("Failed to create documents:", error);
       setIsCreating(false);
     }
-  }, [discoveredLinks, rootFolder, projectId, router, ensureSlashes]);
+  }, [discoveredLinks, rootFolder, projectId, ensureSlashes]);
 
   const selectAll = () => {
     setDiscoveredLinks((links) =>
@@ -195,6 +224,124 @@ export function BulkCreateClient() {
   };
 
   const enabledCount = discoveredLinks.filter((d) => d.enabled).length;
+
+  const getSnapshotStatus = (snapshotId: string) => {
+    const snapshot = snapshots.find((s) => s.id === snapshotId);
+    return snapshot?.status ?? "queued";
+  };
+
+  const completedCount = snapshots.filter((s) => s.status === "success").length;
+  const errorCount = snapshots.filter((s) => s.status === "error").length;
+  const progressPercent = snapshotIds.length
+    ? (completedCount / snapshotIds.length) * 100
+    : 0;
+
+  if (isCreating && runHandle) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Creating Documents...</h1>
+          <p className="text-sm text-muted-foreground">
+            {completedCount + errorCount} of {snapshotIds.length} completed
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Progress</span>
+            <span>{Math.round(progressPercent)}%</span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+        </div>
+
+        <div className="grid gap-2">
+          {snapshotIds.map((snapshotId, index) => {
+            const status = getSnapshotStatus(snapshotId);
+            const snapshot = snapshots.find((s) => s.id === snapshotId);
+            const doc = snapshot
+              ? allDocuments.find((d) => d.id === snapshot.document_id)
+              : null;
+
+            return (
+              <div
+                key={snapshotId}
+                className="flex items-center gap-3 p-3 border rounded-lg"
+              >
+                {status === "success" && (
+                  <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                )}
+                {status === "error" && (
+                  <XCircle className="h-5 w-5 text-red-500 shrink-0" />
+                )}
+                {status === "running" && (
+                  <Loader2 className="h-5 w-5 text-blue-500 animate-spin shrink-0" />
+                )}
+                {status === "queued" && (
+                  <Circle className="h-5 w-5 text-gray-400 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">
+                    {doc?.name ?? `Document ${index + 1}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {snapshot?.url ?? "Processing..."}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground capitalize shrink-0">
+                  {status}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {errorCount > 0 && (
+          <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
+            <p className="text-sm text-red-800">
+              {errorCount} document{errorCount !== 1 ? "s" : ""} failed to
+              process. They will still be available in your documents list for
+              retry.
+            </p>
+          </div>
+        )}
+
+        {run?.isCompleted && (
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreating(false);
+                setRunHandle(null);
+                setSnapshotIds([]);
+              }}
+            >
+              Stay Here
+            </Button>
+            <Button
+              onClick={() => {
+                const successfulSnapshots = snapshots.filter(
+                  (s) => s.status === "success",
+                );
+                if (successfulSnapshots.length > 0) {
+                  const firstSnapshot = successfulSnapshots[0];
+                  const doc = allDocuments.find(
+                    (d) => d.id === firstSnapshot.document_id,
+                  );
+                  if (doc) {
+                    router.push(
+                      `/projects/${projectId}/documents/${doc.folder}doc:${doc.id}`,
+                    );
+                  }
+                }
+              }}
+            >
+              View Documents
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (discoveredLinks.length > 0) {
     return (

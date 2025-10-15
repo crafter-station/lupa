@@ -1,4 +1,4 @@
-import { schemaTask } from "@trigger.dev/sdk";
+import { queue, schemaTask } from "@trigger.dev/sdk";
 import { put } from "@vercel/blob";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -7,15 +7,18 @@ import * as schema from "@/db/schema";
 import { extractMetadata } from "@/lib/metadata";
 import { parseWebsiteTask } from "./parsers/website";
 
+export const parsingQueue1 = queue({
+  name: "parsing-queue-1",
+  concurrencyLimit: 1,
+});
+
 // TODO: handle errors
 export const processSnapshotTask = schemaTask({
   id: "process-snapshot",
   schema: z.object({
     snapshotId: z.string(),
   }),
-  queue: {
-    concurrencyLimit: 10,
-  },
+  queue: parsingQueue1,
   run: async ({ snapshotId }, { ctx }) => {
     const snapshots = await db
       .select()
@@ -39,7 +42,7 @@ export const processSnapshotTask = schemaTask({
 
     const doc = await parseWebsiteTask.triggerAndWait(
       { url: snapshot.url },
-      { tags: ctx.run.tags },
+      { tags: ctx.run.tags, queue: `website-${ctx.queue.name}` },
     );
 
     if (!doc.ok) {
@@ -105,4 +108,34 @@ export const processSnapshotTask = schemaTask({
       })
       .where(eq(schema.Snapshot.id, snapshotId));
   },
+});
+
+export const parsingQueue2 = queue({
+  name: "parsing-queue-2",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue3 = queue({
+  name: "parsing-queue-3",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue4 = queue({
+  name: "parsing-queue-4",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue5 = queue({
+  name: "parsing-queue-5",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue6 = queue({
+  name: "parsing-queue-6",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue7 = queue({
+  name: "parsing-queue-7",
+  concurrencyLimit: 1,
 });
