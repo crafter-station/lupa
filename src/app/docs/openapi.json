@@ -404,6 +404,61 @@
         },
         "required": ["success", "error"]
       },
+      "BulkDocumentItemSchema": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "default": "/"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["folder", "name", "url"]
+      },
+      "BulkCreateDocumentsRequestSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkDocumentItemSchema"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          }
+        },
+        "required": ["project_id", "documents"]
+      },
+      "MapRequestSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "number",
+            "nullable": true,
+            "default": 50
+          }
+        },
+        "required": ["url"]
+      },
       "ProjectErrorResponseSchema": {
         "type": "object",
         "properties": {

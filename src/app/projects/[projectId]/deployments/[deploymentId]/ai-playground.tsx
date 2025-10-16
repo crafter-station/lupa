@@ -236,40 +236,42 @@ export function AIPlayground() {
         </Conversation>
 
         <div className="p-4 border-t">
-          <PromptInput onSubmit={handleSubmit}>
-            <PromptInputBody>
-              <PromptInputTextarea
-                onChange={(e) => setInput(e.target.value)}
-                value={input}
-                placeholder="Ask something about your documents..."
-              />
-            </PromptInputBody>
-            <PromptInputToolbar>
-              <PromptInputTools>
-                <PromptInputModelSelect
-                  onValueChange={(value) => {
-                    setModel(value);
-                  }}
-                  value={model}
-                >
-                  <PromptInputModelSelectTrigger>
-                    <PromptInputModelSelectValue />
-                  </PromptInputModelSelectTrigger>
-                  <PromptInputModelSelectContent>
-                    {models.map((model) => (
-                      <PromptInputModelSelectItem
-                        key={model.value}
-                        value={model.value}
-                      >
-                        {model.name}
-                      </PromptInputModelSelectItem>
-                    ))}
-                  </PromptInputModelSelectContent>
-                </PromptInputModelSelect>
-              </PromptInputTools>
-              <PromptInputSubmit disabled={!input} status={status} />
-            </PromptInputToolbar>
-          </PromptInput>
+          <div className="mx-auto w-full max-w-3xl">
+            <PromptInput onSubmit={handleSubmit}>
+              <PromptInputBody>
+                <PromptInputTextarea
+                  onChange={(e) => setInput(e.target.value)}
+                  value={input}
+                  placeholder="Ask something about your documents..."
+                />
+              </PromptInputBody>
+              <PromptInputToolbar>
+                <PromptInputTools>
+                  <PromptInputModelSelect
+                    onValueChange={(value) => {
+                      setModel(value);
+                    }}
+                    value={model}
+                  >
+                    <PromptInputModelSelectTrigger>
+                      <PromptInputModelSelectValue />
+                    </PromptInputModelSelectTrigger>
+                    <PromptInputModelSelectContent>
+                      {models.map((model) => (
+                        <PromptInputModelSelectItem
+                          key={model.value}
+                          value={model.value}
+                        >
+                          {model.name}
+                        </PromptInputModelSelectItem>
+                      ))}
+                    </PromptInputModelSelectContent>
+                  </PromptInputModelSelect>
+                </PromptInputTools>
+                <PromptInputSubmit disabled={!input} status={status} />
+              </PromptInputToolbar>
+            </PromptInput>
+          </div>
         </div>
       </CardContent>
     </Card>

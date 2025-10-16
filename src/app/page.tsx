@@ -1,12 +1,74 @@
 import Link from "next/link";
+import { StaticCodeBlock } from "@/components/elements/static-code-block";
 import { ClerkIcon } from "@/components/icons/clerk";
 import { GlobantIcon } from "@/components/icons/globant";
 import { KeboIcon } from "@/components/icons/kebo";
 import { YunoIcon } from "@/components/icons/yuno";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { highlightCode } from "@/lib/highlight";
 
-export default function Home() {
+const AGENT_CODE = `import { streamText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: openai.responses('gpt-5'),
+  tools: {
+    'search-knowledge': tool({
+      description: 'Search knowledge base, returns chunks',
+      parameters: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        const res = await fetch(
+          \`https://lupa.build/api/search?projectId=\${projectId}&deploymentId=\${deploymentId}&query=\${query}\`
+        );
+        return res.json();
+      }
+    }),
+    'get-snapshot-contents': tool({
+      description: 'Get full document content',
+      parameters: z.object({ snapshotId: z.string() }),
+      execute: async ({ snapshotId }) => {
+        const res = await fetch(
+          \`https://lupa.build/api/snapshots/\${snapshotId}\`
+        );
+        return res.text();
+      }
+    })
+  }
+});`;
+
+const RAG_CODE = `// Multi-step RAG with reasoning
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = streamText({
+  model: openai.responses('gpt-5'),
+  providerOptions: {
+    openai: {
+      reasoningEffort: 'low',
+      reasoningSummary: 'detailed'
+    }
+  },
+  tools: {
+    'search-knowledge': searchTool,
+    'get-snapshot-contents': getSnapshotTool
+  },
+  stopWhen: stepCountIs(15)
+});
+
+// Agent workflow:
+// 1. User asks question
+// 2. Agent searches knowledge base
+// 3. Agent sees snapshotId repeated in results
+// 4. Agent retrieves full document content
+// 5. Agent reasons over complete context
+// 6. Agent provides comprehensive answer`;
+
+export default async function Home() {
+  const agentCodeHtml = await highlightCode(AGENT_CODE, "typescript");
+  const ragCodeHtml = await highlightCode(RAG_CODE, "typescript");
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -46,11 +108,12 @@ export default function Home() {
               Alpha
             </Badge>
             <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-              The Knowledge API for AI Agents
+              The Knowledge Platform for AI Agents
             </h1>
             <p className="mb-8 text-xl text-muted-foreground">
-              Give your AI agents instant access to your knowledge base.
-              RAG-ready vector search with semantic retrieval in milliseconds.
+              Semantic search and full document retrieval APIs for building
+              production RAG systems. From chunks to complete context in
+              milliseconds.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button size="lg" asChild>
@@ -69,8 +132,8 @@ export default function Home() {
           </div>
 
           <div className="relative mx-auto mt-16 max-w-5xl">
-            <div className="rounded-lg border border-border bg-card p-4 shadow-2xl">
-              <div className="flex items-center gap-2 border-b border-border pb-3">
+            <div className="rounded-lg border border-border bg-card shadow-2xl overflow-hidden">
+              <div className="flex items-center gap-2 border-b border-border px-4 py-3 bg-card">
                 <div className="h-3 w-3 rounded-full bg-red-500" />
                 <div className="h-3 w-3 rounded-full bg-yellow-500" />
                 <div className="h-3 w-3 rounded-full bg-green-500" />
@@ -78,30 +141,11 @@ export default function Home() {
                   agent.ts
                 </span>
               </div>
-              <pre className="overflow-x-auto p-4 text-sm">
-                <code className="font-mono text-foreground">
-                  {`import { streamText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
-const result = streamText({
-  model: openai('gpt-4o'),
-  tools: {
-    searchKnowledge: tool({
-      description: 'Search company knowledge base',
-      parameters: z.object({ query: z.string() }),
-      execute: async ({ query }) => {
-        const res = await fetch(
-          \`https://api.lupa.dev/v1/search/proj/dep/\${query}\`,
-          { headers: { 'Authorization': 'Bearer <token>' } }
-        );
-        return res.json();
-      }
-    })
-  }
-});`}
-                </code>
-              </pre>
+              <StaticCodeBlock
+                html={agentCodeHtml}
+                code={AGENT_CODE}
+                className="border-0 rounded-none"
+              />
             </div>
             <div className="absolute -right-4 -top-4 rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground shadow-lg">
               AI SDK compatible
@@ -142,22 +186,22 @@ const result = streamText({
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <title>Flash Icon</title>
+                    <title>Search Icon</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                     />
                   </svg>
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  RAG-optimized retrieval
+                  Semantic search API
                 </h3>
                 <p className="text-muted-foreground">
-                  Semantic search with pgvector embeddings. P95 latency under
-                  50ms. Perfect for LLM context augmentation and AI agent tool
-                  calls.
+                  Vector search returns ranked chunks with similarity scores.
+                  Find relevant content across your knowledge base in under
+                  50ms. Perfect for discovery and quick answers.
                 </p>
               </div>
 
@@ -179,12 +223,12 @@ const result = streamText({
                   </svg>
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Intelligent chunking
+                  Full document retrieval
                 </h3>
                 <p className="text-muted-foreground">
-                  Automatic document parsing and embedding generation. PDF,
-                  DOCX, Markdown, HTML. Optimized chunk sizes for LLM context
-                  windows.
+                  Get complete markdown content of any document snapshot.
+                  Multi-step agents use search to find, then retrieve full
+                  context for comprehensive answers.
                 </p>
               </div>
 
@@ -206,13 +250,21 @@ const result = streamText({
                   </svg>
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Agent observability
+                  Production analytics
                 </h3>
                 <p className="text-muted-foreground">
-                  Track AI agent queries, relevance scores, and retrieval
-                  patterns. Real-time analytics to improve your RAG pipeline.
+                  Monitor agent queries, document hits, zero-result searches,
+                  and retrieval performance. Optimize your RAG pipeline with
+                  real-time insights.
                 </p>
               </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <p className="text-sm text-muted-foreground">
+                More powerful APIs coming soon: list files in a directory,
+                filter by folder, filter by metadata, and more
+              </p>
             </div>
           </div>
         </section>
@@ -221,11 +273,11 @@ const result = streamText({
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
               <h2 className="mb-4 text-3xl font-bold">
-                Ship AI agents with live knowledge
+                Two APIs, unlimited possibilities
               </h2>
               <p className="text-muted-foreground">
-                Version your knowledge base with snapshots. Update agent context
-                without redeployment.
+                Combine semantic search with full document retrieval for
+                production-grade RAG systems
               </p>
             </div>
 
@@ -236,10 +288,13 @@ const result = streamText({
                     1
                   </div>
                   <div>
-                    <h4 className="mb-1 font-semibold">Upload knowledge</h4>
+                    <h4 className="mb-1 font-semibold">
+                      Agent searches knowledge base
+                    </h4>
                     <p className="text-sm text-muted-foreground">
-                      Drag and drop or use the API. Automatic embedding
-                      generation with OpenAI or custom models.
+                      Search API returns top 5 semantic matches with scores and
+                      metadata. Agent identifies relevant documents by
+                      snapshotId.
                     </p>
                   </div>
                 </div>
@@ -249,10 +304,13 @@ const result = streamText({
                     2
                   </div>
                   <div>
-                    <h4 className="mb-1 font-semibold">Create snapshot</h4>
+                    <h4 className="mb-1 font-semibold">
+                      Retrieve full document context
+                    </h4>
                     <p className="text-sm text-muted-foreground">
-                      Freeze your document set into a versioned snapshot.
-                      Rollback anytime.
+                      When same snapshotId appears in multiple results, agent
+                      fetches complete markdown content for comprehensive
+                      analysis.
                     </p>
                   </div>
                 </div>
@@ -262,42 +320,23 @@ const result = streamText({
                     3
                   </div>
                   <div>
-                    <h4 className="mb-1 font-semibold">Connect to AI agents</h4>
+                    <h4 className="mb-1 font-semibold">
+                      Reasoning produces accurate answers
+                    </h4>
                     <p className="text-sm text-muted-foreground">
-                      Use as tool in AI SDK, LangChain, or any framework.
-                      Zero-downtime updates to agent knowledge.
+                      With OpenAI Responses reasoning and complete document
+                      context, agents provide thorough, well-informed answers.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-4">
-                <pre className="overflow-x-auto text-sm">
-                  <code className="font-mono text-foreground">
-                    {`// LangChain integration
-import { ChatOpenAI } from "@langchain/openai";
-import { DynamicStructuredTool } from "@langchain/core/tools";
-import { z } from "zod";
-
-const searchTool = new DynamicStructuredTool({
-  name: "search_knowledge",
-  description: "Search company knowledge base",
-  schema: z.object({ query: z.string() }),
-  func: async ({ query }) => {
-    const res = await fetch(
-      \`https://api.lupa.dev/v1/search/proj/dep/\${query}\`,
-      { headers: { Authorization: 'Bearer <token>' } }
-    );
-    return JSON.stringify(await res.json());
-  }
-});
-
-const agent = createOpenAIFunctionsAgent({
-  llm: new ChatOpenAI({ model: "gpt-4o" }),
-  tools: [searchTool]
-});`}
-                  </code>
-                </pre>
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                <StaticCodeBlock
+                  html={ragCodeHtml}
+                  code={RAG_CODE}
+                  className="border-0 rounded-none"
+                />
               </div>
             </div>
           </div>
@@ -338,7 +377,7 @@ const agent = createOpenAIFunctionsAgent({
                 <span className="font-semibold">Lupa</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                The Knowledge API for AI Agents
+                The Knowledge Platform for AI Agents
               </p>
             </div>
 
