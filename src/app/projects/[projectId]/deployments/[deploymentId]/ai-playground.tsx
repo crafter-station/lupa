@@ -38,6 +38,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -64,6 +65,31 @@ const models = [
     value: "gpt-5-codex	",
   },
 ];
+
+function SnapshotPreview({ content }: { content: string }) {
+  const [showFull, setShowFull] = useState(false);
+  const previewLength = 500;
+  const isTruncated = content.length > previewLength;
+  const displayContent = showFull ? content : content.slice(0, previewLength);
+
+  return (
+    <div className="space-y-2">
+      <div className="rounded-md bg-muted/50 p-3 text-xs font-mono whitespace-pre-wrap break-words">
+        {displayContent}
+        {isTruncated && !showFull && "..."}
+      </div>
+      {isTruncated && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFull(!showFull)}
+        >
+          {showFull ? "Show less" : "Show full content"}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 function renderMessagePart(
   messageId: string,
@@ -105,6 +131,38 @@ function renderMessagePart(
           <ToolContent>
             <ToolInput input={part.input} />
             <ToolOutput output={part.output} errorText={part.errorText} />
+          </ToolContent>
+        </Tool>
+      );
+    case "tool-get-snapshot-contents":
+      return (
+        <Tool key={`${messageId}-${index}`}>
+          <ToolHeader
+            title="Get Snapshot Contents"
+            type={part.type}
+            state={part.state}
+          />
+          <ToolContent>
+            <ToolInput input={part.input} />
+            {part.output ? (
+              <div className="space-y-2 p-4">
+                <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                  Result
+                </h4>
+                <SnapshotPreview
+                  content={
+                    typeof part.output === "object" &&
+                    "content" in part.output &&
+                    typeof part.output.content === "string"
+                      ? part.output.content
+                      : JSON.stringify(part.output, null, 2)
+                  }
+                />
+              </div>
+            ) : null}
+            {part.errorText && (
+              <ToolOutput output={part.output} errorText={part.errorText} />
+            )}
           </ToolContent>
         </Tool>
       );
