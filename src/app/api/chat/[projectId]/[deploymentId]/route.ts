@@ -6,6 +6,7 @@ import {
   tool,
   type UIMessage,
 } from "ai";
+import dedent from "dedent";
 import { z } from "zod";
 
 export const maxDuration = 120;
@@ -33,13 +34,13 @@ export async function POST(
         } satisfies OpenAIResponsesProviderOptions,
       },
       messages: convertToModelMessages(messages),
-      system: `You are a helpful assistant with access to a knowledge base through two complementary tools:
+      system: dedent`You are a helpful assistant with access to a knowledge base through two complementary tools:
 
 1. **search-knowledge**: Returns CHUNKS (partial text excerpts) from documents matching your semantic search query. Each result includes:
    - content: A text chunk from the document (not the full document)
    - score: Similarity score
    - metadata: Contains snapshotId, documentId, chunkIndex, and other document metadata
-   
+
 2. **get-snapshot-contents**: Returns the COMPLETE markdown content of a specific document snapshot.
 
 **When to use each tool:**
