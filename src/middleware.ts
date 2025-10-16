@@ -11,6 +11,14 @@ export default clerkMiddleware(
   async (_auth, req: NextRequest, event: NextFetchEvent) => {
     const url = req.nextUrl;
 
+    // Rewrite /api/snapshot/[snapshot_id] to Vercel Blob Storage
+    const snapshotsMatch = url.pathname.match(/^\/api\/snapshots\/([^/]+)$/);
+    if (snapshotsMatch) {
+      const snapshotId = snapshotsMatch[1];
+      const blobUrl = `${process.env.VERCEL_BLOB_STORAGE_ROOT_DOMAIN}/parsed/${snapshotId}.md`;
+      return NextResponse.rewrite(blobUrl);
+    }
+
     // Redirect www.lupa.build/docs/* to docs.lupa.build/*
     if (url.hostname === "www.lupa.build" && url.pathname.startsWith("/docs")) {
       const redirectUrl = new URL(url.href);

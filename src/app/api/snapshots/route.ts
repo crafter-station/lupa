@@ -4,9 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { z } from "zod";
 import * as schema from "@/db/schema";
-import { getMimeTypeFromFilename } from "@/lib/parsers";
 import { deleteDocumentSchedule } from "@/lib/schedules";
-import { parseDocumentTask } from "@/trigger/parse-document.task";
 import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
 export const preferredRegion = "iad1";
@@ -80,9 +78,11 @@ export async function POST(request: Request) {
     const url = formData.get("url") as string | null;
     const file = formData.get("file") as File | null;
     const metadataStr = formData.get("metadata") as string | null;
-    const parsingInstruction = formData.get("parsingInstruction") as
+    const parsingInstruction = formData.get("parsing_instruction") as
       | string
       | null;
+
+    console.log(JSON.stringify(Object.fromEntries(formData)));
 
     if (!id || !document_id || !type || !status) {
       return Response.json(
@@ -212,28 +212,10 @@ export async function POST(request: Request) {
       };
     });
 
-    if (type === "website") {
-      await processSnapshotTask.trigger({
-        snapshotId: id,
-      });
-    } else if (type === "upload" && file) {
-      const mimeType = getMimeTypeFromFilename(file.name);
-      if (!mimeType) {
-        throw new Error("Unable to determine file type");
-      }
-
-      await parseDocumentTask.trigger({
-        document: {
-          id: document_id,
-          blobUrl: snapshotUrl,
-          filename: file.name,
-          mimeType,
-        },
-        userId: "temp-user-id",
-        parsingInstruction: parsingInstruction || undefined,
-        snapshotId: id,
-      });
-    }
+    await processSnapshotTask.trigger({
+      snapshotId: id,
+      parsingInstruction: parsingInstruction || undefined,
+    });
 
     await pool.end();
 

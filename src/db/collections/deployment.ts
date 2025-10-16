@@ -34,7 +34,7 @@ export const DeploymentCollection = ({
       getKey: (item) => item.id,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/deployments`,
+          `${process.env.NEXT_PUBLIC_URL}/api/deployments`,
           {
             method: "POST",
             headers: {

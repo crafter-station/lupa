@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     const snapshotMetadataStr = formData.get("snapshot.metadata") as
       | string
       | null;
-    const parsingInstruction = formData.get("snapshot.parsingInstruction") as
+    const parsingInstruction = formData.get("snapshot.parsing_instruction") as
       | string
       | null;
 
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
     }
 
     if (parsingInstruction) {
-      snapshotFormData.append("parsingInstruction", parsingInstruction);
+      snapshotFormData.append("parsing_instruction", parsingInstruction);
     }
 
     const baseUrl =

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { generateId } from "@/lib/generate-id";
+import { processSnapshotTask } from "./process-snapshot.task";
 
 export const refetchWebsiteTask = schedules.task({
   id: "refetch-website",
@@ -73,7 +74,6 @@ export const refetchWebsiteTask = schedules.task({
       url: originalSnapshot.url,
     });
 
-    const { processSnapshotTask } = await import("./process-snapshot.task");
     await processSnapshotTask.trigger({
       snapshotId,
     });
