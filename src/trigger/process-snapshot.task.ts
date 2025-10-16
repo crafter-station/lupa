@@ -5,15 +5,17 @@ import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { extractMetadata } from "@/lib/metadata";
+import { parseFileTask } from "./parsers/file";
 import { parseWebsiteTask } from "./parsers/website";
 
-// TODO: handle errors
 export const processSnapshotTask = schemaTask({
   id: "process-snapshot",
   schema: z.object({
     snapshotId: z.string(),
+    parsingInstruction: z.string().optional(),
+    parserName: z.string().optional(),
   }),
-  run: async ({ snapshotId }, { ctx }) => {
+  run: async ({ snapshotId, parsingInstruction, parserName }, { ctx }) => {
     const snapshots = await db
       .select()
       .from(schema.Snapshot)
@@ -34,22 +36,63 @@ export const processSnapshotTask = schemaTask({
       })
       .where(eq(schema.Snapshot.id, snapshotId));
 
-    const doc = await parseWebsiteTask.triggerAndWait(
-      { url: snapshot.url },
-      {
-        queue: ctx.queue?.name ? `website-${ctx.queue.name}` : undefined,
-      },
-    );
+    let markdown: string;
+    let metadata: schema.WebsiteMetadata | schema.UploadMetadata;
 
-    if (!doc.ok) {
-      throw new Error(`Failed to parse website at ${snapshot.url}`);
+    if (snapshot.type === "website") {
+      const doc = await parseWebsiteTask.triggerAndWait(
+        { url: snapshot.url },
+        {
+          queue: ctx.queue.name.startsWith("parsing-queue")
+            ? `website-${ctx.queue.name}`
+            : undefined,
+        },
+      );
+
+      if (!doc.ok) {
+        throw new Error(`Failed to parse website at ${snapshot.url}`);
+      }
+
+      if (!doc.output.markdown) {
+        throw new Error("Markdown content is missing");
+      }
+
+      markdown = doc.output.markdown;
+      metadata = {
+        title: doc.output.metadata?.title,
+        favicon: doc.output.metadata?.favicon as string | undefined,
+        screenshot: doc.output.screenshot,
+      };
+    } else if (snapshot.type === "upload") {
+      const filename = snapshot.url.split("/").pop() || "file";
+
+      const result = await parseFileTask.triggerAndWait({
+        blobUrl: snapshot.url,
+        filename,
+        parsingInstruction,
+        parserName,
+      });
+
+      if (!result.ok) {
+        throw new Error(`Failed to parse file at ${snapshot.url}`);
+      }
+
+      if (!result.output.markdown) {
+        throw new Error("Markdown content is missing");
+      }
+
+      markdown = result.output.markdown;
+      metadata = {
+        file_name: filename,
+        file_size: result.output.metadata?.wordCount
+          ? result.output.metadata.wordCount * 6
+          : undefined,
+      };
+    } else {
+      throw new Error(`Unknown snapshot type: ${snapshot.type}`);
     }
 
-    if (!doc.output.markdown) {
-      throw new Error("Markdown content is missing");
-    }
-
-    const { url } = await put(`parsed/${snapshot.id}.md`, doc.output.markdown, {
+    const { url } = await put(`parsed/${snapshot.id}.md`, markdown, {
       access: "public",
     });
 
@@ -77,7 +120,7 @@ export const processSnapshotTask = schemaTask({
             previousSnapshot.markdown_url,
           );
           const previousMarkdown = await previousMarkdownResponse.text();
-          hasChanged = previousMarkdown !== doc.output.markdown;
+          hasChanged = previousMarkdown !== markdown;
         } catch (error) {
           console.error("Failed to fetch previous markdown:", error);
         }
@@ -85,7 +128,7 @@ export const processSnapshotTask = schemaTask({
     }
 
     const extractedMetadata = document?.metadata_schema
-      ? await extractMetadata(doc.output.markdown, document.metadata_schema)
+      ? await extractMetadata(markdown, document.metadata_schema)
       : {};
 
     await db
@@ -93,11 +136,7 @@ export const processSnapshotTask = schemaTask({
       .set({
         status: "success",
         markdown_url: url,
-        metadata: {
-          title: doc.output.metadata?.title,
-          favicon: doc.output.metadata?.favicon as string | undefined,
-          screenshot: doc.output.screenshot,
-        },
+        metadata,
         extracted_metadata: extractedMetadata,
         changes_detected: hasChanged,
         updated_at: new Date().toISOString(),

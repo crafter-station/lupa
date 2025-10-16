@@ -83,6 +83,7 @@ export function CreateDocument() {
     DocumentSelect & {
       snapshot: SnapshotSelect;
       file?: File;
+      parsing_instruction?: string;
     }
   >({
     onMutate: (document) => {
@@ -140,6 +141,12 @@ export function CreateDocument() {
         formData.append(
           "snapshot.metadata",
           JSON.stringify(document.snapshot.metadata),
+        );
+      }
+      if (document.parsing_instruction) {
+        formData.append(
+          "snapshot.parsing_instruction",
+          document.parsing_instruction,
         );
       }
 
@@ -250,7 +257,7 @@ export function CreateDocument() {
         const formData = new FormData(e.target as HTMLFormElement);
         const name = (formData.get("name") as string) || selectedFile.name;
         const description = (formData.get("description") as string) || null;
-        const parsingInstruction = formData.get("parsingInstruction") as
+        const parsingInstruction = formData.get("parsing_instruction") as
           | string
           | null;
 
@@ -261,10 +268,6 @@ export function CreateDocument() {
           file_name: selectedFile.name,
           file_size: selectedFile.size,
         };
-
-        if (parsingInstruction?.trim()) {
-          snapshotMetadata.parsing_instruction = parsingInstruction.trim();
-        }
 
         createDocument({
           id: documentId,
@@ -293,6 +296,7 @@ export function CreateDocument() {
             updated_at: new Date().toISOString(),
           },
           file: selectedFile,
+          parsing_instruction: parsingInstruction?.trim() ?? undefined,
         });
 
         router.push(
@@ -479,12 +483,12 @@ export function CreateDocument() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="parsingInstruction">
+                <Label htmlFor="parsing_instruction">
                   Parsing Instructions (Optional)
                 </Label>
                 <Textarea
-                  id="parsingInstruction"
-                  name="parsingInstruction"
+                  id="parsing_instruction"
+                  name="parsing_instruction"
                   placeholder="e.g., 'Focus on extracting tables and numerical data'"
                   disabled={isUploading}
                 />

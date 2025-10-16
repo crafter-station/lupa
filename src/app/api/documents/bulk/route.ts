@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { DocumentInsert, SnapshotInsert } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { generateId } from "@/lib/generate-id";
-import { processSnapshotBulkTask } from "@/trigger/process-snapshot-bulk.task";
+import { processWebsiteSnapshotBulkTask } from "@/trigger/process-website-snapshot-bulk.task";
 
 export const preferredRegion = "iad1";
 export const maxDuration = 60;
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       };
     });
 
-    const handle = await processSnapshotBulkTask.trigger({
+    const handle = await processWebsiteSnapshotBulkTask.trigger({
       snapshotIds: snapshots.map((snapshot) => snapshot.id),
     });
 

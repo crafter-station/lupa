@@ -129,7 +129,7 @@ export function CreateSnapshot() {
       }
 
       if (snapshot.parsingInstruction) {
-        formData.append("parsingInstruction", snapshot.parsingInstruction);
+        formData.append("parsing_instruction", snapshot.parsingInstruction);
       }
 
       const response = await fetch(
@@ -244,7 +244,7 @@ export function CreateSnapshot() {
 
       try {
         const formData = new FormData(e.target as HTMLFormElement);
-        const parsingInstruction = formData.get("parsingInstruction") as
+        const parsingInstruction = formData.get("parsing_instruction") as
           | string
           | null;
 
@@ -455,12 +455,12 @@ export function CreateSnapshot() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="parsingInstruction">
+              <Label htmlFor="parsing_instruction">
                 Parsing Instructions (Optional)
               </Label>
               <Textarea
-                id="parsingInstruction"
-                name="parsingInstruction"
+                id="parsing_instruction"
+                name="parsing_instruction"
                 placeholder="e.g., 'Focus on extracting tables and numerical data'"
                 disabled={isUploading}
               />

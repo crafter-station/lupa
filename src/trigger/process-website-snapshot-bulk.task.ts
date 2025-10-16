@@ -4,8 +4,8 @@ import { FIRECRAWL_API_KEYS } from "@/lib/firecrawl";
 import { processSnapshotTask } from "./process-snapshot.task";
 
 // TODO: handle errors
-export const processSnapshotBulkTask = schemaTask({
-  id: "process-snapshot-bulk",
+export const processWebsiteSnapshotBulkTask = schemaTask({
+  id: "process-website-snapshot-bulk",
   schema: z.object({
     snapshotIds: z.string().array(),
   }),
