@@ -33,7 +33,7 @@ type DiscoveredLink = {
 };
 
 export function BulkCreateClient() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
   const router = useRouter();
   const { folder: contextFolder } = useFolderDocumentVersion();
 
@@ -329,7 +329,7 @@ export function BulkCreateClient() {
                   );
                   if (doc) {
                     router.push(
-                      `/projects/${projectId}/documents/${doc.folder}doc:${doc.id}`,
+                      `/orgs/${slug}/projects/${projectId}/documents/${doc.folder}doc:${doc.id}`,
                     );
                   }
                 }

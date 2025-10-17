@@ -173,9 +173,9 @@ export function DocumentListContent({
   documents: DocumentSelect[];
   snapshots: SnapshotSelect[];
 }) {
-  const { projectId } = useParams<{
+  const { projectId, slug } = useParams<{
     projectId: string;
-    path?: string[];
+    slug: string;
   }>();
 
   const { DocumentCollection } = useCollections();
@@ -369,7 +369,7 @@ export function DocumentListContent({
                   >
                     <TableCell>
                       <Link
-                        href={`/projects/${projectId}/documents/${currentFolder.split("/").slice(1, -2).join("/")}`}
+                        href={`/orgs/${slug}/projects/${projectId}/documents/${currentFolder.split("/").slice(1, -2).join("/")}`}
                         className="font-medium hover:underline flex items-center gap-2"
                       >
                         <Folder className="h-4 w-4" />
@@ -385,7 +385,7 @@ export function DocumentListContent({
                 )}
                 {items.map((item) => {
                   if (item.type === "folder") {
-                    const folderUrl = `/projects/${projectId}/documents${item.path}`;
+                    const folderUrl = `/orgs/${slug}/projects/${projectId}/documents${item.path}`;
                     return (
                       <DroppableFolderRow
                         key={item.path}
@@ -409,7 +409,7 @@ export function DocumentListContent({
                     );
                   }
 
-                  const documentUrl = `/projects/${projectId}/documents${currentFolder}doc:${item.document.id}`;
+                  const documentUrl = `/orgs/${slug}/projects/${projectId}/documents${currentFolder}doc:${item.document.id}`;
                   const isUpdating = updatingDocuments.has(item.document.id);
                   const latestSnapshot = getLatestSnapshot(item.document.id);
 
@@ -426,7 +426,7 @@ export function DocumentListContent({
                         <Link
                           href={
                             documentId === item.document.id
-                              ? `/projects/${projectId}/documents${currentFolder}`
+                              ? `/orgs/${slug}/projects/${projectId}/documents${currentFolder}`
                               : documentUrl
                           }
                           className="font-medium hover:underline flex items-center gap-2"

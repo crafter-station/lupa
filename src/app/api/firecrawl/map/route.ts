@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { firecrawl } from "@/lib/firecrawl";
 
@@ -10,6 +11,15 @@ const MapRequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const body = await request.json();
     const { url, limit } = MapRequestSchema.parse(body);
 

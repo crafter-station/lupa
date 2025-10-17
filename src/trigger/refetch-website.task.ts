@@ -57,6 +57,7 @@ export const refetchWebsiteTask = schedules.task({
 
     await db.insert(schema.Snapshot).values({
       id: snapshotId,
+      org_id: originalSnapshot.org_id,
       document_id: documentId,
       url: originalSnapshot.url,
       status: "queued",

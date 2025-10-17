@@ -17,6 +17,7 @@ export default function Breadcrumbs() {
     projectId?: string;
     documentId?: string;
     deploymentId?: string;
+    slug: string;
     path?: string[];
   }>();
   const pathname = usePathname();
@@ -57,13 +58,17 @@ export default function Breadcrumbs() {
           <BreadcrumbSeparator />
 
           <BreadcrumbItem>
-            <BreadcrumbLink href="/projects">Projects</BreadcrumbLink>
+            <BreadcrumbLink href={`/orgs/${params.slug}/projects`}>
+              Projects
+            </BreadcrumbLink>
           </BreadcrumbItem>
 
           <BreadcrumbSeparator />
 
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/projects/${params.projectId}`}>
+            <BreadcrumbLink
+              href={`/orgs/${params.slug}/projects/${params.projectId}`}
+            >
               {params.projectId}
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -72,14 +77,16 @@ export default function Breadcrumbs() {
 
           {params.documentId || pathname.includes("/documents") ? (
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/projects/${params.projectId}/documents/`}>
+              <BreadcrumbLink
+                href={`/orgs/${params.slug}/projects/${params.projectId}/documents/`}
+              >
                 Documents
               </BreadcrumbLink>
             </BreadcrumbItem>
           ) : params.deploymentId ? (
             <BreadcrumbItem>
               <BreadcrumbLink
-                href={`/projects/${params.projectId}/deployments/`}
+                href={`/orgs/${params.slug}/projects/${params.projectId}/deployments/`}
               >
                 Deployments
               </BreadcrumbLink>
@@ -102,7 +109,7 @@ export default function Breadcrumbs() {
 
               const isLast = index === arr.length - 1;
               const path = arr.slice(0, index + 1).join("/");
-              const href = `/projects/${params.projectId}/documents/${path}`;
+              const href = `/orgs/${params.slug}/projects/${params.projectId}/documents/${path}`;
 
               return (
                 <div key={segment} className="flex items-center">
@@ -149,14 +156,18 @@ export default function Breadcrumbs() {
         <BreadcrumbSeparator />
 
         <BreadcrumbItem>
-          <BreadcrumbLink href="/projects">Projects</BreadcrumbLink>
+          <BreadcrumbLink href={`/orgs/${params.slug}/projects`}>
+            Projects
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
 
         {pathname.includes("/documents") ? (
           <>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/projects/${params.projectId}`}>
+              <BreadcrumbLink
+                href={`/orgs/${params.slug}/projects/${params.projectId}`}
+              >
                 {params.projectId}
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -170,7 +181,7 @@ export default function Breadcrumbs() {
               <Separator />
               <BreadcrumbItem>
                 <BreadcrumbLink
-                  href={`/projects/${params.projectId}/deployments`}
+                  href={`/orgs/${params.slug}/projects/${params.projectId}/deployments`}
                 >
                   Deployments
                 </BreadcrumbLink>
@@ -180,7 +191,9 @@ export default function Breadcrumbs() {
         ) : pathname.includes("/deployments") ? (
           <>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/projects/${params.projectId}`}>
+              <BreadcrumbLink
+                href={`/orgs/${params.slug}/projects/${params.projectId}`}
+              >
                 {params.projectId}
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -189,14 +202,18 @@ export default function Breadcrumbs() {
             <div className="flex flex-col items-center">
               <BreadcrumbItem>
                 <BreadcrumbLink
-                  href={`/projects/${params.projectId}/documents`}
+                  href={`/orgs/${params.slug}/projects/${params.projectId}/documents`}
                 >
                   Documents
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <Separator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Deployments</BreadcrumbPage>
+                <BreadcrumbLink
+                  href={`/orgs/${params.slug}/projects/${params.projectId}/deployments`}
+                >
+                  Deployments
+                </BreadcrumbLink>
               </BreadcrumbItem>
             </div>
           </>
@@ -211,7 +228,7 @@ export default function Breadcrumbs() {
             <div className="flex flex-col items-center">
               <BreadcrumbItem>
                 <BreadcrumbLink
-                  href={`/projects/${params.projectId}/documents`}
+                  href={`/orgs/${params.slug}/projects/${params.projectId}/documents`}
                 >
                   Documents
                 </BreadcrumbLink>
@@ -219,7 +236,7 @@ export default function Breadcrumbs() {
               <Separator />
               <BreadcrumbItem>
                 <BreadcrumbLink
-                  href={`/projects/${params.projectId}/deployments`}
+                  href={`/orgs/${params.slug}/projects/${params.projectId}/deployments`}
                 >
                   Deployments
                 </BreadcrumbLink>

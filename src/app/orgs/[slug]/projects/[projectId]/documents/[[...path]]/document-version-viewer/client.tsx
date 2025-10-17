@@ -33,17 +33,32 @@ export function DocumentVersionViewerLiveQuery({
   preloadedSnapshots,
 }: DocumentVersionViewerLoadingContextProps) {
   const router = useRouter();
-  const { projectId } = useParams<{
+  const { slug, projectId } = useParams<{
+    slug: string;
     projectId: string;
   }>();
-  const { DocumentCollection, SnapshotCollection, DeploymentCollection } =
-    useCollections();
+  const {
+    DocumentCollection,
+    SnapshotCollection,
+    DeploymentCollection,
+    ProjectCollection,
+  } = useCollections();
   const [deploymentId, setDeploymentId] = useQueryState("foo");
   const [toastId, setToastId] = React.useState<string | number | null>(null);
   const [newSnapshot, _setNewSnapshot] = useQueryState(
     "newSnapshot",
     parseAsBoolean.withDefault(false),
   );
+
+  const { data: freshProject } = useLiveQuery((q) =>
+    q
+      .from({ project: ProjectCollection })
+      .select(({ project }) => ({ ...project })),
+  );
+
+  React.useEffect(() => {
+    console.log("freshproject", freshProject);
+  }, [freshProject]);
 
   const { data: freshDocumentData, status: documentStatus } = useLiveQuery(
     (q) =>
@@ -115,7 +130,9 @@ export function DocumentVersionViewerLiveQuery({
           action: {
             label: "Go to Deployment",
             onClick: () =>
-              router.push(`/projects/${projectId}/deployments/${deploymentId}`),
+              router.push(
+                `/orgs/${slug}/projects/${projectId}/deployments/${deploymentId}`,
+              ),
           },
         });
         setToastId(null);
@@ -128,6 +145,7 @@ export function DocumentVersionViewerLiveQuery({
     projectId,
     deploymentId,
     toastId,
+    slug,
   ]);
 
   React.useEffect(() => {
@@ -214,8 +232,9 @@ export function DocumentVersionViewerContent({
   allDocuments: DocumentSelect[];
 }) {
   const router = useRouter();
-  const { projectId } = useParams<{
+  const { projectId, slug } = useParams<{
     projectId: string;
+    slug: string;
   }>();
   const { DocumentCollection } = useCollections();
 
@@ -255,10 +274,10 @@ export function DocumentVersionViewerContent({
   const handleUpdateFolder = React.useCallback(
     async (newFolder: string) => {
       await handleUpdateDocument({ folder: newFolder });
-      const newUrl = `/projects/${projectId}/documents${newFolder}doc:${preloadedDocument.id}`;
+      const newUrl = `/orgs/${slug}/projects/${projectId}/documents${newFolder}doc:${preloadedDocument.id}`;
       router.push(newUrl);
     },
-    [handleUpdateDocument, router, projectId, preloadedDocument.id],
+    [handleUpdateDocument, router, projectId, preloadedDocument.id, slug],
   );
 
   const handleUpdateRefreshSettings = React.useCallback(
@@ -290,7 +309,7 @@ export function DocumentVersionViewerContent({
     isError,
   } = useMarkdown(currentSnapshot?.markdown_url);
 
-  const baseUrl = `/projects/${projectId}/documents/${folder}doc:${preloadedDocument.id}`;
+  const baseUrl = `/orgs/${slug}/projects/${projectId}/documents/${folder}doc:${preloadedDocument.id}`;
 
   if (!currentSnapshot) {
     return (

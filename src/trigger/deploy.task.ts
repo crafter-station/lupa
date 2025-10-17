@@ -66,6 +66,7 @@ export const deploy = schemaTask({
         snapshots.map((snapshot) => ({
           deployment_id: deployment.id,
           snapshot_id: snapshot.id,
+          org_id: deployment.org_id,
         })),
       );
 

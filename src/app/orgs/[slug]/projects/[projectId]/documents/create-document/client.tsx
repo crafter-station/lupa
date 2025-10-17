@@ -39,7 +39,7 @@ import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
 
 export function CreateDocument() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [snapshotType, setSnapshotType] =
@@ -220,7 +220,7 @@ export function CreateDocument() {
       });
 
       router.push(
-        `/projects/${projectId}/documents/${folder}doc:${documentId}?newSnapshot=true`,
+        `/orgs/${slug}/projects/${projectId}/documents/${folder}doc:${documentId}?newSnapshot=true`,
       );
       setOpen(false);
     },
@@ -231,6 +231,7 @@ export function CreateDocument() {
       metadataSchema,
       refreshFrequency,
       router,
+      slug,
     ],
   );
 
@@ -300,7 +301,7 @@ export function CreateDocument() {
         });
 
         router.push(
-          `/projects/${projectId}/documents/${selectedFolder || "/"}doc:${documentId}?newSnapshot=true`,
+          `/orgs/${slug}/projects/${projectId}/documents/${selectedFolder || "/"}doc:${documentId}?newSnapshot=true`,
         );
         setOpen(false);
       } catch (error) {
@@ -319,6 +320,7 @@ export function CreateDocument() {
       metadataSchema,
       createDocument,
       router,
+      slug,
     ],
   );
 

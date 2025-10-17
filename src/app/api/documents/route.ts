@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
@@ -71,6 +72,15 @@ export const ErrorResponseSchema = z.object({
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const formData = await request.formData();
 
     const documentId = formData.get("id") as string;
@@ -139,6 +149,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (project.org_id !== orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 },
+      );
+    }
+
     let metadata_schema: schema.MetadataSchemaConfig | null = null;
     if (metadataSchemaStr) {
       try {
@@ -151,6 +168,7 @@ export async function POST(request: Request) {
     const documentResult = await db.transaction(async (tx) => {
       await tx.insert(schema.Document).values({
         id: documentId,
+        org_id: orgId,
         folder,
         name,
         description,
@@ -197,6 +215,9 @@ export async function POST(request: Request) {
       `http://localhost:${process.env.PORT || 3000}`;
     const snapshotResponse = await fetch(`${baseUrl}/api/snapshots`, {
       method: "POST",
+      headers: {
+        Cookie: request.headers.get("cookie") || "",
+      },
       body: snapshotFormData,
     });
 
@@ -248,6 +269,7 @@ export async function POST(request: Request) {
     if (pool) {
       await pool.end();
     }
+    console.error(error);
     return Response.json(
       {
         success: false,

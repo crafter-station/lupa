@@ -44,6 +44,8 @@ export type ExtractedMetadata = Record<string, unknown>;
 export const Snapshot = pgTable(SNAPSHOT_TABLE, {
   id: text("id").primaryKey(),
 
+  org_id: text("org_id").notNull(),
+
   document_id: text("document_id").notNull(),
   url: text("url").notNull(),
 

@@ -46,7 +46,7 @@ export function DeploymentListContent({
 }: {
   deployments: DeploymentSelect[];
 }) {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
 
   return (
     <div className="rounded-md border">
@@ -70,7 +70,7 @@ export function DeploymentListContent({
               <TableRow key={deployment.id}>
                 <TableCell>
                   <Link
-                    href={`/projects/${projectId}/deployments/${deployment.id}`}
+                    href={`/orgs/${slug}/projects/${projectId}/deployments/${deployment.id}`}
                     className="font-medium hover:underline"
                   >
                     {deployment.id}

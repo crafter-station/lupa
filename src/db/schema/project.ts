@@ -6,6 +6,8 @@ export const PROJECT_TABLE = "project";
 export const Project = pgTable(PROJECT_TABLE, {
   id: text("id").primaryKey(),
 
+  org_id: text("org_id").notNull(),
+
   name: text("name").notNull(),
   description: text("description"),
 

@@ -2,7 +2,9 @@
 
 import { useLiveQuery } from "@tanstack/react-db";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import React from "react";
+
 import {
   Table,
   TableBody,
@@ -40,6 +42,8 @@ export function ProjectListContent({
 }: {
   projects: ProjectSelect[];
 }) {
+  const { slug } = useParams<{ slug: string }>();
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -62,7 +66,7 @@ export function ProjectListContent({
               <TableRow key={project.id}>
                 <TableCell>
                   <Link
-                    href={`/projects/${project.id}`}
+                    href={`/orgs/${slug}/projects/${project.id}`}
                     className="font-medium hover:underline"
                   >
                     {project.name}

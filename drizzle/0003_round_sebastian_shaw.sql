@@ -1,0 +1,1 @@
+ALTER TABLE "project" ALTER COLUMN "org_id" DROP DEFAULT;

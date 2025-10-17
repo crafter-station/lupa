@@ -1,0 +1,1 @@
+ALTER TABLE "project" ADD COLUMN "org_id" text DEFAULT 'org_34BFPGUSQRdk04TPnXuKoTwR4Fh' NOT NULL;

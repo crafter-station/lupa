@@ -12,9 +12,9 @@ export const revalidate = 30;
 export default async function DocumentsPathPage({
   params,
 }: {
-  params: Promise<{ projectId: string; path?: string[] }>;
+  params: Promise<{ projectId: string; path?: string[]; slug: string }>;
 }) {
-  const { projectId, path: rawPath = [] } = await params;
+  const { slug, projectId, path: rawPath = [] } = await params;
 
   const path = rawPath.map(decodeURIComponent);
 
@@ -73,7 +73,9 @@ export default async function DocumentsPathPage({
           <div className="flex justify-between items-start">
             <h1 className="text-2xl font-bold">Documents</h1>
             <div className="flex gap-2">
-              <Link href={`/projects/${projectId}/documents/bulk-create`}>
+              <Link
+                href={`/orgs/${slug}/projects/${projectId}/documents/bulk-create`}
+              >
                 <Button variant="outline">Bulk Create from Website</Button>
               </Link>
               <CreateDocument />
@@ -119,7 +121,9 @@ export default async function DocumentsPathPage({
       <div className="flex justify-between items-start">
         <h1 className="text-2xl font-bold">Documents</h1>
         <div className="flex gap-2">
-          <Link href={`/projects/${projectId}/documents/bulk-create`}>
+          <Link
+            href={`/orgs/${slug}/projects/${projectId}/documents/bulk-create`}
+          >
             <Button variant="outline">Bulk Create from Website</Button>
           </Link>
           <CreateDocument />

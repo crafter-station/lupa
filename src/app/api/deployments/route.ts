@@ -1,5 +1,6 @@
+import { auth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -41,9 +42,21 @@ export const CreateDeploymentSuccessResponseSchema = z.object({
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {
+    const session = await auth();
+
+    if (!session.orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const json = await request.json();
 
-    const data = schema.DeploymentInsertSchema.parse(json);
+    const data = schema.DeploymentInsertSchema.parse({
+      ...json,
+      org_id: session.orgId,
+    });
 
     if (!process.env.DATABASE_URL) {
       return Response.json(
@@ -59,6 +72,24 @@ export async function POST(request: Request) {
       client: pool,
       schema,
     });
+
+    const project = await db.query.Project.findFirst({
+      where: eq(schema.Project.id, data.project_id),
+    });
+
+    if (!project) {
+      return Response.json(
+        { success: false, error: "Project not found" },
+        { status: 404 },
+      );
+    }
+
+    if (project.org_id !== data.org_id) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 },
+      );
+    }
 
     const result = await db.transaction(async (tx) => {
       await tx.insert(schema.Deployment).values({

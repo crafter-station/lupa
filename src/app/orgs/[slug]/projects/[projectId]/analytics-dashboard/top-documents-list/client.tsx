@@ -2,8 +2,8 @@
 
 import { useLiveQuery } from "@tanstack/react-db";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import * as React from "react";
-
 import {
   Table,
   TableBody,
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/table";
 import type { DocumentSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
-
 import type { TopDocumentsListProps } from "./index";
 
 export function TopDocumentsListLiveQuery({
@@ -53,12 +52,14 @@ export function TopDocumentsListContent({
     return new Map(documents.map((doc) => [doc.id, doc]));
   }, [documents]);
 
+  const { slug } = useParams<{ slug: string }>();
+
   const getDocumentUrl = (document: DocumentSelect) => {
     const folderPath = document.folder === "/" ? "" : document.folder.slice(1);
     const pathSegments = folderPath
       ? `${folderPath}/doc:${document.id}`
       : `doc:${document.id}`;
-    return `/projects/${document.project_id}/documents/${pathSegments}`;
+    return `/orgs/${slug}/projects/${document.project_id}/documents/${pathSegments}`;
   };
 
   return (

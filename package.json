@@ -14,7 +14,9 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.42",
     "@ai-sdk/react": "^2.0.60",
-    "@clerk/nextjs": "^6.33.1",
+    "@clerk/backend": "^2.18.2",
+    "@clerk/nextjs": "^6.33.6",
+    "@clerk/themes": "^2.4.27",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

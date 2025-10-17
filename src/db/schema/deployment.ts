@@ -36,6 +36,8 @@ export type DeploymentLog = z.infer<typeof DeploymentLogSchema>;
 export const Deployment = pgTable(DEPLOYMENT_TABLE, {
   id: text("id").primaryKey(),
 
+  org_id: text("org_id").notNull(),
+
   project_id: text("project_id").notNull(),
 
   vector_index_id: text("vector_index_id"),

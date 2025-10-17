@@ -15,6 +15,34 @@
       "when": 1760218354127,
       "tag": "0001_abandoned_kid_colt",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760690933899,
+      "tag": "0002_fine_zarek",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1760690959599,
+      "tag": "0003_round_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1760693459093,
+      "tag": "0004_natural_senator_kelly",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1760693493381,
+      "tag": "0005_abnormal_green_goblin",
+      "breakpoints": true
     }
   ]
 }
