@@ -1,6 +1,7 @@
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
-import { auth } from "@trigger.dev/sdk/v3";
-import { sql } from "drizzle-orm";
+import { auth as triggerAuth } from "@trigger.dev/sdk/v3";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -27,6 +28,15 @@ const BulkCreateDocumentsRequestSchema = z.object({
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {
+    const { orgId } = await clerkAuth();
+
+    if (!orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const body = await request.json();
     const { project_id, documents: docs } =
       BulkCreateDocumentsRequestSchema.parse(body);
@@ -47,6 +57,24 @@ export async function POST(request: Request) {
       schema,
     });
 
+    const project = await db.query.Project.findFirst({
+      where: eq(schema.Project.id, project_id),
+    });
+
+    if (!project) {
+      return Response.json(
+        { success: false, error: "Project not found" },
+        { status: 404 },
+      );
+    }
+
+    if (project.org_id !== orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 },
+      );
+    }
+
     const documents: DocumentInsert[] = [];
     const snapshots: SnapshotInsert[] = [];
 
@@ -54,6 +82,7 @@ export async function POST(request: Request) {
       const docId = generateId();
       documents.push({
         id: docId,
+        org_id: orgId,
         folder: doc.folder,
         name: doc.name,
         description: doc.description,
@@ -66,6 +95,7 @@ export async function POST(request: Request) {
 
       snapshots.push({
         id: generateId(),
+        org_id: orgId,
         document_id: docId,
         type: "website" as const,
         status: "queued" as const,
@@ -95,7 +125,7 @@ export async function POST(request: Request) {
       snapshotIds: snapshots.map((snapshot) => snapshot.id),
     });
 
-    const publicAccessToken = await auth.createPublicToken({
+    const publicAccessToken = await triggerAuth.createPublicToken({
       scopes: {
         read: {
           runs: [handle.id],

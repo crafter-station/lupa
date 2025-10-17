@@ -1,13 +1,7 @@
 import type { LucideProps } from "lucide-react";
 
 export const KeboIcon = (props: LucideProps) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    id="Capa_1"
-    version="1.1"
-    viewBox="0 0 1440 1088"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1088" {...props}>
     <title>Kebo Light Icon</title>
 
     <g>

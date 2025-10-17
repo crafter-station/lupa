@@ -4,10 +4,12 @@ import { StaticCodeBlock } from "@/components/elements/static-code-block";
 import { ClerkIcon } from "@/components/icons/clerk";
 import { GlobantIcon } from "@/components/icons/globant";
 import { KeboIcon } from "@/components/icons/kebo";
+import { LupaFullIcon } from "@/components/icons/lupa-full";
 import { YunoIcon } from "@/components/icons/yuno";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { highlightCode } from "@/lib/highlight";
+import { SignInButton } from "./sign-in-button";
 
 const AGENT_CODE = `import { streamText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
@@ -74,12 +76,9 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-mono font-bold">
-              L
-            </div>
-            <span className="text-lg font-semibold">Lupa</span>
-          </div>
+          <Link href="/" className="px-2 py-0 items-center">
+            <LupaFullIcon className="size-16" />
+          </Link>
           <nav className="flex items-center gap-6">
             <a
               href="https://docs.lupa.build"
@@ -95,9 +94,7 @@ export default async function Home() {
             >
               Pricing
             </a>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/projects">Sign In</Link>
-            </Button>
+            <SignInButton />
           </nav>
         </div>
       </header>
@@ -117,18 +114,22 @@ export default async function Home() {
               </span>
             </h1>
             <p className="mb-8 text-xl text-muted-foreground animate-fade-in-up animation-delay-200">
-              Semantic search and full document retrieval APIs for building
-              production RAG systems. From chunks to complete context in
-              milliseconds.
+              Keep your knowledge base fresh with automatic syncing. Search with
+              semantic precision. Serve complete context to your agents. All in
+              one platform built for production RAG systems.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center animate-fade-in-up animation-delay-300">
               <Button size="lg" asChild className="group">
-                <Link href="/projects">
-                  Start Building
+                <a
+                  href={`${process.env.NEXT_PUBLIC_CLERK_ACCOUNTS_DOMAIN}/waitlist`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Join the Waitlist
                   <span className="ml-2 transition-transform group-hover:translate-x-1">
                     →
                   </span>
-                </Link>
+                </a>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a
@@ -187,12 +188,116 @@ export default async function Home() {
           </div>
         </section>
 
+        <section className="border-t border-border bg-gradient-to-br from-primary/5 via-background to-accent/5 py-24">
+          <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-16 text-center">
+              <h2 className="mb-4 text-3xl font-bold animate-fade-in-up">
+                Built for Builders Who've Been There
+              </h2>
+              <p className="text-lg text-muted-foreground animate-fade-in-up animation-delay-100">
+                Stop fighting your knowledge base. Start building.
+              </p>
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-3">
+              <div className="group relative animate-fade-in-up animation-delay-200">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-accent/50 rounded-lg blur opacity-30 group-hover:opacity-60 transition duration-300" />
+                <div className="relative flex flex-col h-full rounded-lg border border-border bg-card p-6 shadow-sm">
+                  <svg
+                    className="mb-4 h-8 w-8 text-primary"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Quote</title>
+                    <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
+                  </svg>
+                  <blockquote className="mb-4 flex-1 text-lg">
+                    "Set it to refresh daily and forget about it. My docs are
+                    always up-to-date without any manual work."
+                  </blockquote>
+                  <p className="text-sm text-muted-foreground">
+                    — AI Engineer at YC Startup
+                  </p>
+                </div>
+              </div>
+
+              <div className="group relative animate-fade-in-up animation-delay-300">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-accent/50 to-primary/50 rounded-lg blur opacity-30 group-hover:opacity-60 transition duration-300" />
+                <div className="relative flex flex-col h-full rounded-lg border border-border bg-card p-6 shadow-sm">
+                  <svg
+                    className="mb-4 h-8 w-8 text-primary"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Quote</title>
+                    <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
+                  </svg>
+                  <blockquote className="mb-4 flex-1 text-lg">
+                    "Search results come back in under 50ms. Our users actually
+                    notice the difference."
+                  </blockquote>
+                  <p className="text-sm text-muted-foreground">
+                    — Full-stack Developer, Enterprise SaaS
+                  </p>
+                </div>
+              </div>
+
+              <div className="group relative animate-fade-in-up animation-delay-400">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-accent/50 rounded-lg blur opacity-30 group-hover:opacity-60 transition duration-300" />
+                <div className="relative flex flex-col h-full rounded-lg border border-border bg-card p-6 shadow-sm">
+                  <svg
+                    className="mb-4 h-8 w-8 text-primary"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Quote</title>
+                    <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
+                  </svg>
+                  <blockquote className="mb-4 flex-1 text-lg">
+                    "I've built RAG systems before. This is the first one that
+                    didn't make me want to pull my hair out."
+                  </blockquote>
+                  <p className="text-sm text-muted-foreground">
+                    — Senior Engineer at AI Startup
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="relative border-t border-border py-24 overflow-hidden">
           <div className="absolute inset-0 -z-10 bg-gradient-to-bl from-accent/5 via-transparent to-primary/5" />
 
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-12 lg:grid-cols-3">
+            <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
               <div className="group animate-fade-in-up animation-delay-100">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:scale-110">
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <title>Sync Icon</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">Automatic sync</h3>
+                <p className="text-muted-foreground">
+                  Schedule daily, weekly, or monthly refreshes for websites.
+                  Upload new file versions anytime. Changes are automatically
+                  detected, processed, and deployed. Your knowledge stays fresh
+                  without manual work.
+                </p>
+              </div>
+
+              <div className="group animate-fade-in-up animation-delay-150">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:scale-110">
                   <svg
                     className="h-6 w-6"
@@ -209,13 +314,11 @@ export default async function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="mb-2 text-xl font-semibold">
-                  Semantic search API
-                </h3>
+                <h3 className="mb-2 text-xl font-semibold">Semantic search</h3>
                 <p className="text-muted-foreground">
-                  Vector search returns ranked chunks with similarity scores.
-                  Find relevant content across your knowledge base in under
-                  50ms. Perfect for discovery and quick answers.
+                  Vector search returns ranked chunks with similarity scores in
+                  under 50ms. Find relevant content across your entire knowledge
+                  base. Perfect for discovery and quick answers.
                 </p>
               </div>
 
@@ -241,8 +344,8 @@ export default async function Home() {
                 </h3>
                 <p className="text-muted-foreground">
                   Get complete markdown content of any document snapshot.
-                  Multi-step agents use search to find, then retrieve full
-                  context for comprehensive answers.
+                  Multi-step agents search to discover, then retrieve full
+                  context for comprehensive, accurate answers.
                 </p>
               </div>
 
@@ -267,17 +370,17 @@ export default async function Home() {
                   Production analytics
                 </h3>
                 <p className="text-muted-foreground">
-                  Monitor agent queries, document hits, zero-result searches,
-                  and retrieval performance. Optimize your RAG pipeline with
-                  real-time insights.
+                  Monitor query patterns, document hits, zero-result searches,
+                  and performance metrics. Optimize your RAG pipeline with
+                  real-time insights powered by Tinybird.
                 </p>
               </div>
             </div>
 
             <div className="mt-12 text-center animate-fade-in animation-delay-400">
               <p className="text-sm text-muted-foreground">
-                More powerful APIs coming soon: list files in a directory,
-                filter by folder, filter by metadata, and more
+                Already syncing automatically. Coming soon: advanced filtering,
+                metadata search, and folder-level operations
               </p>
             </div>
           </div>
@@ -289,11 +392,11 @@ export default async function Home() {
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
               <h2 className="mb-4 text-3xl font-bold animate-fade-in-up">
-                Two APIs, unlimited possibilities
+                Complete workflow: Sync, Search, Serve
               </h2>
               <p className="text-muted-foreground animate-fade-in-up animation-delay-100">
-                Combine semantic search with full document retrieval for
-                production-grade RAG systems
+                From automatic updates to intelligent retrieval. Your knowledge
+                base works for you, not the other way around.
               </p>
             </div>
 
@@ -305,12 +408,12 @@ export default async function Home() {
                   </div>
                   <div>
                     <h4 className="mb-1 font-semibold">
-                      Agent searches knowledge base
+                      Knowledge stays fresh automatically
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      Search API returns top 5 semantic matches with scores and
-                      metadata. Agent identifies relevant documents by
-                      snapshotId.
+                      Set refresh schedules for websites or upload new file
+                      versions. Lupa detects changes, processes content, and
+                      updates your deployments without manual intervention.
                     </p>
                   </div>
                 </div>
@@ -321,12 +424,12 @@ export default async function Home() {
                   </div>
                   <div>
                     <h4 className="mb-1 font-semibold">
-                      Retrieve full document context
+                      Agents search with semantic precision
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      When same snapshotId appears in multiple results, agent
-                      fetches complete markdown content for comprehensive
-                      analysis.
+                      Search API returns top 5 semantic matches with scores in
+                      under 50ms. Agent identifies relevant documents by
+                      snapshotId for deeper analysis.
                     </p>
                   </div>
                 </div>
@@ -337,11 +440,12 @@ export default async function Home() {
                   </div>
                   <div>
                     <h4 className="mb-1 font-semibold">
-                      Reasoning produces accurate answers
+                      Full context drives accurate answers
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      With OpenAI Responses reasoning and complete document
-                      context, agents provide thorough, well-informed answers.
+                      When needed, agents fetch complete document content for
+                      comprehensive reasoning. With full context and OpenAI
+                      Responses, they deliver thorough, well-informed answers.
                     </p>
                   </div>
                 </div>
@@ -370,12 +474,16 @@ export default async function Home() {
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center animate-fade-in-up animation-delay-200">
               <Button size="lg" asChild className="group">
-                <Link href="/projects">
-                  Get API Keys
+                <a
+                  href={`${process.env.NEXT_PUBLIC_CLERK_ACCOUNTS_DOMAIN}/waitlist`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Join the Waitlist
                   <span className="ml-2 transition-transform group-hover:translate-x-1">
                     →
                   </span>
-                </Link>
+                </a>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a
@@ -402,7 +510,7 @@ export default async function Home() {
                 <span className="font-semibold">Lupa</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                The Knowledge Platform for AI Agents
+                Search & Sync for AI Agents
               </p>
             </div>
 

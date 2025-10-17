@@ -26,6 +26,8 @@ export type RefreshFrequency = (typeof RefreshFrequency.enumValues)[number];
 export const Document = pgTable(DOCUMENT_TABLE, {
   id: text("id").primaryKey(),
 
+  org_id: text("org_id").notNull(),
+
   // Path to the folder that contains the document.
   // Starts and ends with a slash
   folder: text("folder").notNull().default("/"),

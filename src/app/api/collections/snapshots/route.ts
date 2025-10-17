@@ -1,5 +1,7 @@
+import { auth } from "@clerk/nextjs/server";
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { z } from "zod";
+
 import { SNAPSHOT_TABLE } from "@/db";
 import { ELECTRIC_URL } from "@/lib/electric";
 
@@ -39,7 +41,6 @@ export async function GET(request: Request) {
   url.searchParams.forEach((value, key) => {
     if (
       ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key) ||
-      key === "where" ||
       key.startsWith("params[")
     ) {
       originUrl.searchParams.set(key, value);
@@ -47,6 +48,18 @@ export async function GET(request: Request) {
   });
 
   originUrl.searchParams.set("table", SNAPSHOT_TABLE);
+
+  const session = await auth();
+  const org_id = session.orgId;
+
+  if (whereValue) {
+    originUrl.searchParams.set(
+      "where",
+      `org_id = '${org_id}' AND ${whereValue}`,
+    );
+  } else {
+    originUrl.searchParams.set("where", `org_id = '${org_id}'`);
+  }
 
   const response = await fetch(originUrl);
 

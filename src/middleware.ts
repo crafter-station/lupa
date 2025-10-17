@@ -1,4 +1,4 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { nanoid } from "nanoid";
 import {
   type NextFetchEvent,
@@ -7,9 +7,29 @@ import {
 } from "next/server";
 import { logSearchRequest, logSearchResults } from "./lib/tinybird";
 
+const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
+
+const isPrivateRoute = createRouteMatcher(["/orgs/(.*)"]);
+
 export default clerkMiddleware(
-  async (_auth, req: NextRequest, event: NextFetchEvent) => {
+  async (auth, req: NextRequest, event: NextFetchEvent) => {
+    if (isProtectedRoute(req)) await auth.protect();
+
     const url = req.nextUrl;
+
+    if (url.pathname === "/app") {
+      const session = await auth();
+
+      return NextResponse.redirect(
+        new URL(`/orgs/${session.orgSlug}/projects`, url.origin),
+      );
+    }
+
+    if (isPrivateRoute(req)) {
+      const orgSlug = url.pathname.split("/")[2];
+      const session = await auth();
+      await auth.protect(() => orgSlug === session.orgSlug);
+    }
 
     // Rewrite /api/snapshot/[snapshot_id] to Vercel Blob Storage
     const snapshotsMatch = url.pathname.match(/^\/api\/snapshots\/([^/]+)$/);
@@ -134,6 +154,14 @@ export default clerkMiddleware(
 
     // For all other routes, continue normally
     return NextResponse.next();
+  },
+  {
+    organizationSyncOptions: {
+      organizationPatterns: [
+        "/orgs/:slug", // Match the org slug
+        "/orgs/:slug/(.*)", // Wildcard match for optional trailing path segments
+      ],
+    },
   },
 );
 

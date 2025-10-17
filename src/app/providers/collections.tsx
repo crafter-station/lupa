@@ -27,8 +27,8 @@ export const CollectionsProvider = ({
   children: React.ReactNode;
 }) => {
   const { projectId, deploymentId } = useParams<{
-    projectId: string;
-    deploymentId: string;
+    projectId?: string;
+    deploymentId?: string;
   }>();
 
   const _ProjectCollection = React.useMemo(

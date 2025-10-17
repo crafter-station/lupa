@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
@@ -62,6 +63,15 @@ export async function PATCH(
 ) {
   let pool: Pool | undefined;
   try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const { id: documentId } = await params;
     const json = await request.json();
 
@@ -98,6 +108,13 @@ export async function PATCH(
       return Response.json(
         { success: false, error: "Document not found" },
         { status: 404 },
+      );
+    }
+
+    if (document.org_id !== orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 },
       );
     }
 

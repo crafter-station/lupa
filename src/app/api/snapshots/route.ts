@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
 import { put } from "@vercel/blob";
 import { eq, sql } from "drizzle-orm";
@@ -69,6 +70,15 @@ export const SnapshotErrorResponseSchema = z.object({
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const formData = await request.formData();
 
     const id = formData.get("id") as string;
@@ -135,6 +145,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (document.org_id !== orgId) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 },
+      );
+    }
+
     const existingSnapshots = await db.query.Snapshot.findMany({
       where: eq(schema.Snapshot.document_id, document_id),
       orderBy: (snapshots, { desc }) => [desc(snapshots.created_at)],
@@ -175,6 +192,7 @@ export async function POST(request: Request) {
     const result = await db.transaction(async (tx) => {
       await tx.insert(schema.Snapshot).values({
         id,
+        org_id: orgId,
         document_id,
         type,
         status,
@@ -227,6 +245,9 @@ export async function POST(request: Request) {
     if (pool) {
       await pool.end();
     }
+
+    console.error(error);
+
     return Response.json(
       {
         success: false,
