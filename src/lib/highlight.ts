@@ -5,7 +5,7 @@ let highlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null;
 async function getHighlighter() {
   if (!highlighter) {
     highlighter = await createHighlighter({
-      themes: ["github-light", "github-dark"],
+      themes: ["vitesse-dark", "vitesse-light"],
       langs: ["typescript", "javascript", "tsx", "jsx", "json", "bash"],
     });
   }
@@ -21,8 +21,8 @@ export async function highlightCode(
   return highlighter.codeToHtml(code, {
     lang,
     themes: {
-      light: "github-light",
-      dark: "github-dark",
+      dark: "vitesse-dark",
+      light: "vitesse-light",
     },
   });
 }

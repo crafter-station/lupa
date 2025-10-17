@@ -112,7 +112,7 @@ export default async function Home() {
             </Badge>
             <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl animate-fade-in-up animation-delay-100">
               The Knowledge Platform for{" "}
-              <span className="bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent animate-gradient">
+              <span className="bg-gradient-to-r from-[#80a665] via-[#4d9375] to-[#5eaab5] dark:from-[#80a665] dark:via-[#4d9375] dark:to-[#5eaab5] bg-clip-text text-transparent animate-gradient">
                 AI Agents
               </span>
             </h1>
@@ -143,7 +143,7 @@ export default async function Home() {
           </div>
 
           <div className="relative mx-auto mt-16 max-w-5xl animate-fade-in-up animation-delay-400">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-primary/20 rounded-lg blur-lg animate-pulse-glow" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-lg blur-lg animate-pulse-glow" />
             <div className="relative rounded-lg border border-border bg-card shadow-2xl overflow-hidden">
               <div className="flex items-center gap-2 border-b border-border px-4 py-3 bg-card">
                 <div className="h-3 w-3 rounded-full bg-red-500" />

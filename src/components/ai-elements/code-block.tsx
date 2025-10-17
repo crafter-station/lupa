@@ -1,7 +1,6 @@
 "use client";
 
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { useTheme } from "next-themes";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -36,8 +35,6 @@ const CodeBlockInner = memo(
     children,
     ...props
   }: CodeBlockProps) => {
-    const { resolvedTheme } = useTheme();
-    const isDark = resolvedTheme === "dark";
     const [isHighlighted, setIsHighlighted] = useState(false);
 
     useEffect(() => {
@@ -48,38 +45,61 @@ const CodeBlockInner = memo(
       <CodeBlockContext.Provider value={{ code }}>
         <div
           className={cn(
-            "relative w-full overflow-hidden rounded-md border bg-background text-foreground",
+            "relative w-full overflow-hidden rounded-md border",
             className,
           )}
           {...props}
         >
           <div className="relative">
             {isHighlighted ? (
-              <SyntaxHighlighter
-                className="overflow-hidden"
-                codeTagProps={{
-                  className: "font-mono text-sm",
-                }}
-                customStyle={{
-                  margin: 0,
-                  padding: "1rem",
-                  fontSize: "0.875rem",
-                  background: "hsl(var(--background))",
-                  color: "hsl(var(--foreground))",
-                }}
-                language={language}
-                lineNumberStyle={{
-                  color: "hsl(var(--muted-foreground))",
-                  paddingRight: "1rem",
-                  minWidth: "2.5rem",
-                }}
-                showLineNumbers={showLineNumbers}
-                style={isDark ? oneDark : oneLight}
-              >
-                {code}
-              </SyntaxHighlighter>
+              <>
+                <div className="dark:hidden">
+                  <SyntaxHighlighter
+                    className="overflow-hidden"
+                    codeTagProps={{
+                      className: "font-mono text-sm",
+                    }}
+                    customStyle={{
+                      margin: 0,
+                      padding: "1rem",
+                      fontSize: "0.875rem",
+                    }}
+                    language={language}
+                    lineNumberStyle={{
+                      paddingRight: "1rem",
+                      minWidth: "2.5rem",
+                    }}
+                    showLineNumbers={showLineNumbers}
+                    style={oneLight}
+                  >
+                    {code}
+                  </SyntaxHighlighter>
+                </div>
+                <div className="hidden dark:block">
+                  <SyntaxHighlighter
+                    className="overflow-hidden"
+                    codeTagProps={{
+                      className: "font-mono text-sm",
+                    }}
+                    customStyle={{
+                      margin: 0,
+                      padding: "1rem",
+                      fontSize: "0.875rem",
+                    }}
+                    language={language}
+                    lineNumberStyle={{
+                      paddingRight: "1rem",
+                      minWidth: "2.5rem",
+                    }}
+                    showLineNumbers={showLineNumbers}
+                    style={oneDark}
+                  >
+                    {code}
+                  </SyntaxHighlighter>
+                </div>
+              </>
             ) : (
-              <pre className="m-0 p-4 font-mono text-sm overflow-auto">
+              <pre className="m-0 p-4 font-mono text-sm overflow-auto bg-background text-foreground">
                 <code>{code}</code>
               </pre>
             )}

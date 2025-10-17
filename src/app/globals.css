@@ -45,71 +45,71 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --background: #ffffff;
+  --foreground: #393a34;
+  --card: #ffffff;
+  --card-foreground: #393a34;
+  --popover: #ffffff;
+  --popover-foreground: #393a34;
+  --primary: #1e754f;
+  --primary-foreground: #ffffff;
+  --secondary: #f7f7f7;
+  --secondary-foreground: #393a34;
+  --muted: #f7f7f7;
+  --muted-foreground: #6a737d;
+  --accent: #2e808f;
+  --accent-foreground: #ffffff;
+  --destructive: #ab5959;
+  --border: #f0f0f0;
+  --input: #f0f0f0;
+  --ring: #1e754f;
+  --chart-1: #2f798a;
+  --chart-2: #2993a3;
+  --chart-3: #59873a;
+  --chart-4: #a65e2b;
+  --chart-5: #b05a78;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #4e4f47;
+  --sidebar-primary: #1e754f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f7f7f7;
+  --sidebar-accent-foreground: #393a34;
+  --sidebar-border: #f0f0f0;
+  --sidebar-ring: #1e754f;
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
+  --background: #121212;
+  --foreground: #dbd7caee;
+  --card: #121212;
+  --card-foreground: #dbd7caee;
+  --popover: #121212;
+  --popover-foreground: #dbd7caee;
+  --primary: #4d9375;
+  --primary-foreground: #121212;
+  --secondary: #181818;
+  --secondary-foreground: #dbd7caee;
+  --muted: #181818;
+  --muted-foreground: #959da5;
+  --accent: #5d99a9;
+  --accent-foreground: #dbd7caee;
+  --destructive: #cb7676;
+  --border: #191919;
+  --input: #181818;
+  --ring: #4d9375;
+  --chart-1: #4c9a91;
+  --chart-2: #5eaab5;
+  --chart-3: #80a665;
+  --chart-4: #d4976c;
+  --chart-5: #d9739f;
+  --sidebar: #121212;
+  --sidebar-foreground: #bfbaaa;
+  --sidebar-primary: #4d9375;
+  --sidebar-primary-foreground: #121212;
+  --sidebar-accent: #181818;
+  --sidebar-accent-foreground: #dbd7caee;
+  --sidebar-border: #191919;
+  --sidebar-ring: #4d9375;
 }
 
 @layer base {
@@ -166,34 +166,24 @@
 
 .grid-pattern {
   background-image:
-    linear-gradient(
-      to right,
-      oklch(0.705 0.015 286.067 / 0.08) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      oklch(0.705 0.015 286.067 / 0.08) 1px,
-      transparent 1px
-    );
+    linear-gradient(to right, #6a737d25 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, #6a737d25 0.5px, transparent 0.5px);
   background-size: 40px 40px;
 }
 
 .dark .grid-pattern {
   background-image:
-    linear-gradient(to right, oklch(0.985 0 0 / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.985 0 0 / 0.05) 1px, transparent 1px);
+    linear-gradient(to right, #dbd7ca15 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, #dbd7ca15 0.5px, transparent 0.5px);
   background-size: 40px 40px;
 }
 
-.shiki,
-.shiki span {
-  color: var(--shiki-light);
-  background-color: var(--shiki-light-bg);
-}
-
-.dark .shiki,
-.dark .shiki span {
-  color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
+html.dark .shiki,
+html.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  /* Optional, if you also want font styles */
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
 }

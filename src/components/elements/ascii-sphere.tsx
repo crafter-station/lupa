@@ -18,7 +18,7 @@ function RotatingMesh() {
     <mesh ref={meshRef}>
       <torusKnotGeometry args={[2, 0.6, 200, 32]} />
       <meshStandardMaterial
-        color="#7877c6"
+        color="hsl(var(--primary))"
         wireframe
         transparent
         opacity={0.8}
