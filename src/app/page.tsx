@@ -503,14 +503,9 @@ export default async function Home() {
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground font-mono">
-                  L
-                </div>
-                <span className="font-semibold">Lupa</span>
-              </div>
+              <LupaFullIcon className="size-24 h-10" />
               <p className="text-sm text-muted-foreground">
-                Search & Sync for AI Agents
+                The Knowledge Platform for AI Agents
               </p>
             </div>
 

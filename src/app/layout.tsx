@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lupa - The Knowledge API for AI Agents",
+  title: "Lupa - The Knowledge Platform for AI Agents",
   description:
-    "Give your AI agents instant access to your knowledge base. RAG-ready vector search with semantic retrieval in milliseconds. Built for AI SDK, LangChain, and custom agents.",
+    "Keep your knowledge base fresh with automatic syncing. Search with semantic precision. Serve complete context to your agents. All in one platform built for production RAG systems.",
 };
 
 export default function RootLayout({
