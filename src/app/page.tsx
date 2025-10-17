@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HeroBackground } from "@/components/elements/hero-background";
 import { StaticCodeBlock } from "@/components/elements/static-code-block";
+import { ThemeSwitcherMultiButton } from "@/components/elements/theme-switcher-multi-button";
 import { ClerkIcon } from "@/components/icons/clerk";
 import { GlobantIcon } from "@/components/icons/globant";
 import { KeboIcon } from "@/components/icons/kebo";
@@ -506,11 +507,12 @@ export default async function Home() {
       <footer className="border-t border-border py-8 sm:py-12">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <LupaFullIcon className="h-8 sm:h-10 w-auto mb-2" />
+            <div className="grid grid-cols-1 gap-1">
+              <LupaFullIcon className="size-24 h-8" />
               <p className="text-xs sm:text-sm text-muted-foreground">
                 The Knowledge Platform for AI Agents
               </p>
+              <ThemeSwitcherMultiButton />
             </div>
 
             <div>

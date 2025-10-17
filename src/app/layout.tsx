@@ -24,10 +24,6 @@ export const metadata: Metadata = {
     "Keep your knowledge base fresh with automatic syncing. Search with semantic precision. Serve complete context to your agents. All in one platform built for production RAG systems.",
 };
 
-export const viewport: Viewport = {
-  themeColor: "var(--background)",
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
