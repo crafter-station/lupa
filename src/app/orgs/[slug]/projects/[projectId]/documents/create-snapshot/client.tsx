@@ -1,5 +1,6 @@
 "use client";
 
+import { useOrganization } from "@clerk/nextjs";
 import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { FileText, Globe, Loader2, Plus, Upload } from "lucide-react";
@@ -55,7 +56,7 @@ export function CreateSnapshot() {
   const { SnapshotCollection, DocumentCollection } = useCollections();
 
   const { documentId } = useFolderDocumentVersion();
-
+  const { organization } = useOrganization();
   const { data: snapshots } = useLiveQuery((q) =>
     q
       .from({ snapshot: SnapshotCollection })
@@ -106,6 +107,7 @@ export function CreateSnapshot() {
         changes_detected: snapshot.changes_detected,
         created_at: snapshot.created_at,
         updated_at: snapshot.updated_at,
+        org_id: organization?.id ?? "",
       });
     },
     mutationFn: async (snapshot) => {
@@ -185,6 +187,7 @@ export function CreateSnapshot() {
           changes_detected: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          org_id: organization?.id ?? "",
         });
 
         if (currentDocument) {
@@ -220,6 +223,7 @@ export function CreateSnapshot() {
       createSnapshot,
       DocumentCollection,
       setNewSnapshot,
+      organization,
     ],
   );
 
@@ -274,6 +278,7 @@ export function CreateSnapshot() {
           updated_at: new Date().toISOString(),
           file: selectedFile,
           parsingInstruction: parsingInstruction || undefined,
+          org_id: organization?.id ?? "",
         });
 
         if (currentDocument) {
@@ -312,6 +317,7 @@ export function CreateSnapshot() {
       createSnapshot,
       DocumentCollection,
       setNewSnapshot,
+      organization,
     ],
   );
 

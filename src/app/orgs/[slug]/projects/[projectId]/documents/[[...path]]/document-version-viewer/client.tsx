@@ -1,5 +1,6 @@
 "use client";
 
+import { useOrganization } from "@clerk/nextjs";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import Link from "next/link";
@@ -49,6 +50,8 @@ export function DocumentVersionViewerLiveQuery({
     "newSnapshot",
     parseAsBoolean.withDefault(false),
   );
+
+  const { organization } = useOrganization();
 
   const { data: freshProject } = useLiveQuery((q) =>
     q
@@ -186,6 +189,7 @@ export function DocumentVersionViewerLiveQuery({
                     logs: [],
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
+                    org_id: organization?.id ?? "",
                   });
                   setDeploymentId(deploymentId);
                 },
@@ -203,6 +207,7 @@ export function DocumentVersionViewerLiveQuery({
     document,
     DeploymentCollection,
     setDeploymentId,
+    organization,
   ]);
 
   if (!document) {

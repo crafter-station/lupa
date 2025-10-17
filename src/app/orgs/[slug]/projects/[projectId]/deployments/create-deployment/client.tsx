@@ -1,5 +1,6 @@
 "use client";
 
+import { useOrganization } from "@clerk/nextjs";
 import { useParams } from "next/navigation";
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,8 @@ export const CreateDeployment = () => {
   const { projectId } = useParams<{ projectId: string }>();
 
   const { DeploymentCollection } = useCollections();
+
+  const { organization } = useOrganization();
 
   const handleClick = React.useCallback(() => {
     DeploymentCollection.insert({
@@ -23,8 +26,9 @@ export const CreateDeployment = () => {
 
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      org_id: organization?.id ?? "",
     });
-  }, [projectId, DeploymentCollection]);
+  }, [projectId, DeploymentCollection, organization]);
 
   return (
     <Button variant="outline" onClick={handleClick}>

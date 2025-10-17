@@ -1,5 +1,6 @@
 "use client";
 
+import { useOrganization } from "@clerk/nextjs";
 import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { FileText, Globe, Loader2, Upload } from "lucide-react";
@@ -46,6 +47,8 @@ export function CreateDocument() {
     React.useState<SnapshotType>("website");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
+
+  const { organization } = useOrganization();
 
   const { folder: contextFolder } = useFolderDocumentVersion();
   const [selectedFolder, setSelectedFolder] = React.useState<string>(
@@ -99,6 +102,7 @@ export function CreateDocument() {
         refresh_schedule_id: document.refresh_schedule_id,
         created_at: document.created_at,
         updated_at: document.updated_at,
+        org_id: organization?.id ?? "",
       });
       SnapshotCollection.insert({
         ...document.snapshot,
@@ -203,6 +207,7 @@ export function CreateDocument() {
         refresh_schedule_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        org_id: organization?.id ?? "",
         snapshot: {
           id: snapshotId,
           document_id: documentId,
@@ -216,6 +221,7 @@ export function CreateDocument() {
           changes_detected: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          org_id: organization?.id ?? "",
         },
       });
 
@@ -232,6 +238,7 @@ export function CreateDocument() {
       refreshFrequency,
       router,
       slug,
+      organization,
     ],
   );
 
@@ -282,6 +289,7 @@ export function CreateDocument() {
           refresh_schedule_id: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          org_id: organization?.id ?? "",
           snapshot: {
             id: snapshotId,
             document_id: documentId,
@@ -295,6 +303,7 @@ export function CreateDocument() {
             extracted_metadata: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            org_id: organization?.id ?? "",
           },
           file: selectedFile,
           parsing_instruction: parsingInstruction?.trim() ?? undefined,
@@ -321,6 +330,7 @@ export function CreateDocument() {
       createDocument,
       router,
       slug,
+      organization,
     ],
   );
 

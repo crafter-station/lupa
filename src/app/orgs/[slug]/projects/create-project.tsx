@@ -1,4 +1,5 @@
 "use client";
+import { useOrganization } from "@clerk/nextjs";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import { generateId } from "@/lib/generate-id";
 export function CreateProject() {
   const { ProjectCollection } = useCollections();
   const [open, setOpen] = React.useState(false);
+  const { organization } = useOrganization();
 
   const handleSubmit = React.useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -28,11 +30,12 @@ export function CreateProject() {
         description: formData.get("description") as string,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        org_id: organization?.id ?? "",
       });
 
       setOpen(false);
     },
-    [ProjectCollection],
+    [ProjectCollection, organization],
   );
 
   return (
