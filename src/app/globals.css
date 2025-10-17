@@ -121,6 +121,71 @@
   }
 }
 
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.grid-pattern {
+  background-image:
+    linear-gradient(
+      to right,
+      oklch(0.705 0.015 286.067 / 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      oklch(0.705 0.015 286.067 / 0.08) 1px,
+      transparent 1px
+    );
+  background-size: 40px 40px;
+}
+
+.dark .grid-pattern {
+  background-image:
+    linear-gradient(to right, oklch(0.985 0 0 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.985 0 0 / 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
 .shiki,
 .shiki span {
   color: var(--shiki-light);

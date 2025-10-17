@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeroBackground } from "@/components/elements/hero-background";
 import { StaticCodeBlock } from "@/components/elements/static-code-block";
 import { ClerkIcon } from "@/components/icons/clerk";
 import { GlobantIcon } from "@/components/icons/globant";
@@ -102,22 +103,32 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="container mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+        <section className="relative w-full px-4 py-24 sm:px-6 lg:px-8 overflow-hidden">
+          <HeroBackground />
+
           <div className="mx-auto max-w-3xl text-center">
-            <Badge variant="secondary" className="mb-4">
+            <Badge variant="secondary" className="mb-4 animate-fade-in-up">
               Alpha
             </Badge>
-            <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-              The Knowledge Platform for AI Agents
+            <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl animate-fade-in-up animation-delay-100">
+              The Knowledge Platform for{" "}
+              <span className="bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent animate-gradient">
+                AI Agents
+              </span>
             </h1>
-            <p className="mb-8 text-xl text-muted-foreground">
+            <p className="mb-8 text-xl text-muted-foreground animate-fade-in-up animation-delay-200">
               Semantic search and full document retrieval APIs for building
               production RAG systems. From chunks to complete context in
               milliseconds.
             </p>
-            <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild>
-                <Link href="/projects">Start Building</Link>
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-center animate-fade-in-up animation-delay-300">
+              <Button size="lg" asChild className="group">
+                <Link href="/projects">
+                  Start Building
+                  <span className="ml-2 transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a
@@ -131,8 +142,9 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="relative mx-auto mt-16 max-w-5xl">
-            <div className="rounded-lg border border-border bg-card shadow-2xl overflow-hidden">
+          <div className="relative mx-auto mt-16 max-w-5xl animate-fade-in-up animation-delay-400">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-primary/20 rounded-lg blur-lg animate-pulse-glow" />
+            <div className="relative rounded-lg border border-border bg-card shadow-2xl overflow-hidden">
               <div className="flex items-center gap-2 border-b border-border px-4 py-3 bg-card">
                 <div className="h-3 w-3 rounded-full bg-red-500" />
                 <div className="h-3 w-3 rounded-full bg-yellow-500" />
@@ -147,7 +159,7 @@ export default async function Home() {
                 className="border-0 rounded-none"
               />
             </div>
-            <div className="absolute -right-4 -top-4 rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground shadow-lg">
+            <div className="absolute -right-4 -top-4 rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground shadow-lg animate-float">
               AI SDK compatible
             </div>
           </div>
@@ -155,31 +167,33 @@ export default async function Home() {
 
         <section className="border-t border-border bg-muted/30 py-16">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <p className="mb-8 text-center text-sm text-muted-foreground">
+            <p className="mb-8 text-center text-sm text-muted-foreground animate-fade-in">
               Used by engineers at
             </p>
             <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16">
-              <div className="flex h-12 w-32 items-center justify-center">
+              <div className="flex h-12 w-32 items-center justify-center transition-all hover:scale-110 animate-fade-in animation-delay-100">
                 <ClerkIcon className="size-24 scale-120 fill-foreground" />
               </div>
-              <div className="flex -mb-2 items-center justify-center">
+              <div className="flex -mb-2 items-center justify-center transition-all hover:scale-110 animate-fade-in animation-delay-200">
                 <YunoIcon className="size-32 fill-foreground" />
               </div>
-              <div className="flex h-12 w-32 items-center justify-center">
+              <div className="flex h-12 w-32 items-center justify-center transition-all hover:scale-110 animate-fade-in animation-delay-300">
                 <KeboIcon className="h-32 mb-5 fill-foreground" />
               </div>
-              <div className="flex h-12 w-32 items-center justify-center">
+              <div className="flex h-12 w-32 items-center justify-center transition-all hover:scale-110 animate-fade-in animation-delay-400">
                 <GlobantIcon className="h-32 scale-110 -mb-1 fill-foreground" />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-t border-border py-24">
+        <section className="relative border-t border-border py-24 overflow-hidden">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-bl from-accent/5 via-transparent to-primary/5" />
+
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-12 lg:grid-cols-3">
-              <div>
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="group animate-fade-in-up animation-delay-100">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:scale-110">
                   <svg
                     className="h-6 w-6"
                     fill="none"
@@ -205,8 +219,8 @@ export default async function Home() {
                 </p>
               </div>
 
-              <div>
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="group animate-fade-in-up animation-delay-200">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:scale-110">
                   <svg
                     className="h-6 w-6"
                     fill="none"
@@ -232,8 +246,8 @@ export default async function Home() {
                 </p>
               </div>
 
-              <div>
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="group animate-fade-in-up animation-delay-300">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:scale-110">
                   <svg
                     className="h-6 w-6"
                     fill="none"
@@ -260,7 +274,7 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className="mt-12 text-center">
+            <div className="mt-12 text-center animate-fade-in animation-delay-400">
               <p className="text-sm text-muted-foreground">
                 More powerful APIs coming soon: list files in a directory,
                 filter by folder, filter by metadata, and more
@@ -269,22 +283,24 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="py-24">
+        <section className="relative border-t border-border py-24 overflow-hidden">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-bl from-accent/5 via-transparent to-primary/5" />
+
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
-              <h2 className="mb-4 text-3xl font-bold">
+              <h2 className="mb-4 text-3xl font-bold animate-fade-in-up">
                 Two APIs, unlimited possibilities
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground animate-fade-in-up animation-delay-100">
                 Combine semantic search with full document retrieval for
                 production-grade RAG systems
               </p>
             </div>
 
             <div className="grid gap-8 lg:grid-cols-2">
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+              <div className="space-y-4 animate-fade-in-up animation-delay-200">
+                <div className="flex items-start gap-4 group">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-transform group-hover:scale-110">
                     1
                   </div>
                   <div>
@@ -299,8 +315,8 @@ export default async function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                <div className="flex items-start gap-4 group">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-transform group-hover:scale-110">
                     2
                   </div>
                   <div>
@@ -315,8 +331,8 @@ export default async function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                <div className="flex items-start gap-4 group">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-transform group-hover:scale-110">
                     3
                   </div>
                   <div>
@@ -331,7 +347,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
+              <div className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in-up animation-delay-300">
                 <StaticCodeBlock
                   html={ragCodeHtml}
                   code={RAG_CODE}
@@ -342,15 +358,24 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-t border-border py-24">
+        <section className="relative border-t border-border py-24 overflow-hidden">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-tr from-primary/5 via-transparent to-accent/5 animate-gradient" />
+
           <div className="container mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
-            <h2 className="mb-4 text-3xl font-bold">Build smarter AI agents</h2>
-            <p className="mb-8 text-lg text-muted-foreground">
+            <h2 className="mb-4 text-3xl font-bold animate-fade-in-up">
+              Build smarter AI agents
+            </h2>
+            <p className="mb-8 text-lg text-muted-foreground animate-fade-in-up animation-delay-100">
               Join engineering teams building production AI agents with Lupa
             </p>
-            <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild>
-                <Link href="/projects">Get API Keys</Link>
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-center animate-fade-in-up animation-delay-200">
+              <Button size="lg" asChild className="group">
+                <Link href="/projects">
+                  Get API Keys
+                  <span className="ml-2 transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a
