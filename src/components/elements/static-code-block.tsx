@@ -43,18 +43,18 @@ export function StaticCodeBlock({
     >
       <div className="relative">
         <div
-          className="[&_pre]:m-0 [&_pre]:overflow-auto [&_pre]:rounded-[0.3em] [&_pre]:p-4 [&_pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
+          className="[&_pre]:m-0 [&_pre]:overflow-x-auto [&_pre]:overflow-y-hidden [&_pre]:rounded-[0.3em] [&_pre]:p-3 sm:[&_pre]:p-4 [&_pre]:text-xs sm:[&_pre]:text-sm [&_code]:font-mono [&_code]:text-xs sm:[&_code]:text-sm [&_pre]:max-h-[400px] sm:[&_pre]:max-h-[500px]"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: needed
           dangerouslySetInnerHTML={{ __html: html }}
         />
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
           <Button
-            className="shrink-0"
+            className="shrink-0 h-7 w-7 sm:h-8 sm:w-8"
             onClick={copyToClipboard}
             size="icon"
             variant="ghost"
           >
-            <Icon size={14} />
+            <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </Button>
         </div>
       </div>

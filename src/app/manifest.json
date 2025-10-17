@@ -1,6 +1,8 @@
 {
   "name": "Lupa: The Knowledge Platform for AI Agents",
   "short_name": "Lupa",
+  "description": "Keep your knowledge base fresh with automatic syncing. Search with semantic precision. Serve complete context to your agents. All in one platform built for production RAG systems.",
+  "start_url": "/",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -13,7 +15,5 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#121212",
-  "background_color": "#121212",
   "display": "standalone"
 }
