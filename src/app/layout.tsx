@@ -1,8 +1,9 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/themes";
 import { Analytics } from "@vercel/analytics/next";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import "./globals.css";
 
 import { Providers } from "./providers";
@@ -21,6 +22,10 @@ export const metadata: Metadata = {
   title: "Lupa - The Knowledge Platform for AI Agents",
   description:
     "Keep your knowledge base fresh with automatic syncing. Search with semantic precision. Serve complete context to your agents. All in one platform built for production RAG systems.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "var(--background)",
 };
 
 export default function RootLayout({
