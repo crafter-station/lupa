@@ -32,32 +32,5 @@ export const SnapshotCollection = ({
               },
       },
       getKey: (item) => item.id,
-      onInsert: async (item) => {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ ...item.transaction.mutations[0].changes }),
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to insert document snapshot: ${response.statusText}`,
-          );
-        }
-
-        const data = (await response.json()) as {
-          success: boolean;
-          txid: number;
-        };
-
-        return {
-          txid: data.txid,
-        };
-      },
     }),
   );

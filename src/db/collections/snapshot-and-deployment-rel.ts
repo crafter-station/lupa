@@ -18,7 +18,7 @@ export const SnapshotDeploymentRelCollection =
       getKey: (item) => `${item.snapshot_id}-${item.deployment_id}`,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshot-and-deployment-rel`,
+          `${process.env.NEXT_PUBLIC_URL}/api/snapshot-and-deployment-rel`,
           {
             method: "POST",
             headers: {

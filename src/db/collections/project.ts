@@ -27,7 +27,7 @@ export const ProjectCollection = ({
       getKey: (item) => item.id,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/collections/projects`,
+          `${process.env.NEXT_PUBLIC_URL}/api/projects`,
           {
             method: "POST",
             headers: {

@@ -1,11 +1,8 @@
+import { auth } from "@clerk/nextjs/server";
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
-import { Pool } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
+
 import { PROJECT_TABLE } from "@/db";
-import * as schema from "@/db/schema";
 import { ELECTRIC_URL } from "@/lib/electric";
 
 export const preferredRegion = "iad1";
@@ -44,7 +41,6 @@ export async function GET(request: Request) {
   url.searchParams.forEach((value, key) => {
     if (
       ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key) ||
-      key === "where" ||
       key.startsWith("params[")
     ) {
       originUrl.searchParams.set(key, value);
@@ -52,6 +48,18 @@ export async function GET(request: Request) {
   });
 
   originUrl.searchParams.set("table", PROJECT_TABLE);
+
+  const session = await auth();
+  const org_id = session.orgId;
+
+  if (whereValue) {
+    originUrl.searchParams.set(
+      "where",
+      `org_id = '${org_id}' AND ${whereValue}`,
+    );
+  } else {
+    originUrl.searchParams.set("where", `org_id = '${org_id}'`);
+  }
 
   const response = await fetch(originUrl);
 
@@ -64,64 +72,4 @@ export async function GET(request: Request) {
     statusText: response.statusText,
     headers,
   });
-}
-
-export async function POST(request: Request) {
-  let pool: Pool | undefined;
-  try {
-    const json = await request.json();
-
-    const { id, name, description } = schema.ProjectInsertSchema.parse(json);
-
-    if (!process.env.DATABASE_URL) {
-      return Response.json(
-        { success: false, error: "DATABASE_URL is not set" },
-        { status: 500 },
-      );
-    }
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL?.replace("-pooler", ""),
-    });
-
-    const db = drizzle({
-      client: pool,
-      schema,
-    });
-
-    const result = await db.transaction(async (tx) => {
-      await tx.insert(schema.Project).values({
-        id,
-        name,
-        description,
-      });
-
-      const txid = await tx.execute(
-        sql`SELECT pg_current_xact_id()::xid::text as txid`,
-      );
-
-      return {
-        txid: txid.rows[0].txid as string,
-      };
-    });
-
-    await pool.end();
-
-    revalidatePath("/projects");
-
-    return Response.json(
-      { success: true, txid: parseInt(result.txid, 10) },
-      { status: 200 },
-    );
-  } catch (error) {
-    if (pool) {
-      await pool.end();
-    }
-    return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
-  }
 }

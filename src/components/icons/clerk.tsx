@@ -2,11 +2,11 @@ import type { LucideProps } from "lucide-react";
 
 export const ClerkIcon = (props: LucideProps) => (
   <svg
+    xmlns="http://www.w3.org/2000/svg"
     width="441"
     height="128"
     viewBox="0 0 441 128"
     fill="none"
-    xmlns="http://www.w3.org/2000/svg"
     {...props}
   >
     <title>Clerk Icon</title>

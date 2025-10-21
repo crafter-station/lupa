@@ -1,19 +1,21 @@
-import { schemaTask } from "@trigger.dev/sdk";
+import { queue, schemaTask } from "@trigger.dev/sdk";
 import { put } from "@vercel/blob";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { firecrawl } from "@/lib/firecrawl";
 import { extractMetadata } from "@/lib/metadata";
+import { parseFileTask } from "./parsers/file";
+import { parseWebsiteTask } from "./parsers/website";
 
-// TODO: handle errors
 export const processSnapshotTask = schemaTask({
   id: "process-snapshot",
   schema: z.object({
     snapshotId: z.string(),
+    parsingInstruction: z.string().optional(),
+    parserName: z.string().optional(),
   }),
-  run: async ({ snapshotId }) => {
+  run: async ({ snapshotId, parsingInstruction, parserName }, { ctx }) => {
     const snapshots = await db
       .select()
       .from(schema.Snapshot)
@@ -34,21 +36,63 @@ export const processSnapshotTask = schemaTask({
       })
       .where(eq(schema.Snapshot.id, snapshotId));
 
-    const doc = await firecrawl.scrape(snapshot.url, {
-      formats: [
-        "markdown",
-        {
-          type: "screenshot",
-          fullPage: true,
-        },
-      ],
-    });
+    let markdown: string;
+    let metadata: schema.WebsiteMetadata | schema.UploadMetadata;
 
-    if (!doc.markdown) {
-      throw new Error("Markdown content is missing");
+    if (snapshot.type === "website") {
+      const doc = await parseWebsiteTask.triggerAndWait(
+        { url: snapshot.url },
+        {
+          queue: ctx.queue.name.startsWith("parsing-queue")
+            ? `website-${ctx.queue.name}`
+            : undefined,
+        },
+      );
+
+      if (!doc.ok) {
+        throw new Error(`Failed to parse website at ${snapshot.url}`);
+      }
+
+      if (!doc.output.markdown) {
+        throw new Error("Markdown content is missing");
+      }
+
+      markdown = doc.output.markdown;
+      metadata = {
+        title: doc.output.metadata?.title,
+        favicon: doc.output.metadata?.favicon as string | undefined,
+        screenshot: doc.output.screenshot,
+      };
+    } else if (snapshot.type === "upload") {
+      const filename = snapshot.url.split("/").pop() || "file";
+
+      const result = await parseFileTask.triggerAndWait({
+        blobUrl: snapshot.url,
+        filename,
+        parsingInstruction,
+        parserName,
+      });
+
+      if (!result.ok) {
+        throw new Error(`Failed to parse file at ${snapshot.url}`);
+      }
+
+      if (!result.output.markdown) {
+        throw new Error("Markdown content is missing");
+      }
+
+      markdown = result.output.markdown;
+      metadata = {
+        file_name: filename,
+        file_size: result.output.metadata?.wordCount
+          ? result.output.metadata.wordCount * 6
+          : undefined,
+      };
+    } else {
+      throw new Error(`Unknown snapshot type: ${snapshot.type}`);
     }
 
-    const { url } = await put(`parsed/${snapshot.id}.md`, doc.markdown, {
+    const { url } = await put(`parsed/${snapshot.id}.md`, markdown, {
       access: "public",
     });
 
@@ -76,7 +120,7 @@ export const processSnapshotTask = schemaTask({
             previousSnapshot.markdown_url,
           );
           const previousMarkdown = await previousMarkdownResponse.text();
-          hasChanged = previousMarkdown !== doc.markdown;
+          hasChanged = previousMarkdown !== markdown;
         } catch (error) {
           console.error("Failed to fetch previous markdown:", error);
         }
@@ -84,7 +128,7 @@ export const processSnapshotTask = schemaTask({
     }
 
     const extractedMetadata = document?.metadata_schema
-      ? await extractMetadata(doc.markdown, document.metadata_schema)
+      ? await extractMetadata(markdown, document.metadata_schema)
       : {};
 
     await db
@@ -92,15 +136,46 @@ export const processSnapshotTask = schemaTask({
       .set({
         status: "success",
         markdown_url: url,
-        metadata: {
-          title: doc.metadata?.title,
-          favicon: doc.metadata?.favicon as string | undefined,
-          screenshot: doc.screenshot,
-        },
+        metadata,
         extracted_metadata: extractedMetadata,
         changes_detected: hasChanged,
         updated_at: new Date().toISOString(),
       })
       .where(eq(schema.Snapshot.id, snapshotId));
   },
+});
+
+export const parsingQueue1 = queue({
+  name: "parsing-queue-1",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue2 = queue({
+  name: "parsing-queue-2",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue3 = queue({
+  name: "parsing-queue-3",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue4 = queue({
+  name: "parsing-queue-4",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue5 = queue({
+  name: "parsing-queue-5",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue6 = queue({
+  name: "parsing-queue-6",
+  concurrencyLimit: 1,
+});
+
+export const parsingQueue7 = queue({
+  name: "parsing-queue-7",
+  concurrencyLimit: 1,
 });

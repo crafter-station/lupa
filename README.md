@@ -8,6 +8,7 @@ Lupa is a production-ready RAG (Retrieval-Augmented Generation) infrastructure t
 📄 **Smart Parsing**: Automatic chunking for PDF, DOCX, XLSX, CSV, HTML, and more  
 📊 **Agent Observability**: Track queries, relevance scores, and retrieval patterns  
 🔄 **Version Control**: Snapshot-based deployments with zero-downtime updates  
+⏰ **Auto-Refresh**: Schedule automatic updates for web-scraped documents (daily, weekly, monthly)  
 
 ## Features
 
@@ -15,6 +16,7 @@ Lupa is a production-ready RAG (Retrieval-Augmented Generation) infrastructure t
 - **Multi-Format Parsing**: Support for PDF, Word, Excel, PowerPoint, CSV, HTML, and text documents
 - **Real-Time Sync**: TanStack Electric for live data synchronization across clients
 - **Versioned Knowledge**: Snapshot system for rolling updates and rollbacks
+- **Automatic Refresh**: Schedule periodic updates for web-scraped documents to keep knowledge current
 - **Analytics Pipeline**: Tinybird-powered observability for search performance and content analytics
 - **AI Framework Ready**: Drop-in integration with Vercel AI SDK, LangChain, and more
 
@@ -85,17 +87,39 @@ BLOB_READ_WRITE_TOKEN="..."
 ### Development
 
 ```bash
-# Run the dev server
+# Run the dev server (with Turbopack)
 bun run dev
 
-# Run linting
+# Build for production
+bun run build
+
+# Run linting (Biome)
 bun run lint
 
-# Format code
+# Format code (Biome)
 bun run format
+
+# Generate OpenAPI docs
+bun run docs
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
+
+### Trigger.dev Background Jobs
+
+```bash
+# Run Trigger.dev dev server
+bunx trigger.dev@latest dev
+
+# View jobs dashboard
+open https://cloud.trigger.dev
+```
+
+**Available tasks:**
+- `parse-document` - Parse uploaded files into markdown chunks
+- `process-snapshot` - Process website snapshots or uploaded documents
+- `deploy` - Build and deploy snapshots to vector indexes
+- `refetch-website` - Scheduled task to refresh website documents
 
 ### Database Setup
 
@@ -110,28 +134,29 @@ bun drizzle-kit push
 ## Tech Stack
 
 ### Frontend
-- **Next.js 15** - React framework with App Router
-- **React 19** - UI library
+- **Next.js 15** - React framework with App Router (Turbopack)
+- **React 19** - UI library with Server/Client Components
 - **Tailwind CSS 4** - Utility-first styling
 - **Radix UI** - Accessible component primitives
 - **shadcn/ui** - Component library
-- **TanStack React Query** - Data fetching
-- **TanStack Electric** - Real-time data sync
+- **TanStack React Query** - Server state management
+- **TanStack Electric DB** - Real-time data sync with live queries
+- **nuqs** - Type-safe URL search params
 
-### Backend
-- **Drizzle ORM** - Type-safe database queries
-- **Neon PostgreSQL** - Serverless Postgres with pgvector
-- **Upstash Vector** - Serverless vector database
-- **Upstash Redis** - Serverless Redis for caching
-- **Clerk** - Authentication & user management
-- **Trigger.dev** - Background job orchestration
-- **Tinybird** - Real-time analytics
+### Backend & Database
+- **Drizzle ORM** - Type-safe database queries with PostgreSQL
+- **Neon PostgreSQL** - Serverless Postgres with pgvector extension
+- **Upstash Vector** - Serverless vector database for embeddings
+- **Upstash Redis** - Serverless Redis for caching and metadata
+- **Clerk** - Authentication & user management with webhooks
+- **Trigger.dev v4** - Background job orchestration with schedules
+- **Tinybird** - Real-time analytics with 90-day retention
 
 ### AI & Parsing
-- **OpenAI** - Embeddings generation (text-embedding-3-small)
-- **LlamaParse** - Advanced document parsing
-- **Firecrawl** - Web scraping and extraction
-- **Vercel AI SDK** - AI framework integration
+- **OpenAI** - Embeddings (text-embedding-3-small) and chat (GPT-5 Responses)
+- **Vercel AI SDK** - AI framework integration with streaming
+- **LlamaParse** - Advanced document parsing (PDF, DOCX, XLSX, PPTX, etc.)
+- **Firecrawl** - Web scraping and content extraction
 - **tokenlens** - Token counting utilities
 
 ## Project Structure
@@ -178,19 +203,41 @@ lupa/
 ## Core Concepts
 
 ### Projects
-Organize your documents and knowledge bases. Each project can have multiple deployments.
+Top-level organization unit. Each project contains documents and deployments. Projects can have multiple deployments for different environments (dev, staging, prod).
 
 ### Documents
-Files uploaded to Lupa (PDF, DOCX, etc.). Automatically parsed and embedded.
+Individual knowledge items. Can be:
+- **File uploads**: PDF, DOCX, XLSX, PPTX, CSV, HTML, TXT
+- **Website scrapes**: Scraped with Firecrawl and stored as markdown
+
+Documents can be organized in folder hierarchies and include custom metadata schemas.
 
 ### Snapshots
-Versioned collections of documents. Create snapshots to freeze a document set.
+Immutable versions of documents. Each document can have multiple snapshots:
+- **Initial snapshot**: Created on upload/scrape
+- **Refresh snapshots**: Auto-created on scheduled refreshes (for websites)
+- **Status tracking**: `queued`, `running`, `success`, `error`
+- **Change detection**: Compares content to detect updates
 
 ### Deployments
-Connect snapshots to search endpoints. Update deployments to roll out new knowledge versions.
+Vector indexes that serve search queries. Each deployment:
+- Contains embeddings from one or more snapshots
+- Has a unique Upstash Vector index
+- Tracks build status: `queued`, `building`, `ready`, `error`
+- Can be updated by linking new snapshots (zero-downtime)
 
 ### Embeddings
-Vector representations of document chunks, stored in Upstash Vector for semantic search.
+Text chunks embedded using OpenAI's `text-embedding-3-small`:
+- Stored in deployment-specific Upstash Vector indexes
+- Include metadata: `documentId`, `snapshotId`, `chunkIndex`
+- Queried via semantic similarity search
+
+### Document Refresh Scheduling
+Automatic updates for web-scraped documents:
+- **Frequencies**: `daily`, `weekly`, `monthly`
+- **Cron-based**: Scheduled via Trigger.dev
+- **Auto-cleanup**: Schedules deleted when replacing website with file upload
+- **Change detection**: Compares new content with previous snapshots
 
 ## API Usage
 
@@ -199,16 +246,52 @@ Vector representations of document chunks, stored in Upstash Vector for semantic
 ```typescript
 // GET /api/search/:projectId/:deploymentId/:query
 const response = await fetch(
-  `https://api.lupa.dev/v1/search/${projectId}/${deploymentId}/${encodeURIComponent(query)}`,
+  `/api/search/${projectId}/${deploymentId}/${encodeURIComponent(query)}`,
   {
     headers: {
-      'Authorization': `Bearer ${API_KEY}`
+      'Authorization': `Bearer ${API_KEY}` // Clerk auth
     }
   }
 );
 
-const results = await response.json();
-// { results: [{ content, similarity, metadata }] }
+const data = await response.json();
+// {
+//   query: string,
+//   results: [{
+//     id: string | number,
+//     score: number,
+//     data: string | null,
+//     metadata: {
+//       documentId: string,
+//       snapshotId: string,
+//       chunkIndex: number
+//     }
+//   }]
+// }
+```
+
+### Chat API (with RAG)
+
+```typescript
+// POST /api/chat/:projectId/:deploymentId
+const response = await fetch(
+  `/api/chat/${projectId}/${deploymentId}`,
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({
+      messages: [
+        { role: 'user', content: 'What is the refund policy?' }
+      ],
+      model: 'gpt-5' // or 'gpt-4o'
+    })
+  }
+);
+
+// Returns a streaming response with tool calls to search-knowledge
 ```
 
 ### Vercel AI SDK Integration
@@ -294,23 +377,26 @@ Lupa's parsing system is extensible and parser-agnostic. See [src/lib/parsers/RE
 
 ```bash
 # Generate migration from schema changes
-bun drizzle-kit generate
+bunx drizzle-kit generate
 
 # Apply migrations
-bun drizzle-kit push
+bunx drizzle-kit push
 
 # Open Drizzle Studio (DB GUI)
-bun drizzle-kit studio
+bunx drizzle-kit studio
 ```
 
-### Background Jobs
+### Analytics with Tinybird
 
 ```bash
-# Run Trigger.dev dev server
-bun trigger dev
+# Navigate to Tinybird directory
+cd src/tinybird
 
-# View jobs dashboard
-open https://cloud.trigger.dev
+# Deploy datasources and pipes
+tb --cloud deploy
+
+# Test a pipe locally
+tb pipe test requests_timeseries.pipe --param project_id=proj_123
 ```
 
 ## Deployment

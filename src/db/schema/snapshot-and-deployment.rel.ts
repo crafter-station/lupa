@@ -9,6 +9,8 @@ export const SNAPSHOT_AND_DEPLOYMENT_REL_TABLE = "snapshot_and_deployment_rel";
 export const SnapshotDeploymentRel = pgTable(
   SNAPSHOT_AND_DEPLOYMENT_REL_TABLE,
   {
+    org_id: text("org_id").notNull(),
+
     snapshot_id: text("snapshot_id")
       .notNull()
       .references(() => Snapshot.id, { onDelete: "cascade" }),
