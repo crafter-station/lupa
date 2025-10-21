@@ -1,8 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, ChevronUp, Filter, X } from "lucide-react";
 import { useParams } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
+import { FilePicker } from "@/components/elements/file-picker";
+import { MetadataFilterInput } from "@/components/elements/metadata-filter-input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,25 +15,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
-
-interface SearchResult {
-  id: string;
-  score: number;
-  metadata: {
-    snapshotId: string;
-    documentId: string;
-    chunkIndex: number;
-    chunkSize: number;
-    createdAt: string;
-  };
-  data: string;
-}
-
-interface SearchResponse {
-  query: string;
-  results: SearchResult[];
-}
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import type { MetadataFilter, SearchResponse } from "@/lib/types/search";
 
 function useDebouncedValue<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
@@ -50,13 +45,26 @@ async function searchDeployment(
   query: string,
   projectId: string,
   deploymentId: string,
+  documentIds?: string[],
+  metadataFilters?: MetadataFilter[],
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
+  const params = new URLSearchParams({ query });
+
+  if (documentIds && documentIds.length > 0) {
+    params.set("documentIds", documentIds.join(","));
+  }
+
+  if (metadataFilters && metadataFilters.length > 0) {
+    for (const filter of metadataFilters) {
+      const value = `${filter.operator}${filter.value}`;
+      params.set(`metadata.${filter.key}`, value);
+    }
+  }
+
   const response = await fetch(
-    `/api/search?projectId=${projectId}&deploymentId=${deploymentId}&query=${query}`,
-    {
-      signal,
-    },
+    `/api/search/${projectId}/${deploymentId}?${params.toString()}`,
+    { signal },
   );
 
   if (!response.ok) {
@@ -72,26 +80,145 @@ export function SearchPlayground() {
     deploymentId: string;
   }>();
   const [query, setQuery] = React.useState("");
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  const [metadataFilters, setMetadataFilters] = useState<MetadataFilter[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   const debouncedQuery = useDebouncedValue(query, 300);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["search", deploymentId, debouncedQuery],
+    queryKey: [
+      "search",
+      deploymentId,
+      debouncedQuery,
+      selectedDocumentIds,
+      metadataFilters,
+    ],
     queryFn: ({ signal }) =>
-      searchDeployment(debouncedQuery, projectId, deploymentId, signal),
+      searchDeployment(
+        debouncedQuery,
+        projectId,
+        deploymentId,
+        selectedDocumentIds,
+        metadataFilters,
+        signal,
+      ),
     enabled: debouncedQuery.trim().length > 0,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
+  const totalFilters = selectedDocumentIds.length + metadataFilters.length;
+
+  const handleClearFilters = () => {
+    setSelectedDocumentIds([]);
+    setMetadataFilters([]);
+  };
+
   return (
     <Card className="flex flex-col h-[calc(100vh-16rem)]">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle>Search Playground</CardTitle>
         <CardDescription>
-          Test your deployment search functionality
+          Test your deployment search functionality with filters
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
+      <CardContent className="space-y-3 flex-1 flex flex-col min-h-0 p-4">
+        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <div className="flex items-center justify-between mb-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 h-8">
+                <Filter className="h-3.5 w-3.5" />
+                Filters
+                {totalFilters > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5">
+                    {totalFilters}
+                  </Badge>
+                )}
+                {filtersOpen ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            {totalFilters > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="gap-1 h-8"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear All
+              </Button>
+            )}
+          </div>
+
+          <CollapsibleContent className="space-y-3">
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-3 max-h-[400px] overflow-y-auto">
+              <FilePicker
+                projectId={projectId}
+                deploymentId={deploymentId}
+                selectedDocumentIds={selectedDocumentIds}
+                onSelectionChange={setSelectedDocumentIds}
+              />
+
+              <Separator />
+
+              <MetadataFilterInput
+                filters={metadataFilters}
+                onFiltersChange={setMetadataFilters}
+              />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {totalFilters > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {selectedDocumentIds.map((docId) => (
+              <Badge
+                key={docId}
+                variant="secondary"
+                className="gap-1.5 text-xs h-6"
+              >
+                File: {docId.slice(0, 8)}...
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedDocumentIds((ids) =>
+                      ids.filter((id) => id !== docId),
+                    )
+                  }
+                  className="ml-0.5 hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            {metadataFilters.map((filter, idx) => (
+              <Badge
+                key={`${filter.key}-${filter.operator}-${idx}`}
+                variant="secondary"
+                className="gap-1.5 text-xs h-6"
+              >
+                {filter.key} {filter.operator} {String(filter.value)}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMetadataFilters((filters) =>
+                      filters.filter((_, i) => i !== idx),
+                    )
+                  }
+                  className="ml-0.5 hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+
         <Input
           type="text"
           placeholder="Search..."
@@ -105,64 +232,76 @@ export function SearchPlayground() {
         )}
 
         {isError && (
-          <div className="text-sm text-red-600">
+          <div className="text-sm text-destructive">
             Error: {error instanceof Error ? error.message : "Search failed"}
           </div>
         )}
 
         {data && (
-          <div className="space-y-4 flex-1 flex flex-col min-h-0">
+          <div className="space-y-3 flex-1 flex flex-col min-h-0">
             <div className="text-sm text-muted-foreground">
               Found {data.results.length} results for "{data.query}"
             </div>
 
             {data.results.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground text-center py-8">
                 No results found
               </div>
             ) : (
-              <div className="space-y-3 overflow-y-auto flex-1">
-                {data.results.map((result) => (
-                  <div
-                    key={result.id}
-                    className="rounded-lg border bg-card p-4 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono text-muted-foreground">
-                        {result.id}
-                      </span>
-                      <span className="text-xs font-medium">
-                        Score: {result.score.toFixed(4)}
-                      </span>
-                    </div>
+              <ScrollArea className="flex-1">
+                <div className="space-y-2.5 pr-4">
+                  {data.results.map((result) => (
+                    <div
+                      key={result.id}
+                      className="rounded-lg border bg-card p-3 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono text-muted-foreground truncate">
+                          {result.id}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {result.score.toFixed(4)}
+                        </Badge>
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div>
-                        <span className="font-medium">Snapshot:</span>{" "}
-                        {result.metadata.snapshotId}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        {(result.metadata.fileName ||
+                          result.metadata.documentName) && (
+                          <div className="col-span-2 truncate">
+                            <span className="font-medium">File:</span>{" "}
+                            {result.metadata.fileName ||
+                              result.metadata.documentName}
+                          </div>
+                        )}
+                        {result.metadata.documentPath && (
+                          <div className="col-span-2 truncate">
+                            <span className="font-medium">Path:</span>{" "}
+                            {result.metadata.documentPath}
+                          </div>
+                        )}
+                        <div className="truncate">
+                          <span className="font-medium">Chunk:</span>{" "}
+                          {result.metadata.chunkIndex}
+                        </div>
+                        {result.metadata.chunkSize && (
+                          <div>
+                            <span className="font-medium">Size:</span>{" "}
+                            {result.metadata.chunkSize}
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <span className="font-medium">Document:</span>{" "}
-                        {result.metadata.documentId}
-                      </div>
-                      <div>
-                        <span className="font-medium">Chunk:</span>{" "}
-                        {result.metadata.chunkIndex}
-                      </div>
-                      <div>
-                        <span className="font-medium">Size:</span>{" "}
-                        {result.metadata.chunkSize}
-                      </div>
-                    </div>
 
-                    <div className="text-sm border-t pt-2 max-h-32 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap break-words font-sans">
-                        {result.data}
-                      </pre>
+                      <Separator />
+
+                      <ScrollArea className="max-h-32">
+                        <pre className="text-sm whitespace-pre-wrap break-words font-sans">
+                          {result.data}
+                        </pre>
+                      </ScrollArea>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </div>
         )}

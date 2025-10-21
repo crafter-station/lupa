@@ -20,8 +20,37 @@ export async function POST(
 ) {
   try {
     const { projectId, deploymentId } = await params;
-    const { messages, model }: { messages: UIMessage[]; model: string } =
-      await request.json();
+    const {
+      messages,
+      model,
+      documentIds,
+      metadataFilters,
+      contextFileNames,
+    }: {
+      messages: UIMessage[];
+      model: string;
+      documentIds?: string[];
+      metadataFilters?: Array<{
+        key: string;
+        operator: string;
+        value: string | number | boolean;
+      }>;
+      contextFileNames?: string[];
+    } = await request.json();
+
+    let systemPrompt =
+      "You are a helpful assistant with access to a knowledge base through the search-knowledge tool. When users ask questions, search the knowledge base first to provide accurate, context-aware answers based on the available documents.";
+
+    if (contextFileNames && contextFileNames.length > 0) {
+      systemPrompt += `\n\n[CONTEXT]: The user has selected specific files: ${contextFileNames.join(", ")}. When they ask about "this document", "these files", or use similar references, they are referring to these specific files. Always use the search-knowledge tool to find information from these documents when answering questions about them.`;
+    }
+
+    if (metadataFilters && metadataFilters.length > 0) {
+      const filterDesc = metadataFilters
+        .map((f) => `${f.key} ${f.operator} ${f.value}`)
+        .join(", ");
+      systemPrompt += `\n\n[FILTERS]: Apply these metadata filters when searching: ${filterDesc}`;
+    }
 
     const result = streamText({
       model: openai.responses(model || "gpt-5"),
@@ -33,19 +62,33 @@ export async function POST(
         } satisfies OpenAIResponsesProviderOptions,
       },
       messages: convertToModelMessages(messages),
-      system:
-        "You are a helpful assistant with access to a knowledge base through the search-knowledge tool. When users ask questions, search the knowledge base first to provide accurate, context-aware answers based on the available documents.",
+      system: systemPrompt,
       tools: {
         "search-knowledge": tool({
           description:
-            "Search the knowledge base for relevant information. Use this tool whenever you need to find specific information or answer questions based on the indexed documents.",
+            "Search the knowledge base for relevant information. Use this tool whenever you need to find specific information or answer questions based on the indexed documents. The search can be filtered by document IDs if context filters are active.",
           inputSchema: z.object({
             query: z
               .string()
               .describe("The search query to find relevant information"),
           }),
           execute: async ({ query }) => {
-            const searchUrl = `${request.headers.get("origin")}/api/search?projectId=${projectId}&deploymentId=${deploymentId}&query=${encodeURIComponent(query)}`;
+            const params = new URLSearchParams({
+              query: encodeURIComponent(query),
+            });
+
+            if (documentIds && documentIds.length > 0) {
+              params.set("documentIds", documentIds.join(","));
+            }
+
+            if (metadataFilters && metadataFilters.length > 0) {
+              for (const filter of metadataFilters) {
+                const value = `${filter.operator}${filter.value}`;
+                params.set(`metadata.${filter.key}`, value);
+              }
+            }
+
+            const searchUrl = `${request.headers.get("origin")}/api/search/${projectId}/${deploymentId}?${params.toString()}`;
 
             const response = await fetch(searchUrl);
 
@@ -66,6 +109,9 @@ export async function POST(
                   metadata: {
                     snapshotId: string;
                     documentId: string;
+                    documentName?: string;
+                    documentPath?: string;
+                    fileName?: string;
                     chunkIndex: number;
                   };
                 }) => ({
@@ -75,6 +121,9 @@ export async function POST(
                   metadata: {
                     snapshotId: result.metadata.snapshotId,
                     documentId: result.metadata.documentId,
+                    documentName: result.metadata.documentName,
+                    documentPath: result.metadata.documentPath,
+                    fileName: result.metadata.fileName,
                     chunkIndex: result.metadata.chunkIndex,
                   },
                 }),

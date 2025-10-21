@@ -1,9 +1,10 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useParams } from "next/navigation";
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -38,6 +39,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { ChatContextFilters } from "@/components/elements/chat-context-filters";
 import {
   Card,
   CardContent,
@@ -45,6 +47,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { FileListItem, MetadataFilter } from "@/lib/types/search";
 
 const models = [
   {
@@ -64,6 +67,28 @@ const models = [
     value: "gpt-5-codex	",
   },
 ];
+
+async function fetchFiles(
+  projectId: string,
+  deploymentId: string,
+): Promise<FileListItem[]> {
+  const response = await fetch(`/api/files/${projectId}/${deploymentId}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch files");
+  }
+
+  const data = await response.json();
+  return data.files;
+}
+
+function getFileName(file: FileListItem): string {
+  if (file.snapshotType === "upload" && file.metadata) {
+    const uploadMetadata = file.metadata as { file_name?: string };
+    return uploadMetadata.file_name || file.documentName;
+  }
+  return file.documentName;
+}
 
 function renderMessagePart(
   messageId: string,
@@ -120,6 +145,29 @@ export function AIPlayground() {
   }>();
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  const [metadataFilters, setMetadataFilters] = useState<MetadataFilter[]>([]);
+
+  const { data: files } = useQuery({
+    queryKey: ["files", projectId, deploymentId],
+    queryFn: () => fetchFiles(projectId, deploymentId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const contextInfo = useMemo(() => {
+    if (selectedDocumentIds.length === 0 || !files) {
+      return undefined;
+    }
+
+    const selectedFiles = files.filter((file) =>
+      selectedDocumentIds.includes(file.documentId),
+    );
+
+    const fileNames = selectedFiles.map((file) => getFileName(file));
+
+    return fileNames.length > 0 ? fileNames : undefined;
+  }, [selectedDocumentIds, files]);
+
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: `/api/chat/${projectId}/${deploymentId}`,
@@ -143,6 +191,9 @@ export function AIPlayground() {
       {
         body: {
           model,
+          documentIds: selectedDocumentIds,
+          metadataFilters,
+          contextFileNames: contextInfo,
         },
       },
     );
@@ -151,18 +202,46 @@ export function AIPlayground() {
 
   return (
     <Card className="flex flex-col h-[calc(100vh-16rem)]">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle>AI Playground</CardTitle>
         <CardDescription>
           Chat with AI that has access to your deployment knowledge base
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 p-0">
+        <ChatContextFilters
+          projectId={projectId}
+          deploymentId={deploymentId}
+          selectedDocumentIds={selectedDocumentIds}
+          onDocumentIdsChange={setSelectedDocumentIds}
+          metadataFilters={metadataFilters}
+          onMetadataFiltersChange={setMetadataFilters}
+        />
+
         <Conversation className="flex-1">
           <ConversationContent>
             {messages.length === 0 && (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                No messages yet. Start a conversation!
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 space-y-3">
+                <div className="text-muted-foreground">
+                  No messages yet. Start a conversation!
+                </div>
+                {selectedDocumentIds.length > 0 && files && (
+                  <div className="text-xs text-muted-foreground max-w-md p-3 bg-muted/30 rounded-md">
+                    <div className="font-medium mb-1">Selected files:</div>
+                    <div>
+                      {files
+                        .filter((f) =>
+                          selectedDocumentIds.includes(f.documentId),
+                        )
+                        .map((f) => getFileName(f))
+                        .join(", ")}
+                    </div>
+                    <div className="mt-2 text-muted-foreground/80">
+                      You can ask questions like "What is this document about?"
+                      and the AI will focus on your selected files.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {messages.map((message) => (
@@ -183,7 +262,11 @@ export function AIPlayground() {
               <PromptInputTextarea
                 onChange={(e) => setInput(e.target.value)}
                 value={input}
-                placeholder="Ask something about your documents..."
+                placeholder={
+                  selectedDocumentIds.length > 0
+                    ? "Ask about the selected files..."
+                    : "Ask something about your documents..."
+                }
               />
             </PromptInputBody>
             <PromptInputToolbar>
