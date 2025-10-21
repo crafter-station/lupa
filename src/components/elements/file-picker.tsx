@@ -165,20 +165,18 @@ export function FilePicker({
             const fileName = getFileName(file);
 
             return (
-              <button
-                type="button"
+              // biome-ignore lint/a11y/noLabelWithoutControl: checkbox is inside label
+              <label
                 key={file.documentId}
                 className={cn(
-                  "flex items-start gap-2.5 rounded-md p-2.5 cursor-pointer hover:bg-accent transition-colors w-full text-left",
+                  "flex items-start gap-2.5 rounded-md p-2.5 cursor-pointer hover:bg-accent transition-colors w-full",
                   isSelected && "bg-accent",
                 )}
-                onClick={() => handleToggleFile(file.documentId)}
               >
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={() => handleToggleFile(file.documentId)}
                   className="mt-0.5"
-                  onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-1.5">
@@ -226,7 +224,7 @@ export function FilePicker({
                 {isSelected && (
                   <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                 )}
-              </button>
+              </label>
             );
           })}
           {filteredFiles?.length === 0 && (
