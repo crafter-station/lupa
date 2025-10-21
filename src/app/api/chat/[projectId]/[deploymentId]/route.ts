@@ -21,20 +21,25 @@ export async function POST(
 ) {
   try {
     const { projectId, deploymentId } = await params;
-    const { messages, model }: { messages: UIMessage[]; model: string } =
-      await request.json();
+    const {
+      messages,
+      model,
+      documentIds,
+      metadataFilters,
+      contextFileNames,
+    }: {
+      messages: UIMessage[];
+      model: string;
+      documentIds?: string[];
+      metadataFilters?: Array<{
+        key: string;
+        operator: string;
+        value: string | number | boolean;
+      }>;
+      contextFileNames?: string[];
+    } = await request.json();
 
-    const result = streamText({
-      model: openai.responses(model || "gpt-5"),
-      providerOptions: {
-        openai: {
-          reasoningEffort: "low",
-          reasoningSummary: "detailed",
-          include: ["reasoning.encrypted_content"],
-        } satisfies OpenAIResponsesProviderOptions,
-      },
-      messages: convertToModelMessages(messages),
-      system: dedent`You are a helpful assistant with access to a knowledge base through two complementary tools:
+    let systemPrompt = dedent`You are a helpful assistant with access to a knowledge base through two complementary tools:
 
 1. **search-knowledge**: Returns CHUNKS (partial text excerpts) from documents matching your semantic search query. Each result includes:
    - content: A text chunk from the document (not the full document)
@@ -67,18 +72,56 @@ You MUST use get-snapshot-contents when:
 4. Use the full document content to provide thorough, well-informed answers
 5. Always prefer complete document context over fragmented chunks when the question demands depth
 
-**Important**: Search results are CHUNKS, not full documents. Don't assume you have complete information from search alone. When in doubt about whether you need more context, use get-snapshot-contents.`,
+**Important**: Search results are CHUNKS, not full documents. Don't assume you have complete information from search alone. When in doubt about whether you need more context, use get-snapshot-contents.`;
+
+    if (contextFileNames && contextFileNames.length > 0) {
+      systemPrompt += `\n\n[CONTEXT]: The user has selected specific files: ${contextFileNames.join(", ")}. When they ask about "this document", "these files", or use similar references, they are referring to these specific files. Always use the search-knowledge tool to find information from these documents when answering questions about them.`;
+    }
+
+    if (metadataFilters && metadataFilters.length > 0) {
+      const filterDesc = metadataFilters
+        .map((f) => `${f.key} ${f.operator} ${f.value}`)
+        .join(", ");
+      systemPrompt += `\n\n[FILTERS]: Apply these metadata filters when searching: ${filterDesc}`;
+    }
+
+    const result = streamText({
+      model: openai.responses(model || "gpt-5"),
+      providerOptions: {
+        openai: {
+          reasoningEffort: "low",
+          reasoningSummary: "detailed",
+          include: ["reasoning.encrypted_content"],
+        } satisfies OpenAIResponsesProviderOptions,
+      },
+      messages: convertToModelMessages(messages),
+      system: systemPrompt,
       tools: {
         "search-knowledge": tool({
           description:
-            "Search the knowledge base and return up to 5 relevant CHUNKS (text excerpts) with similarity scores and metadata. Each result is a partial excerpt from a document, not the complete document. Results include metadata with snapshotId (use this to retrieve full documents with get-snapshot-contents), documentId, chunkIndex, and other document metadata. Use this tool to discover which documents contain information related to your query.",
+            "Search the knowledge base and return up to 5 relevant CHUNKS (text excerpts) with similarity scores and metadata. Each result is a partial excerpt from a document, not the complete document. Results include metadata with snapshotId (use this to retrieve full documents with get-snapshot-contents), documentId, chunkIndex, and other document metadata. Use this tool to discover which documents contain information related to your query. The search can be filtered by document IDs if context filters are active.",
           inputSchema: z.object({
             query: z
               .string()
               .describe("The search query to find relevant information"),
           }),
           execute: async ({ query }) => {
-            const searchUrl = `${request.headers.get("origin")}/api/search/${projectId}/${deploymentId}/${encodeURIComponent(query)}`;
+            const params = new URLSearchParams({
+              query: encodeURIComponent(query),
+            });
+
+            if (documentIds && documentIds.length > 0) {
+              params.set("documentIds", documentIds.join(","));
+            }
+
+            if (metadataFilters && metadataFilters.length > 0) {
+              for (const filter of metadataFilters) {
+                const value = `${filter.operator}${filter.value}`;
+                params.set(`metadata.${filter.key}`, value);
+              }
+            }
+
+            const searchUrl = `${request.headers.get("origin")}/api/search/${projectId}/${deploymentId}?${params.toString()}`;
 
             const response = await fetch(searchUrl);
 
@@ -99,6 +142,9 @@ You MUST use get-snapshot-contents when:
                   metadata: {
                     snapshotId: string;
                     documentId: string;
+                    documentName?: string;
+                    documentPath?: string;
+                    fileName?: string;
                     chunkIndex: number;
                   };
                 }) => ({
@@ -142,7 +188,7 @@ You MUST use get-snapshot-contents when:
           },
         }),
       },
-      stopWhen: stepCountIs(15), // Stop after maximum 10 steps
+      stopWhen: stepCountIs(15),
     });
 
     return result.toUIMessageStreamResponse({
