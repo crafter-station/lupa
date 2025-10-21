@@ -4,7 +4,7 @@
 import dynamic from "next/dynamic";
 
 // The SignInButton is dynamically imported to ensure it only renders on the client,
-// as Clerk session/context hooks rely on client environment.
+// but im not sure if it's necessary since we are using ClerkProvider in the layout.tsx file. TODO: check with @Railly
 export const SignInButton = dynamic(
   () =>
     import("./sign-in-button").then((mod) => ({ default: mod.SignInButton })),
