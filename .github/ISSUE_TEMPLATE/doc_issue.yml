@@ -1,0 +1,35 @@
+name: Documentation Issue
+description: Report an issue or suggest improvements to Lupa's documentation
+labels:
+  - documentation
+body:
+  - type: checkboxes
+    attributes:
+      label: Self Check
+      options:
+        - label: I have searched for [existing issues](https://github.com/crafter-station/lupa/issues), including closed ones
+          required: true
+
+  - type: input
+    attributes:
+      label: Documentation Page
+      description: Which page or section has the issue?
+      placeholder: e.g., README.md, AGENTS.md, /docs API reference
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Issue Description
+      description: What's wrong or what needs improvement?
+      placeholder: Describe the issue clearly and concisely
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Suggested Fix
+      description: How should it be improved? (optional but helpful)
+      placeholder: Provide your suggested changes or improvements
+    validations:
+      required: false

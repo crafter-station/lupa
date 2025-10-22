@@ -493,6 +493,15 @@
         },
         "required": ["project_id", "documents"]
       },
+      "querySchema": {
+        "type": "object",
+        "properties": {
+          "allSnapshots": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "MapRequestSchema": {
         "type": "object",
         "properties": {

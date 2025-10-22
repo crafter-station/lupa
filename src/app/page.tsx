@@ -10,7 +10,7 @@ import { YunoIcon } from "@/components/icons/yuno";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { highlightCode } from "@/lib/highlight";
-import { SignInButton } from "./sign-in-button";
+import { SignInButton } from "./sign-in-button-wrapper";
 
 const AGENT_CODE = `import { streamText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
