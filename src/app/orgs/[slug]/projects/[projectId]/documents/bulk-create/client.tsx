@@ -39,7 +39,6 @@ type DiscoveredLink = {
   description: string;
   name: string;
   folder: string;
-  enabled: boolean;
   refresh_frequency: RefreshFrequency | "none";
   enhance: boolean;
 };
@@ -143,7 +142,6 @@ export function BulkCreateClient() {
           description: link.description || "",
           name: link.title || extractNameFromUrl(link.url),
           folder: link.folder || rootFolder,
-          enabled: true,
           refresh_frequency: "none" as const,
           enhance: false,
         }))
@@ -160,12 +158,11 @@ export function BulkCreateClient() {
   }, [rootUrl]);
 
   const handleCreateAll = React.useCallback(async () => {
-    const enabled = discoveredLinks.filter((d) => d.enabled);
-    if (enabled.length === 0) return;
+    if (discoveredLinks.length === 0) return;
 
     setIsCreating(true);
 
-    const documentsToCreate = enabled.map((link) => ({
+    const documentsToCreate = discoveredLinks.map((link) => ({
       id: generateId(),
       folder: link.folder,
       name: link.name,
@@ -213,15 +210,10 @@ export function BulkCreateClient() {
     }
   }, [discoveredLinks, projectId]);
 
-  const selectAll = () => {
+  const toggleAllEnhance = () => {
+    const allEnhanced = discoveredLinks.every((link) => link.enhance);
     setDiscoveredLinks((links) =>
-      links.map((link) => ({ ...link, enabled: true })),
-    );
-  };
-
-  const deselectAll = () => {
-    setDiscoveredLinks((links) =>
-      links.map((link) => ({ ...link, enabled: false })),
+      links.map((link) => ({ ...link, enhance: !allEnhanced })),
     );
   };
 
@@ -247,7 +239,8 @@ export function BulkCreateClient() {
     setShouldFetch(false);
   }, []);
 
-  const enabledCount = discoveredLinks.filter((d) => d.enabled).length;
+  const allEnhanced = discoveredLinks.every((link) => link.enhance);
+  const someEnhanced = discoveredLinks.some((link) => link.enhance);
 
   const getSnapshotStatus = (snapshotId: string) => {
     const snapshot = snapshots.find((s) => s.id === snapshotId);
@@ -382,20 +375,10 @@ export function BulkCreateClient() {
           </Button>
         </div>
 
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={selectAll}>
-            Select All
-          </Button>
-          <Button variant="outline" size="sm" onClick={deselectAll}>
-            Deselect All
-          </Button>
-        </div>
-
         <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40px]">✓</TableHead>
                 <TableHead className="min-w-[200px]">Name</TableHead>
                 <TableHead className="min-w-[200px]">Description</TableHead>
                 <TableHead className="min-w-[300px]">URL</TableHead>
@@ -403,23 +386,28 @@ export function BulkCreateClient() {
                 <TableHead className="min-w-[150px]">
                   Refresh Schedule
                 </TableHead>
-                <TableHead className="min-w-[100px]">AI Enhance</TableHead>
+                <TableHead className="min-w-[100px]">
+                  <div className="flex items-center justify-center gap-2">
+                    <Checkbox
+                      checked={allEnhanced}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate = someEnhanced && !allEnhanced;
+                        }
+                      }}
+                      onCheckedChange={toggleAllEnhance}
+                      disabled={isCreating}
+                      aria-label="Toggle all AI enhance"
+                    />
+                    <span>AI Enhance</span>
+                  </div>
+                </TableHead>
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {discoveredLinks.map((link) => (
                 <TableRow key={link.id}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={link.enabled}
-                      onChange={(e) =>
-                        updateLink(link.id, "enabled", e.target.checked)
-                      }
-                      disabled={isCreating}
-                    />
-                  </TableCell>
                   <TableCell>
                     <Input
                       value={link.name}
@@ -511,10 +499,12 @@ export function BulkCreateClient() {
           </Table>
         </div>
 
-        <div className="flex justify-end">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <Button
             onClick={handleCreateAll}
-            disabled={isCreating || enabledCount === 0}
+            disabled={isCreating || discoveredLinks.length === 0}
+            size="lg"
+            className="shadow-lg"
           >
             {isCreating ? (
               <>
@@ -522,7 +512,7 @@ export function BulkCreateClient() {
                 Creating...
               </>
             ) : (
-              `Create ${enabledCount} Document${enabledCount !== 1 ? "s" : ""}`
+              `Create ${discoveredLinks.length} Document${discoveredLinks.length !== 1 ? "s" : ""}`
             )}
           </Button>
         </div>
