@@ -392,7 +392,14 @@ export function BulkCreateClient() {
                       checked={allEnhanced}
                       ref={(el) => {
                         if (el) {
-                          el.indeterminate = someEnhanced && !allEnhanced;
+                          const button = el.querySelector("button");
+                          if (button) {
+                            (
+                              button as HTMLButtonElement & {
+                                indeterminate?: boolean;
+                              }
+                            ).indeterminate = someEnhanced && !allEnhanced;
+                          }
                         }
                       }}
                       onCheckedChange={toggleAllEnhance}
