@@ -31,7 +31,7 @@ const BulkDocumentItemSchema = z.object({
 
 const BulkCreateDocumentsRequestSchema = z.object({
   project_id: z.string().min(1),
-  documents: z.array(BulkDocumentItemSchema).min(1).max(50),
+  documents: z.array(BulkDocumentItemSchema).min(1),
 });
 
 export async function POST(request: Request) {
