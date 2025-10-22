@@ -375,46 +375,6 @@
         },
         "required": ["success", "txid"]
       },
-      "SuggestFoldersRequestSchema": {
-        "type": "object",
-        "properties": {
-          "links": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "url": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string",
-                  "nullable": true
-                }
-              },
-              "required": ["url"]
-            },
-            "minItems": 1,
-            "maxItems": 50
-          },
-          "rootFolder": {
-            "type": "string"
-          }
-        },
-        "required": ["links", "rootFolder"]
-      },
-      "FolderSuggestionSchema": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string"
-          },
-          "suggestedFolder": {
-            "type": "string",
-            "description": "Folder path (relative to root) that logically groups this URL. Should start and end with /. Group similar URLs together (e.g., /docs/api/, /docs/guides/). Return / for root-level docs."
-          }
-        },
-        "required": ["url", "suggestedFolder"]
-      },
       "WhereParamsSchema": {
         "type": "object",
         "properties": {
