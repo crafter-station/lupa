@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { RefreshFrequency } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { DocumentSelectSchema } from "@/db/schema";
+import { normalizeFolderPath } from "@/lib/folder-utils";
 import {
   createDocumentSchedule,
   deleteDocumentSchedule,
@@ -76,6 +77,10 @@ export async function PATCH(
     const json = await request.json();
 
     const updates = DocumentSelectSchema.partial().parse(json);
+
+    if (updates.folder) {
+      updates.folder = normalizeFolderPath(updates.folder);
+    }
 
     if (Object.keys(updates).length === 0) {
       return Response.json(

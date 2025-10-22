@@ -1,6 +1,6 @@
 "use client";
 
-import { UserButton, useSession } from "@clerk/nextjs";
+import { useSession } from "@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 

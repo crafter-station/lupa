@@ -67,6 +67,7 @@ export const refetchWebsiteTask = schedules.task({
       changes_detected: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      enhance: originalSnapshot.enhance,
     });
 
     logger.log("Created new snapshot for refetch", {

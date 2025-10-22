@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { FolderPathSelector } from "@/components/elements/folder-path-selector";
 import { MetadataSchemaEditor } from "@/components/elements/metadata-schema-editor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ export function CreateDocument() {
     React.useState<SnapshotType>("website");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
+  const [enhance, setEnhance] = React.useState(false);
 
   const { organization } = useOrganization();
 
@@ -79,14 +81,16 @@ export function CreateDocument() {
       setSnapshotType("website");
       setIsUploading(false);
       setRefreshFrequency("none");
+      setEnhance(false);
     }
   }, [open, contextFolder]);
 
   const createDocument = createOptimisticAction<
     DocumentSelect & {
-      snapshot: SnapshotSelect;
-      file?: File;
-      parsing_instruction?: string;
+      snapshot: SnapshotSelect & {
+        file?: File;
+        parsing_instruction?: string;
+      };
     }
   >({
     onMutate: (document) => {
@@ -137,8 +141,8 @@ export function CreateDocument() {
         formData.append("snapshot.url", document.snapshot.url);
       }
 
-      if (document.snapshot.type === "upload" && document.file) {
-        formData.append("snapshot.file", document.file);
+      if (document.snapshot.type === "upload" && document.snapshot.file) {
+        formData.append("snapshot.file", document.snapshot.file);
       }
 
       if (document.snapshot.metadata) {
@@ -147,10 +151,17 @@ export function CreateDocument() {
           JSON.stringify(document.snapshot.metadata),
         );
       }
-      if (document.parsing_instruction) {
+      if (document.snapshot.parsing_instruction) {
         formData.append(
           "snapshot.parsing_instruction",
-          document.parsing_instruction,
+          document.snapshot.parsing_instruction,
+        );
+      }
+
+      if (document.snapshot.enhance) {
+        formData.append(
+          "snapshot.enhance",
+          document.snapshot.enhance.toString(),
         );
       }
 
@@ -222,6 +233,7 @@ export function CreateDocument() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           org_id: organization?.id ?? "",
+          enhance: false,
         },
       });
 
@@ -304,9 +316,10 @@ export function CreateDocument() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             org_id: organization?.id ?? "",
+            enhance: false,
+            file: selectedFile,
+            parsing_instruction: parsingInstruction || undefined,
           },
-          file: selectedFile,
-          parsing_instruction: parsingInstruction?.trim() ?? undefined,
         });
 
         router.push(
@@ -507,6 +520,26 @@ export function CreateDocument() {
               </div>
             </>
           )}
+
+          <div className="flex items-center space-x-2 rounded-lg border p-3">
+            <Checkbox
+              id="enhance"
+              checked={enhance}
+              onCheckedChange={(checked) => setEnhance(checked === true)}
+              disabled={isUploading}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <label
+                htmlFor="enhance"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Enable AI Enhancement Mode
+              </label>
+              <p className="text-sm text-muted-foreground">
+                Use AI to enhance document processing and extraction
+              </p>
+            </div>
+          </div>
 
           <MetadataSchemaEditor
             value={metadataSchema}

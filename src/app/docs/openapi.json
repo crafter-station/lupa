@@ -422,9 +422,18 @@
           "url": {
             "type": "string",
             "minLength": 1
+          },
+          "refresh_frequency": {
+            "type": "string",
+            "enum": ["daily", "weekly", "monthly", "none"],
+            "default": "none"
+          },
+          "enhance": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "required": ["folder", "name", "url"]
+        "required": ["folder", "name", "url", "refresh_frequency", "enhance"]
       },
       "BulkCreateDocumentsRequestSchema": {
         "type": "object",

@@ -57,6 +57,8 @@ export const Snapshot = pgTable(SNAPSHOT_TABLE, {
   // Only present when status = "success"
   chunks_count: integer("chunks_count"),
 
+  enhance: boolean("enhance").notNull().default(false),
+
   // Varies by type; may be null for non-success states
   metadata: jsonb("metadata").$type<WebsiteMetadata | UploadMetadata | null>(),
 

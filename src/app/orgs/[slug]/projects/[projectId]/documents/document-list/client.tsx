@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
+import { InlineEditableFolder } from "@/components/elements/inline-editable-folder";
 import {
   Table,
   TableBody,
@@ -346,6 +347,7 @@ export function DocumentListContent({
           <TableHeader>
             <TableRow>
               <TableHead className="w-1/5">Name</TableHead>
+              <TableHead className="w-1/6">Folder</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-32">Created</TableHead>
               <TableHead className="w-32">Updated</TableHead>
@@ -355,7 +357,7 @@ export function DocumentListContent({
             {items.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="text-center text-muted-foreground"
                 >
                   No documents or folders in this location
@@ -376,6 +378,7 @@ export function DocumentListContent({
                         ..
                       </Link>
                     </TableCell>
+                    <TableCell>-</TableCell>
                     <TableCell className="text-muted-foreground">
                       Folder
                     </TableCell>
@@ -400,6 +403,7 @@ export function DocumentListContent({
                             {item.name}
                           </Link>
                         </TableCell>
+                        <TableCell>-</TableCell>
                         <TableCell className="text-muted-foreground">
                           Folder
                         </TableCell>
@@ -438,6 +442,38 @@ export function DocumentListContent({
                           )}
                           {item.document.name}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <InlineEditableFolder
+                          value={item.document.folder}
+                          onSave={async (newFolder) => {
+                            setUpdatingDocuments((prev) =>
+                              new Set(prev).add(item.document.id),
+                            );
+                            try {
+                              DocumentCollection.update(
+                                item.document.id,
+                                (doc) => {
+                                  doc.folder = newFolder;
+                                  doc.updated_at = new Date().toISOString();
+                                },
+                              );
+                            } catch (error) {
+                              toast.error(
+                                `Failed to update folder: ${error instanceof Error ? error.message : "Unknown error"}`,
+                              );
+                              throw error;
+                            } finally {
+                              setUpdatingDocuments((prev) => {
+                                const next = new Set(prev);
+                                next.delete(item.document.id);
+                                return next;
+                              });
+                            }
+                          }}
+                          documents={allDocuments}
+                          className="text-sm"
+                        />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {item.document.description}

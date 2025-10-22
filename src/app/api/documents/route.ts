@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import * as schema from "@/db/schema";
+import { folderFromUrl, normalizeFolderPath } from "@/lib/folder-utils";
 import { createDocumentSchedule } from "@/lib/schedules";
 
 export const preferredRegion = "iad1";
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
 
     const documentId = formData.get("id") as string;
     const project_id = formData.get("project_id") as string;
-    const folder = (formData.get("folder") as string) || "/";
+    const rawFolder = (formData.get("folder") as string) || "/";
     const name = formData.get("name") as string;
     const description = formData.get("description") as string | null;
     const metadataSchemaStr = formData.get("metadata_schema") as string | null;
@@ -107,6 +108,12 @@ export async function POST(request: Request) {
     const parsingInstruction = formData.get("snapshot.parsing_instruction") as
       | string
       | null;
+    const enhance = formData.get("snapshot.enhance") as boolean | null;
+
+    const folder =
+      snapshotType === "website" && snapshotUrl
+        ? folderFromUrl(snapshotUrl)
+        : normalizeFolderPath(rawFolder);
 
     if (
       !documentId ||
@@ -208,6 +215,10 @@ export async function POST(request: Request) {
 
     if (parsingInstruction) {
       snapshotFormData.append("parsing_instruction", parsingInstruction);
+    }
+
+    if (enhance) {
+      snapshotFormData.append("enhance", enhance.toString());
     }
 
     const baseUrl =

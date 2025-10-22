@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { extractMetadata } from "@/lib/metadata";
+import { enhanceMdTask } from "./enhance-md";
 import { parseFileTask } from "./parsers/file";
 import { parseWebsiteTask } from "./parsers/website";
 
@@ -41,7 +42,7 @@ export const processSnapshotTask = schemaTask({
 
     if (snapshot.type === "website") {
       const doc = await parseWebsiteTask.triggerAndWait(
-        { url: snapshot.url },
+        { url: snapshot.url, enhance: snapshot.enhance },
         {
           queue: ctx.queue.name.startsWith("parsing-queue")
             ? `website-${ctx.queue.name}`
@@ -57,7 +58,21 @@ export const processSnapshotTask = schemaTask({
         throw new Error("Markdown content is missing");
       }
 
-      markdown = doc.output.markdown;
+      if (snapshot.enhance && doc.output.rawText) {
+        const enhancedDoc = await enhanceMdTask.triggerAndWait({
+          rawText: doc.output.rawText,
+          markdown: doc.output.markdown,
+        });
+
+        if (!enhancedDoc.ok) {
+          throw new Error(`Failed to enhance markdown`);
+        }
+
+        markdown = enhancedDoc.output;
+      } else {
+        markdown = doc.output.markdown;
+      }
+
       metadata = {
         title: doc.output.metadata?.title,
         favicon: doc.output.metadata?.favicon as string | undefined,
@@ -94,6 +109,7 @@ export const processSnapshotTask = schemaTask({
 
     const { url } = await put(`parsed/${snapshot.id}.md`, markdown, {
       access: "public",
+      allowOverwrite: true,
     });
 
     const documents = await db

@@ -1,15 +1,24 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { CheckCircle2, Circle, Loader2, Trash2, XCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { FolderPathSelector } from "@/components/elements/folder-path-selector";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -18,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { RefreshFrequency } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
@@ -30,6 +40,8 @@ type DiscoveredLink = {
   name: string;
   folder: string;
   enabled: boolean;
+  refresh_frequency: RefreshFrequency | "none";
+  enhance: boolean;
 };
 
 export function BulkCreateClient() {
@@ -39,7 +51,8 @@ export function BulkCreateClient() {
 
   const [rootUrl, setRootUrl] = React.useState("");
   const [rootFolder, setRootFolder] = React.useState(contextFolder ?? "/");
-  const [isMapping, setIsMapping] = React.useState(false);
+  const [limit, setLimit] = React.useState(50);
+  const [shouldFetch, setShouldFetch] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [discoveredLinks, setDiscoveredLinks] = React.useState<
     DiscoveredLink[]
@@ -89,30 +102,25 @@ export function BulkCreateClient() {
     }
   }, []);
 
-  const ensureSlashes = React.useCallback((path: string): string => {
-    if (!path) return "/";
-    let result = path;
-    if (!result.startsWith("/")) result = `/${result}`;
-    if (!result.endsWith("/")) result = `${result}/`;
-    return result;
-  }, []);
-
-  const handleDiscover = React.useCallback(async () => {
-    if (!rootUrl) return;
-
-    setIsMapping(true);
-    try {
+  const { data: firecrawlData, isLoading: isMapping } = useQuery({
+    queryKey: ["firecrawl-map", rootUrl, limit],
+    queryFn: async () => {
       const response = await fetch("/api/firecrawl/map", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url: rootUrl, limit: 50 }),
+        body: JSON.stringify({ url: rootUrl, limit }),
       });
 
       const data = (await response.json()) as {
         success: boolean;
-        links?: Array<{ url: string; title?: string; description?: string }>;
+        links?: Array<{
+          url: string;
+          title?: string;
+          description?: string;
+          folder?: string;
+        }>;
         error?: string;
       };
 
@@ -120,23 +128,36 @@ export function BulkCreateClient() {
         throw new Error(data.error || "Failed to discover links");
       }
 
-      setDiscoveredLinks(
-        data.links.map((link) => ({
+      return data.links;
+    },
+    enabled: shouldFetch && !!rootUrl,
+  });
+
+  React.useEffect(() => {
+    if (firecrawlData && shouldFetch) {
+      const initialLinks = firecrawlData
+        .map((link) => ({
           id: generateId(),
           url: link.url,
           title: link.title || "",
           description: link.description || "",
           name: link.title || extractNameFromUrl(link.url),
-          folder: "",
+          folder: link.folder || rootFolder,
           enabled: true,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to discover links:", error);
-    } finally {
-      setIsMapping(false);
+          refresh_frequency: "none" as const,
+          enhance: false,
+        }))
+        .sort((a, b) => a.url.localeCompare(b.url));
+
+      setDiscoveredLinks(initialLinks);
+      setShouldFetch(false);
     }
-  }, [rootUrl, extractNameFromUrl]);
+  }, [firecrawlData, shouldFetch, extractNameFromUrl, rootFolder]);
+
+  const handleDiscover = React.useCallback(() => {
+    if (!rootUrl) return;
+    setShouldFetch(true);
+  }, [rootUrl]);
 
   const handleCreateAll = React.useCallback(async () => {
     const enabled = discoveredLinks.filter((d) => d.enabled);
@@ -146,10 +167,12 @@ export function BulkCreateClient() {
 
     const documentsToCreate = enabled.map((link) => ({
       id: generateId(),
-      folder: ensureSlashes(rootFolder + link.folder),
+      folder: link.folder,
       name: link.name,
       description: link.description || null,
       url: link.url,
+      refresh_frequency: link.refresh_frequency,
+      enhance: link.enhance,
     }));
 
     try {
@@ -188,7 +211,7 @@ export function BulkCreateClient() {
       console.error("Failed to create documents:", error);
       setIsCreating(false);
     }
-  }, [discoveredLinks, rootFolder, projectId, ensureSlashes]);
+  }, [discoveredLinks, projectId]);
 
   const selectAll = () => {
     setDiscoveredLinks((links) =>
@@ -218,10 +241,11 @@ export function BulkCreateClient() {
     );
   };
 
-  const handleBack = () => {
+  const handleBack = React.useCallback(() => {
     setDiscoveredLinks([]);
     setRootUrl("");
-  };
+    setShouldFetch(false);
+  }, []);
 
   const enabledCount = discoveredLinks.filter((d) => d.enabled).length;
 
@@ -350,8 +374,7 @@ export function BulkCreateClient() {
           <div>
             <h1 className="text-2xl font-bold">Bulk Create Documents</h1>
             <p className="text-sm text-muted-foreground">
-              Root folder: {rootFolder} • {discoveredLinks.length} links
-              discovered
+              {discoveredLinks.length} links discovered
             </p>
           </div>
           <Button variant="outline" onClick={handleBack} disabled={isCreating}>
@@ -368,14 +391,19 @@ export function BulkCreateClient() {
           </Button>
         </div>
 
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[40px]">✓</TableHead>
-                <TableHead className="w-[30%]">Name</TableHead>
-                <TableHead className="w-[35%]">URL</TableHead>
-                <TableHead className="w-[20%]">Relative Folder</TableHead>
+                <TableHead className="min-w-[200px]">Name</TableHead>
+                <TableHead className="min-w-[200px]">Description</TableHead>
+                <TableHead className="min-w-[300px]">URL</TableHead>
+                <TableHead className="min-w-[200px]">Folder Path</TableHead>
+                <TableHead className="min-w-[150px]">
+                  Refresh Schedule
+                </TableHead>
+                <TableHead className="min-w-[100px]">AI Enhance</TableHead>
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -399,6 +427,18 @@ export function BulkCreateClient() {
                         updateLink(link.id, "name", e.target.value)
                       }
                       disabled={isCreating}
+                      className="text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={link.description}
+                      onChange={(e) =>
+                        updateLink(link.id, "description", e.target.value)
+                      }
+                      disabled={isCreating}
+                      placeholder="Add description..."
+                      className="text-sm"
                     />
                   </TableCell>
                   <TableCell>
@@ -408,15 +448,50 @@ export function BulkCreateClient() {
                         updateLink(link.id, "url", e.target.value)
                       }
                       disabled={isCreating}
+                      className="text-sm font-mono"
                     />
                   </TableCell>
                   <TableCell>
-                    <Input
-                      value={link.folder}
-                      onChange={(e) =>
-                        updateLink(link.id, "folder", e.target.value)
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={link.folder}
+                        onChange={(e) =>
+                          updateLink(link.id, "folder", e.target.value)
+                        }
+                        disabled={isCreating}
+                        className="text-sm font-mono"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={link.refresh_frequency}
+                      onValueChange={(value) =>
+                        updateLink(
+                          link.id,
+                          "refresh_frequency",
+                          value as RefreshFrequency | "none",
+                        )
                       }
-                      placeholder="e.g., api/"
+                      disabled={isCreating}
+                    >
+                      <SelectTrigger className="text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={link.enhance}
+                      onCheckedChange={(checked) =>
+                        updateLink(link.id, "enhance", checked === true)
+                      }
                       disabled={isCreating}
                     />
                   </TableCell>
@@ -478,6 +553,22 @@ export function BulkCreateClient() {
             documents={allDocuments}
             initialFolder={rootFolder}
             onChange={setRootFolder}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="limit">Link Limit</Label>
+          <Input
+            id="limit"
+            type="number"
+            min="1"
+            max="1000"
+            placeholder="50"
+            value={limit}
+            onChange={(e) =>
+              setLimit(Number.parseInt(e.target.value, 10) || 50)
+            }
+            disabled={isMapping}
           />
         </div>
 
