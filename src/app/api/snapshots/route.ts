@@ -91,6 +91,7 @@ export async function POST(request: Request) {
     const parsingInstruction = formData.get("parsing_instruction") as
       | string
       | null;
+    const enhance = formData.get("enhance") as boolean | null;
 
     console.log(JSON.stringify(Object.fromEntries(formData)));
 
@@ -202,6 +203,7 @@ export async function POST(request: Request) {
         chunks_count: null,
         extracted_metadata: null,
         changes_detected: false,
+        enhance: enhance || false,
       });
 
       if (isTypeChange && document.refresh_schedule_id) {

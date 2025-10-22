@@ -37,7 +37,26 @@ export async function POST(request: Request) {
 
     return Response.json({
       success: true,
-      links: result.links || [],
+      links: result.links.map((link) => {
+        let folder = link.url
+          .replace(url, "")
+          .split("/")
+          .slice(0, -1)
+          .join("/");
+
+        if (folder[0] !== "/") {
+          folder = `/${folder}`;
+        }
+
+        if (folder[folder.length - 1] !== "/") {
+          folder += "/";
+        }
+
+        return {
+          ...link,
+          folder,
+        };
+      }),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

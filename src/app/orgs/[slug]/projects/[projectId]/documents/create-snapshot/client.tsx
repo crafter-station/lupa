@@ -9,6 +9,7 @@ import React from "react";
 import { toast } from "sonner";
 import { MetadataSchemaEditor } from "@/components/elements/metadata-schema-editor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export function CreateSnapshot() {
   const [refreshFrequency, setRefreshFrequency] = React.useState<
     RefreshFrequency | "none"
   >("none");
+  const [enhance, setEnhance] = React.useState(false);
 
   const { SnapshotCollection, DocumentCollection } = useCollections();
 
@@ -84,6 +86,7 @@ export function CreateSnapshot() {
       setSnapshotType("website");
       setSelectedFile(null);
       setIsUploading(false);
+      setEnhance(false);
     }
   }, [open, currentDocument]);
 
@@ -91,6 +94,7 @@ export function CreateSnapshot() {
     SnapshotSelect & {
       file?: File;
       parsingInstruction?: string;
+      enhance?: boolean;
     }
   >({
     onMutate: (snapshot) => {
@@ -108,6 +112,7 @@ export function CreateSnapshot() {
         created_at: snapshot.created_at,
         updated_at: snapshot.updated_at,
         org_id: organization?.id ?? "",
+        enhance: snapshot.enhance ?? false,
       });
     },
     mutationFn: async (snapshot) => {
@@ -132,6 +137,10 @@ export function CreateSnapshot() {
 
       if (snapshot.parsingInstruction) {
         formData.append("parsing_instruction", snapshot.parsingInstruction);
+      }
+
+      if (snapshot.enhance) {
+        formData.append("enhance", snapshot.enhance.toString());
       }
 
       const response = await fetch(
@@ -188,6 +197,7 @@ export function CreateSnapshot() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           org_id: organization?.id ?? "",
+          enhance,
         });
 
         if (currentDocument) {
@@ -224,6 +234,7 @@ export function CreateSnapshot() {
       DocumentCollection,
       setNewSnapshot,
       organization,
+      enhance,
     ],
   );
 
@@ -279,6 +290,7 @@ export function CreateSnapshot() {
           file: selectedFile,
           parsingInstruction: parsingInstruction || undefined,
           org_id: organization?.id ?? "",
+          enhance,
         });
 
         if (currentDocument) {
@@ -318,6 +330,7 @@ export function CreateSnapshot() {
       DocumentCollection,
       setNewSnapshot,
       organization,
+      enhance,
     ],
   );
 
@@ -414,6 +427,25 @@ export function CreateSnapshot() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center space-x-2 rounded-lg border p-3">
+              <Checkbox
+                id="enhance"
+                checked={enhance}
+                onCheckedChange={(checked) => setEnhance(checked === true)}
+                disabled={isUploading}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="enhance"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Enable AI Enhancement Mode
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  Use AI to enhance document processing and extraction
+                </p>
+              </div>
+            </div>
             <MetadataSchemaEditor
               value={metadataSchema}
               onChange={setMetadataSchema}
@@ -470,6 +502,25 @@ export function CreateSnapshot() {
                 placeholder="e.g., 'Focus on extracting tables and numerical data'"
                 disabled={isUploading}
               />
+            </div>
+            <div className="flex items-center space-x-2 rounded-lg border p-3">
+              <Checkbox
+                id="enhance"
+                checked={enhance}
+                onCheckedChange={(checked) => setEnhance(checked === true)}
+                disabled={isUploading}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="enhance"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Enable AI Enhancement Mode
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  Use AI to enhance document processing and extraction
+                </p>
+              </div>
             </div>
             <MetadataSchemaEditor
               value={metadataSchema}

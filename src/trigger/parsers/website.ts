@@ -2,11 +2,13 @@ import Firecrawl, { SdkError } from "@mendable/firecrawl-js";
 import { queue, schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { FIRECRAWL_API_KEYS } from "@/lib/firecrawl";
+import { folderFromUrl } from "@/lib/folder-utils";
 
 export const parseWebsiteTask = schemaTask({
   id: "parse-website",
   schema: z.object({
     url: z.url(),
+    enhance: z.boolean().optional(),
   }),
   retry: {
     maxAttempts: 5,
@@ -14,7 +16,7 @@ export const parseWebsiteTask = schemaTask({
   queue: {
     concurrencyLimit: 1,
   },
-  run: async ({ url }, { ctx }) => {
+  run: async ({ url, enhance }, { ctx }) => {
     let api_key = process.env.FIRECRAWL_API_KEY;
 
     for (let i = 0; i < FIRECRAWL_API_KEYS.length; i++) {
@@ -28,19 +30,52 @@ export const parseWebsiteTask = schemaTask({
       apiKey: api_key,
     });
 
+    const formats: (
+      | "markdown"
+      | { type: "screenshot"; fullPage: true }
+      | "html"
+    )[] = [
+      "markdown",
+      {
+        type: "screenshot",
+        fullPage: true,
+      },
+    ];
+
+    if (enhance) {
+      formats.push("html");
+    }
+
     const doc = await fc.scrape(url, {
       timeout: 30_000,
       waitFor: 1_000,
-      formats: [
-        "markdown",
-        {
-          type: "screenshot",
-          fullPage: true,
-        },
-      ],
+      formats: formats,
     });
 
-    return doc;
+    let rawText = "";
+
+    if (doc.html) {
+      rawText = doc.html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    return {
+      ...doc,
+      rawText: rawText ?? undefined,
+      html: undefined,
+      rawHtml: undefined,
+      folder: folderFromUrl(url),
+    };
   },
   catchError: async ({ error }) => {
     if (error instanceof SdkError) {

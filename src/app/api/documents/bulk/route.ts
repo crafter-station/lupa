@@ -5,9 +5,14 @@ import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { DocumentInsert, SnapshotInsert } from "@/db/schema";
+import type {
+  DocumentInsert,
+  RefreshFrequency,
+  SnapshotInsert,
+} from "@/db/schema";
 import * as schema from "@/db/schema";
 import { generateId } from "@/lib/generate-id";
+import { createDocumentSchedule } from "@/lib/schedules";
 import { processWebsiteSnapshotBulkTask } from "@/trigger/process-website-snapshot-bulk.task";
 
 export const preferredRegion = "iad1";
@@ -18,6 +23,10 @@ const BulkDocumentItemSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable().optional(),
   url: z.string().min(1),
+  refresh_frequency: z
+    .enum(["daily", "weekly", "monthly", "none"])
+    .default("none"),
+  enhance: z.boolean().default(false),
 });
 
 const BulkCreateDocumentsRequestSchema = z.object({
@@ -77,9 +86,21 @@ export async function POST(request: Request) {
 
     const documents: DocumentInsert[] = [];
     const snapshots: SnapshotInsert[] = [];
+    const schedulePromises: Array<{
+      docId: string;
+      frequency: RefreshFrequency;
+    }> = [];
 
     docs.forEach((doc) => {
       const docId = generateId();
+
+      if (doc.refresh_frequency !== "none") {
+        schedulePromises.push({
+          docId,
+          frequency: doc.refresh_frequency as RefreshFrequency,
+        });
+      }
+
       documents.push({
         id: docId,
         org_id: orgId,
@@ -88,8 +109,9 @@ export async function POST(request: Request) {
         description: doc.description,
         project_id,
         metadata_schema: null,
-        refresh_enabled: false,
-        refresh_frequency: null,
+        refresh_enabled: doc.refresh_frequency !== "none",
+        refresh_frequency:
+          doc.refresh_frequency !== "none" ? doc.refresh_frequency : null,
         refresh_schedule_id: null,
       });
 
@@ -105,6 +127,7 @@ export async function POST(request: Request) {
         metadata: null,
         extracted_metadata: null,
         changes_detected: false,
+        enhance: doc.enhance,
       });
     });
 
@@ -120,6 +143,22 @@ export async function POST(request: Request) {
         txid: txidResult.rows[0].txid as string,
       };
     });
+
+    for (const { docId, frequency } of schedulePromises) {
+      try {
+        const schedule = await createDocumentSchedule(docId, frequency);
+
+        await db
+          .update(schema.Document)
+          .set({ refresh_schedule_id: schedule.id })
+          .where(eq(schema.Document.id, docId));
+      } catch (error) {
+        console.error(
+          `Failed to create schedule for document ${docId}:`,
+          error,
+        );
+      }
+    }
 
     const handle = await processWebsiteSnapshotBulkTask.trigger({
       snapshotIds: snapshots.map((snapshot) => snapshot.id),

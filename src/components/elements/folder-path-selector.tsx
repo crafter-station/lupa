@@ -18,36 +18,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { DocumentSelect } from "@/db";
+import {
+  buildPathFromSegments,
+  normalizeFolderPath,
+  parseFolderSegments,
+  sanitizeSegment,
+} from "@/lib/folder-utils";
 import { cn } from "@/lib/utils";
 
 interface FolderPathSelectorProps {
   documents: DocumentSelect[];
   initialFolder?: string;
   onChange: (folder: string) => void;
-}
-
-function normalizeFolderPath(folder: string | null | undefined) {
-  if (!folder) return "/";
-  let path = folder.trim();
-  if (path === "") return "/";
-  path = path.replace(/\\+/g, "/");
-  path = path.replace(/\/+/g, "/");
-  if (!path.startsWith("/")) path = `/${path}`;
-  path = path.replace(/\/+/g, "/");
-  if (!path.endsWith("/")) path = `${path}/`;
-  path = path.replace(/\/+/g, "/");
-  return path;
-}
-
-function parseFolderSegments(folder: string | undefined) {
-  const normalized = normalizeFolderPath(folder);
-  if (normalized === "/") return [];
-  return normalized.split("/").filter(Boolean);
-}
-
-function buildPathFromSegments(segments: string[]) {
-  if (segments.length === 0) return "/";
-  return normalizeFolderPath(`/${segments.join("/")}/`);
 }
 
 function extractFoldersAtLevel(
@@ -73,10 +55,6 @@ function extractFoldersAtLevel(
   }
 
   return Array.from(folders).sort((a, b) => a.localeCompare(b));
-}
-
-function sanitizeSegment(value: string) {
-  return value.trim().replace(/\//g, "");
 }
 
 export function FolderPathSelector({
