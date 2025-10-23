@@ -3,6 +3,7 @@ import {
   createDecipheriv,
   randomBytes,
   scryptSync,
+  timingSafeEqual,
 } from "node:crypto";
 
 const ALGORITHM = "aes-256-gcm";
@@ -49,4 +50,32 @@ export function decrypt(encryptedData: string): string {
   decrypted += decipher.final("utf8");
 
   return decrypted;
+}
+
+const SALT_ROUNDS = 10;
+
+export async function hashApiKey(apiKey: string): Promise<string> {
+  const salt = randomBytes(16);
+  const hash = scryptSync(apiKey, salt, 64);
+  return `${salt.toString("hex")}:${hash.toString("hex")}`;
+}
+
+export async function verifyApiKey(
+  apiKey: string,
+  storedHash: string,
+): Promise<boolean> {
+  const [saltHex, hashHex] = storedHash.split(":");
+  if (!saltHex || !hashHex) {
+    return false;
+  }
+
+  const salt = Buffer.from(saltHex, "hex");
+  const storedHashBuffer = Buffer.from(hashHex, "hex");
+  const hash = scryptSync(apiKey, salt, 64);
+
+  if (hash.length !== storedHashBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(hash, storedHashBuffer);
 }

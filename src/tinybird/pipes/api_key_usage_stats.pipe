@@ -1,0 +1,18 @@
+NODE endpoint
+SQL >
+  SELECT
+    project_id,
+    api_key_id,
+    endpoint,
+    COUNT(*) as request_count,
+    AVG(response_time_ms) as avg_response_time_ms,
+    SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) as success_count,
+    SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as error_count,
+    MIN(timestamp) as first_request,
+    MAX(timestamp) as last_request
+  FROM api_key_usage
+  WHERE project_id = {{String(project_id, 'proj_default')}}
+    AND timestamp >= now() - INTERVAL {{Int32(days, 30)}} DAY
+  GROUP BY project_id, api_key_id, endpoint
+  ORDER BY request_count DESC
+

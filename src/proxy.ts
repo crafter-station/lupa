@@ -5,17 +5,59 @@ import {
   type NextRequest,
   NextResponse,
 } from "next/server";
-import { logSearchRequest, logSearchResults } from "./lib/tinybird";
+import { validateApiKey } from "./lib/api-key";
+import {
+  logApiKeyUsage,
+  logSearchRequest,
+  logSearchResults,
+} from "./lib/tinybird";
 
 const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
 
 const isPrivateRoute = createRouteMatcher(["/orgs/(.*)"]);
 
+const isApiRoute = createRouteMatcher(["/api/(.*)"]);
+
+const isPublicApiRoute = createRouteMatcher([
+  "/api/collections/(.*)",
+  "/api/analytics/(.*)",
+  "/api/firecrawl/(.*)",
+]);
+
 export default clerkMiddleware(
   async (auth, req: NextRequest, event: NextFetchEvent) => {
-    if (isProtectedRoute(req)) await auth.protect();
-
     const url = req.nextUrl;
+
+    if (isApiRoute(req) && !isPublicApiRoute(req)) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader?.startsWith("Bearer lupa_sk_")) {
+        const validation = await validateApiKey(req);
+        if (!validation.valid) {
+          return new Response(
+            JSON.stringify({ error: "Invalid or expired API key" }),
+            {
+              status: 401,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+      } else if (url.pathname === "/api/search") {
+        const session = await auth();
+        if (!session.userId) {
+          return new Response(
+            JSON.stringify({
+              error: "Authentication required. Use API key or login.",
+            }),
+            {
+              status: 401,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+      }
+    }
+
+    if (isProtectedRoute(req)) await auth.protect();
 
     if (url.pathname === "/app") {
       const session = await auth();
@@ -65,14 +107,31 @@ export default clerkMiddleware(
         const requestId = nanoid();
         const startTime = Date.now();
 
-        // Build the internal API URL
+        const validation = await validateApiKey(req);
+        const isApiKeyAuth = validation.valid;
+
+        if (
+          !isApiKeyAuth &&
+          validation.projectId &&
+          validation.projectId !== projectId
+        ) {
+          return new Response(
+            JSON.stringify({
+              error: "API key does not have access to this project",
+            }),
+            {
+              status: 403,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
         const apiUrl = new URL(
           `/api/search/${projectId}/${deploymentId}/${encodeURIComponent(query)}`,
           req.url,
         );
 
         try {
-          // Fetch from the internal API
           const response = await fetch(apiUrl.toString(), {
             method: "GET",
             headers: {
@@ -83,36 +142,47 @@ export default clerkMiddleware(
           const responseTime = Date.now() - startTime;
           const data = await response.json();
 
-          // Extract results and scores for analytics
           const results = data.results || [];
           const scores = results
             .map((r: { score: number }) => r.score)
             .filter((s: number) => typeof s === "number");
 
-          // Log analytics asynchronously in the background
-          event.waitUntil(
-            Promise.all([
-              logSearchRequest({
-                requestId,
+          const loggingPromises = [
+            logSearchRequest({
+              requestId,
+              projectId,
+              deploymentId,
+              query: decodeURIComponent(query),
+              statusCode: response.status,
+              responseTimeMs: responseTime,
+              resultsReturned: results.length,
+              avgSimilarityScore:
+                scores.length > 0
+                  ? scores.reduce((a: number, b: number) => a + b, 0) /
+                    scores.length
+                  : 0,
+              minSimilarityScore: scores.length > 0 ? Math.min(...scores) : 0,
+              maxSimilarityScore: scores.length > 0 ? Math.max(...scores) : 0,
+            }),
+            logSearchResults(requestId, projectId, deploymentId, results),
+          ];
+
+          if (isApiKeyAuth && validation.apiKeyId) {
+            loggingPromises.push(
+              logApiKeyUsage({
+                timestamp: new Date(),
                 projectId,
-                deploymentId,
-                query: decodeURIComponent(query),
+                apiKeyId: validation.apiKeyId,
+                endpoint: "/api/search",
+                method: "GET",
                 statusCode: response.status,
                 responseTimeMs: responseTime,
-                resultsReturned: results.length,
-                avgSimilarityScore:
-                  scores.length > 0
-                    ? scores.reduce((a: number, b: number) => a + b, 0) /
-                      scores.length
-                    : 0,
-                minSimilarityScore: scores.length > 0 ? Math.min(...scores) : 0,
-                maxSimilarityScore: scores.length > 0 ? Math.max(...scores) : 0,
               }),
-              logSearchResults(requestId, projectId, deploymentId, results),
-            ]),
-          );
+            );
+          }
 
-          // Return the response to the client
+          event.waitUntil(Promise.all(loggingPromises));
+
           return new Response(JSON.stringify(data), {
             status: response.status,
             headers: {

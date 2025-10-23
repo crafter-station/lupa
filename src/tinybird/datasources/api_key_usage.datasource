@@ -1,0 +1,13 @@
+SCHEMA >
+  `timestamp` DateTime,
+  `project_id` String,
+  `api_key_id` String,
+  `endpoint` String,
+  `method` String,
+  `status_code` UInt16,
+  `response_time_ms` UInt32
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"
+ENGINE_SORTING_KEY "project_id, api_key_id, timestamp"
+
