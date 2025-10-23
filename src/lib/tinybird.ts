@@ -109,3 +109,37 @@ export async function logSearchResults(
 
   await Promise.all(promises);
 }
+
+export async function logApiKeyUsage(data: {
+  timestamp: Date;
+  projectId: string;
+  apiKeyId: string;
+  endpoint: string;
+  method: string;
+  statusCode: number;
+  responseTimeMs: number;
+}) {
+  if (!TINYBIRD_TOKEN) {
+    return;
+  }
+
+  try {
+    await fetch(`${TINYBIRD_API_URL}?name=api_key_usage`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TINYBIRD_TOKEN}`,
+      },
+      body: JSON.stringify({
+        timestamp: data.timestamp.toISOString(),
+        project_id: data.projectId,
+        api_key_id: data.apiKeyId,
+        endpoint: data.endpoint,
+        method: data.method,
+        status_code: data.statusCode,
+        response_time_ms: data.responseTimeMs,
+      }),
+    });
+  } catch (error) {
+    console.error("Failed to log API key usage to Tinybird:", error);
+  }
+}
