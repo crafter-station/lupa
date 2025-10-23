@@ -4,7 +4,13 @@
 
 Lupa is a production-ready RAG (Retrieval-Augmented Generation) infrastructure that gives AI agents instant access to your knowledge base. Built with semantic search, intelligent document parsing, and real-time observability.
 
-🔍 **Semantic Search**: pgvector-powered retrieval with <50ms P95 latency  
+## Contributors
+
+<a href="https://github.com/crafter-station/lupa/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=crafter-station/lupa" />
+</a>
+
+🔍 **Semantic Search**: pgvector-powered retrieval with <50ms P95 latency
 📄 **Smart Parsing**: Automatic chunking for PDF, DOCX, XLSX, CSV, HTML, and more  
 📊 **Agent Observability**: Track queries, relevance scores, and retrieval patterns  
 🔄 **Version Control**: Snapshot-based deployments with zero-downtime updates  
