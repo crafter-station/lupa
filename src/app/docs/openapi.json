@@ -447,8 +447,7 @@
             "items": {
               "$ref": "#/components/schemas/BulkDocumentItemSchema"
             },
-            "minItems": 1,
-            "maxItems": 50
+            "minItems": 1
           }
         },
         "required": ["project_id", "documents"]
@@ -476,6 +475,74 @@
           }
         },
         "required": ["url"]
+      },
+      "UpdateApiKeyRequestSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": ["name"]
+      },
+      "CreateApiKeyRequestSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": ["name"]
+      },
+      "ApiKeyListResponseSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "key_preview": {
+              "type": "string"
+            },
+            "last_used_at": {
+              "type": "string",
+              "nullable": true
+            },
+            "created_at": {
+              "type": "string"
+            }
+          },
+          "required": ["id", "name", "key_preview", "created_at"]
+        }
+      },
+      "CreateApiKeyResponseSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "key_preview": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "key", "key_preview", "created_at"]
       },
       "ProjectErrorResponseSchema": {
         "type": "object",
