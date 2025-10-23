@@ -1,0 +1,64 @@
+name: Web App Issue
+description: Report a bug or issue with the Lupa web application (lupa.build)
+labels:
+  - web-app
+  - bug
+body:
+  - type: checkboxes
+    attributes:
+      label: Self Check
+      options:
+        - label: I have searched for [existing issues](https://github.com/crafter-station/lupa/issues), including closed ones
+          required: true
+
+  - type: input
+    attributes:
+      label: Browser & Version
+      description: Which browser are you using?
+      placeholder: e.g., Chrome 120, Firefox 121, Safari 17
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Page/Feature
+      description: Which page or feature is affected?
+      placeholder: e.g., /orgs/[slug]/projects, Chat interface, File upload
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Bug Description
+      description: What happened? What did you expect to happen?
+      placeholder: Describe the issue clearly and concisely
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Screenshots/Logs
+      description: Add screenshots or console logs if applicable
+      placeholder: Paste screenshots or error messages here
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: Environment, account type, specific project, etc.
+    validations:
+      required: false

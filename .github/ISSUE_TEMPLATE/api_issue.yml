@@ -1,0 +1,77 @@
+name: API Issue
+description: Report an issue with the Lupa API
+labels:
+  - api
+  - bug
+body:
+  - type: checkboxes
+    attributes:
+      label: Self Check
+      options:
+        - label: I have searched for [existing issues](https://github.com/crafter-station/lupa/issues), including closed ones
+          required: true
+
+  - type: input
+    attributes:
+      label: API Endpoint
+      description: Which endpoint is affected?
+      placeholder: e.g., POST /api/chat, GET /api/collections/[id]
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Request Details
+      description: Provide the request you're making
+      placeholder: |
+        Method: POST
+        URL: /api/search
+        Headers: { ... }
+        Body: { ... }
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected Response
+      description: What response did you expect?
+      placeholder: Describe the expected behavior or response
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Actual Response
+      description: What response did you actually receive?
+      placeholder: |
+        Status: 500
+        Body: { "error": "..." }
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Error Logs/Traces
+      description: Include any error messages, stack traces, or logs
+      placeholder: Paste error logs here
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: SDK/Client Version
+      description: If using an SDK or client, which version?
+      placeholder: e.g., @lupa/sdk@1.2.3, curl, fetch
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: Rate limiting, authentication, specific project, etc.
+    validations:
+      required: false

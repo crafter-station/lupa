@@ -1,0 +1,64 @@
+name: General Issue
+description: Report a general issue, feature request, or question
+labels:
+  - triage
+body:
+  - type: checkboxes
+    attributes:
+      label: Self Check
+      options:
+        - label: I have searched for [existing issues](https://github.com/crafter-station/lupa/issues), including closed ones
+          required: true
+
+  - type: dropdown
+    attributes:
+      label: Issue Type
+      description: What type of issue is this?
+      options:
+        - Feature Request
+        - Enhancement
+        - Question
+        - Discussion
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Subject
+      description: Brief summary of your issue
+      placeholder: e.g., Add support for PDF parsing, Improve search performance
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Description
+      description: Provide details about your issue, request, or question
+      placeholder: Describe your issue, feature request, or question in detail
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Use Case/Motivation
+      description: Why is this important? What problem does it solve?
+      placeholder: Explain the use case or motivation behind this issue
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Proposed Solution
+      description: How would you like to see this addressed?
+      placeholder: Describe your proposed solution or approach
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Any other context, links, or references
+      placeholder: Add any other context, screenshots, or links
+    validations:
+      required: false
