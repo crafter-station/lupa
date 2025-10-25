@@ -1,29 +1,16 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { nanoid } from "nanoid";
 import {
   type NextFetchEvent,
   type NextRequest,
   NextResponse,
 } from "next/server";
 import { validateApiKey } from "./lib/api-key";
-import {
-  logApiKeyUsage,
-  logSearchRequest,
-  logSearchResults,
-} from "./lib/tinybird";
+
 import { rootDomain } from "./lib/utils";
 
 const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
 
 const isPrivateRoute = createRouteMatcher(["/orgs/(.*)"]);
-
-const isApiRoute = createRouteMatcher(["/api/(.*)"]);
-
-const isPublicApiRoute = createRouteMatcher([
-  "/api/collections/(.*)",
-  "/api/analytics/(.*)",
-  "/api/firecrawl/(.*)",
-]);
 
 export default clerkMiddleware(
   async (auth, req: NextRequest, event: NextFetchEvent) => {
@@ -38,34 +25,99 @@ export default clerkMiddleware(
       rewriteUrl.search = url.search;
 
       return NextResponse.rewrite(rewriteUrl);
-    }
+    } else if (subdomain?.length === 10) {
+      const projectId = subdomain;
 
-    if (isApiRoute(req) && !isPublicApiRoute(req)) {
-      const authHeader = req.headers.get("authorization");
-      if (authHeader?.startsWith("Bearer lupa_sk_")) {
-        const validation = await validateApiKey(req);
-        if (!validation.valid) {
-          return new Response(
-            JSON.stringify({ error: "Invalid or expired API key" }),
+      const validation = await validateApiKey(req);
+      const isApiKeyAuth = validation.valid;
+
+      if (
+        !isApiKeyAuth &&
+        validation.projectId &&
+        validation.projectId !== projectId
+      ) {
+        return new Response(
+          JSON.stringify({
+            error: "API key does not have access to this project",
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const deploymentId = req.headers.get("Deployment-Id");
+
+      if (url.pathname === "/api/search") {
+        const query = url.searchParams.get("query");
+
+        if (!query) {
+          return NextResponse.json(
             {
-              status: 401,
+              error: "Missing `query` parameter",
+            },
+            {
+              status: 400,
               headers: { "Content-Type": "application/json" },
             },
           );
         }
-      } else if (url.pathname === "/api/search") {
-        const session = await auth();
-        if (!session.userId) {
-          return new Response(
-            JSON.stringify({
-              error: "Authentication required. Use API key or login.",
-            }),
+
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/deployments/${deploymentId}/search/${encodeURIComponent(query)}`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
+      }
+      if (url.pathname === "/api/ls") {
+        const folder = url.searchParams.get("folder");
+        if (!folder) {
+          return NextResponse.json(
             {
-              status: 401,
+              error: "Missing `folder` parameter",
+            },
+            {
+              status: 400,
               headers: { "Content-Type": "application/json" },
             },
           );
         }
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/deployments/${deploymentId}/ls/${encodeURIComponent(folder)}`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
+      }
+      if (url.pathname === "/api/cat") {
+        const path = url.searchParams.get("path");
+        if (!path) {
+          return NextResponse.json(
+            {
+              error: "Missing `path` parameter",
+            },
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/deployments/${deploymentId}/cat/${encodeURIComponent(path)}`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
+      }
+      if (url.pathname === "/api/mcp") {
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/deployments/${deploymentId}/mcp/mcp`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
       }
     }
 
@@ -85,145 +137,13 @@ export default clerkMiddleware(
       await auth.protect(() => orgSlug === session.orgSlug);
     }
 
-    // Rewrite /api/snapshot/[snapshot_id] to Vercel Blob Storage
-    const snapshotsMatch = url.pathname.match(/^\/api\/snapshots\/([^/]+)$/);
-    if (snapshotsMatch) {
-      const snapshotId = snapshotsMatch[1];
-      const blobUrl = `${process.env.VERCEL_BLOB_STORAGE_ROOT_DOMAIN}/parsed/${snapshotId}.md`;
-      return NextResponse.rewrite(blobUrl);
-    }
-
     // Redirect www.lupa.build/docs/* to docs.lupa.build/*
-    if (url.hostname === "www.lupa.build" && url.pathname.startsWith("/docs")) {
+    if (!subdomain && url.pathname.startsWith("/docs")) {
       const redirectUrl = new URL(url.href);
       redirectUrl.hostname = "docs.lupa.build";
       redirectUrl.pathname = url.pathname.replace(/^\/docs/, "") || "/";
 
       return NextResponse.redirect(redirectUrl, 301);
-    }
-
-    if (url.pathname === "/api/search") {
-      const projectId = url.searchParams.get("projectId");
-      const deploymentId = url.searchParams.get("deploymentId");
-      const query = url.searchParams.get("query");
-
-      if (projectId && deploymentId && query) {
-        const requestId = nanoid();
-        const startTime = Date.now();
-
-        const validation = await validateApiKey(req);
-        const isApiKeyAuth = validation.valid;
-
-        if (
-          !isApiKeyAuth &&
-          validation.projectId &&
-          validation.projectId !== projectId
-        ) {
-          return new Response(
-            JSON.stringify({
-              error: "API key does not have access to this project",
-            }),
-            {
-              status: 403,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        const apiUrl = new URL(
-          `/api/search/${projectId}/${deploymentId}/${encodeURIComponent(query)}`,
-          req.url,
-        );
-
-        try {
-          const response = await fetch(apiUrl.toString(), {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          const responseTime = Date.now() - startTime;
-          const data = await response.json();
-
-          const results = data.results || [];
-          const scores = results
-            .map((r: { score: number }) => r.score)
-            .filter((s: number) => typeof s === "number");
-
-          const loggingPromises = [
-            logSearchRequest({
-              requestId,
-              projectId,
-              deploymentId,
-              query: decodeURIComponent(query),
-              statusCode: response.status,
-              responseTimeMs: responseTime,
-              resultsReturned: results.length,
-              avgSimilarityScore:
-                scores.length > 0
-                  ? scores.reduce((a: number, b: number) => a + b, 0) /
-                    scores.length
-                  : 0,
-              minSimilarityScore: scores.length > 0 ? Math.min(...scores) : 0,
-              maxSimilarityScore: scores.length > 0 ? Math.max(...scores) : 0,
-            }),
-            logSearchResults(requestId, projectId, deploymentId, results),
-          ];
-
-          if (isApiKeyAuth && validation.apiKeyId) {
-            loggingPromises.push(
-              logApiKeyUsage({
-                timestamp: new Date(),
-                projectId,
-                apiKeyId: validation.apiKeyId,
-                endpoint: "/api/search",
-                method: "GET",
-                statusCode: response.status,
-                responseTimeMs: responseTime,
-              }),
-            );
-          }
-
-          event.waitUntil(Promise.all(loggingPromises));
-
-          return new Response(JSON.stringify(data), {
-            status: response.status,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-        } catch (error) {
-          console.error("Middleware search error:", error);
-
-          // Log the error asynchronously
-          const responseTime = Date.now() - startTime;
-          event.waitUntil(
-            logSearchRequest({
-              requestId,
-              projectId,
-              deploymentId,
-              query: decodeURIComponent(query),
-              statusCode: 500,
-              responseTimeMs: responseTime,
-              resultsReturned: 0,
-              avgSimilarityScore: 0,
-              minSimilarityScore: 0,
-              maxSimilarityScore: 0,
-            }),
-          );
-
-          return new Response(
-            JSON.stringify({ error: "Internal server error" }),
-            {
-              status: 500,
-              headers: {
-                "Content-Type": "application/json",
-              },
-            },
-          );
-        }
-      }
     }
 
     // For all other routes, continue normally
