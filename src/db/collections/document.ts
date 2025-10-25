@@ -4,6 +4,7 @@ import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { DOCUMENT_TABLE, type DocumentSelect } from "@/db/schema";
+import { appBaseURL, getAPIBaseURL } from "@/lib/utils";
 
 export const DocumentCollection = ({
   project_id,
@@ -16,7 +17,7 @@ export const DocumentCollection = ({
     electricCollectionOptions<DocumentSelect>({
       id: `${DOCUMENT_TABLE}|${project_id ?? ""}|${document_id ?? ""}`,
       shapeOptions: {
-        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/documents`,
+        url: `${appBaseURL}/api/collections/documents`,
         params: document_id
           ? {
               where: `"id"=$1`,
@@ -33,11 +34,14 @@ export const DocumentCollection = ({
       },
       getKey: (item) => item.id,
       onUpdate: async (item) => {
+        if (!project_id) {
+          throw new Error("Project ID is required");
+        }
         const documentId = item.transaction.mutations[0].key;
         const changes = item.transaction.mutations[0].changes;
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/documents/${documentId}`,
+          `${getAPIBaseURL(project_id)}/api/documents/${documentId}`,
           {
             method: "PATCH",
             headers: {

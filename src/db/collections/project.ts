@@ -4,6 +4,7 @@ import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { PROJECT_TABLE, type ProjectSelect } from "@/db/schema";
+import { appBaseURL } from "@/lib/utils";
 
 export const ProjectCollection = ({
   project_id,
@@ -14,7 +15,7 @@ export const ProjectCollection = ({
     electricCollectionOptions<ProjectSelect>({
       id: PROJECT_TABLE + (project_id ?? ""),
       shapeOptions: {
-        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/projects`,
+        url: `${appBaseURL}/api/collections/projects`,
         params: project_id
           ? {
               where: `"id"=$1`,
@@ -26,16 +27,13 @@ export const ProjectCollection = ({
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/projects`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ ...item.transaction.mutations[0].changes }),
+        const response = await fetch(`${appBaseURL}/api/projects`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({ ...item.transaction.mutations[0].changes }),
+        });
 
         if (!response.ok) {
           throw new Error(`Failed to insert project: ${response.statusText}`);

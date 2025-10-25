@@ -39,6 +39,7 @@ import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
+import { getAPIBaseURL } from "@/lib/utils";
 
 export function CreateDocument() {
   const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
@@ -165,13 +166,10 @@ export function CreateDocument() {
         );
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/documents`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const response = await fetch(`${getAPIBaseURL(projectId)}/documents`, {
+        method: "POST",
+        body: formData,
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to insert document: ${response.statusText}`);

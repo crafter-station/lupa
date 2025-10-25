@@ -1,3 +1,5 @@
+import { getAPIBaseURL } from "@/lib/utils";
+
 const words = [
   "javascript",
   "typescript",
@@ -63,16 +65,22 @@ const words = [
   "redis caching patterns",
 ];
 
+const PROJECT_ID = "CR1g03Sf3D";
+const DEPLOYMENT_ID = "HWpgHPqSOC";
 function getRandomQuery(): string {
   return words[Math.floor(Math.random() * words.length)];
 }
 
 async function makeRequest(query: string): Promise<void> {
-  const url = `https://dev.lupa.build/api/search?projectId=CR1g03Sf3D&deploymentId=HWpgHPqSOC&query=${encodeURIComponent(query)}`;
+  const url = `${getAPIBaseURL(PROJECT_ID)}/search/?query=${encodeURIComponent(query)}`;
 
   const start = performance.now();
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        "Deployment-Id": DEPLOYMENT_ID,
+      },
+    });
     const duration = performance.now() - start;
     console.log(`[${duration.toFixed(2)}ms] ${response.status} - "${query}"`);
   } catch (error) {

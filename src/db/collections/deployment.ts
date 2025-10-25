@@ -4,6 +4,7 @@ import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { DEPLOYMENT_TABLE, type DeploymentSelect } from "@/db/schema";
+import { appBaseURL, getAPIBaseURL } from "@/lib/utils";
 
 export const DeploymentCollection = ({
   project_id,
@@ -16,7 +17,7 @@ export const DeploymentCollection = ({
     electricCollectionOptions<DeploymentSelect>({
       id: DEPLOYMENT_TABLE + (project_id ?? "") + (deployment_id ?? ""),
       shapeOptions: {
-        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/deployments`,
+        url: `${appBaseURL}/api/collections/deployments`,
         params: deployment_id
           ? {
               where: `"id"=$1`,
@@ -33,8 +34,10 @@ export const DeploymentCollection = ({
       },
       getKey: (item) => item.id,
       onInsert: async (item) => {
+        if (!project_id) throw new Error("Project ID is required");
+
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/deployments`,
+          `${getAPIBaseURL(project_id)}/api/deployments`,
           {
             method: "POST",
             headers: {

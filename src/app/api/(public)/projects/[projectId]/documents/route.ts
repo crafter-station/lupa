@@ -7,6 +7,7 @@ import { z } from "zod";
 import * as schema from "@/db/schema";
 import { folderFromUrl, normalizeFolderPath } from "@/lib/folder-utils";
 import { createDocumentSchedule } from "@/lib/schedules";
+import { getAPIBaseURL } from "@/lib/utils";
 
 export const preferredRegion = "iad1";
 
@@ -70,10 +71,14 @@ export const ErrorResponseSchema = z.object({
  * @response 500:ErrorResponseSchema
  * @openapi
  */
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
   let pool: Pool | undefined;
   try {
     const { orgId } = await auth();
+    const { projectId } = await params;
 
     if (!orgId) {
       return Response.json(
@@ -85,7 +90,6 @@ export async function POST(request: Request) {
     const formData = await request.formData();
 
     const documentId = formData.get("id") as string;
-    const project_id = formData.get("project_id") as string;
     const rawFolder = (formData.get("folder") as string) || "/";
     const name = formData.get("name") as string;
     const description = formData.get("description") as string | null;
@@ -117,7 +121,6 @@ export async function POST(request: Request) {
 
     if (
       !documentId ||
-      !project_id ||
       !name ||
       !snapshotId ||
       !snapshotType ||
@@ -146,7 +149,7 @@ export async function POST(request: Request) {
     });
 
     const project = await db.query.Project.findFirst({
-      where: eq(schema.Project.id, project_id),
+      where: eq(schema.Project.id, projectId),
     });
 
     if (!project) {
@@ -179,7 +182,7 @@ export async function POST(request: Request) {
         folder,
         name,
         description,
-        project_id,
+        project_id: projectId,
         metadata_schema,
         refresh_enabled,
         refresh_frequency,
@@ -221,16 +224,16 @@ export async function POST(request: Request) {
       snapshotFormData.append("enhance", enhance.toString());
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_URL ||
-      `http://localhost:${process.env.PORT || 3000}`;
-    const snapshotResponse = await fetch(`${baseUrl}/api/snapshots`, {
-      method: "POST",
-      headers: {
-        Cookie: request.headers.get("cookie") || "",
+    const snapshotResponse = await fetch(
+      `${getAPIBaseURL(projectId)}/snapshots`,
+      {
+        method: "POST",
+        headers: {
+          Cookie: request.headers.get("cookie") || "",
+        },
+        body: snapshotFormData,
       },
-      body: snapshotFormData,
-    });
+    );
 
     if (!snapshotResponse.ok) {
       const error = await snapshotResponse.json();
@@ -262,9 +265,9 @@ export async function POST(request: Request) {
       }
     }
 
-    revalidatePath(`/projects/${project_id}/documents`);
+    revalidatePath(`/projects/${projectId}/documents`);
     if (folder && folder !== "/") {
-      revalidatePath(`/projects/${project_id}/documents${folder}`);
+      revalidatePath(`/projects/${project}/documents${folder}`);
     }
 
     await pool.end();

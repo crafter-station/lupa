@@ -8,6 +8,7 @@ import {
 } from "ai";
 import dedent from "dedent";
 import { z } from "zod";
+import { getAPIBaseURL } from "@/lib/utils";
 
 export const maxDuration = 120;
 
@@ -121,9 +122,13 @@ You MUST use get-snapshot-contents when:
               }
             }
 
-            const searchUrl = `${request.headers.get("origin")}/api/search/${projectId}/${deploymentId}?${params.toString()}`;
+            const searchUrl = `${getAPIBaseURL(projectId)}/search/?${params.toString()}`;
 
-            const response = await fetch(searchUrl);
+            const response = await fetch(searchUrl, {
+              headers: {
+                "Deployment-Id": deploymentId,
+              },
+            });
 
             if (!response.ok) {
               throw new Error(`Search failed: ${response.statusText}`);
@@ -163,14 +168,18 @@ You MUST use get-snapshot-contents when:
           description:
             "Retrieve the COMPLETE markdown content of a specific document snapshot. Use this tool when: (1) the same snapshotId appears repeatedly in search results, indicating high relevance; (2) users ask to summarize, analyze, review, or explain a document; (3) you need full document context to answer comprehensively; (4) users request detailed information spanning multiple sections; (5) the question requires understanding the complete document rather than isolated fragments. Always use this after search-knowledge identifies relevant snapshots. Input the snapshotId from search results metadata.",
           inputSchema: z.object({
-            snapshotId: z
+            path: z
               .string()
               .describe("The snapshot ID to retrieve the full content for"),
           }),
-          execute: async ({ snapshotId }) => {
-            const snapshotUrl = `${request.headers.get("origin")}/api/snapshots/${snapshotId}`;
+          execute: async ({ path }) => {
+            const snapshotUrl = `${getAPIBaseURL(projectId)}/cat/?${path}`;
 
-            const response = await fetch(snapshotUrl);
+            const response = await fetch(snapshotUrl, {
+              headers: {
+                "Deployment-Id": deploymentId,
+              },
+            });
 
             if (!response.ok) {
               throw new Error(
@@ -181,7 +190,7 @@ You MUST use get-snapshot-contents when:
             const content = await response.text();
 
             return {
-              snapshotId,
+              path,
               content,
               contentLength: content.length,
             };

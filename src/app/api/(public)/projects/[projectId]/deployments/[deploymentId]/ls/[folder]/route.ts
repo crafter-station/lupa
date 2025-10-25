@@ -1,3 +1,6 @@
+// ls /path/to/folder
+// list files and directories in current location
+
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
@@ -16,11 +19,15 @@ export async function GET(
   {
     params,
   }: {
-    params: Promise<{ projectId: string; deploymentId: string }>;
+    params: Promise<{
+      projectId: string;
+      deploymentId: string;
+      folder: string;
+    }>;
   },
 ) {
   try {
-    const { projectId, deploymentId } = await params;
+    const { projectId, deploymentId, folder } = await params;
     const { searchParams } = new URL(request.url);
     const { allSnapshots } = querySchema.parse({
       allSnapshots: searchParams.get("allSnapshots"),

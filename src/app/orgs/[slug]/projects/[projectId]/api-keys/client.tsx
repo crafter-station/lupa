@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CreateApiKeyDialog } from "@/components/elements/api-key-dialog";
 import { ApiKeyList } from "@/components/elements/api-key-list";
 import { Button } from "@/components/ui/button";
+import { getAPIBaseURL } from "@/lib/utils";
 
 interface ApiKey {
   id: string;
@@ -108,7 +109,7 @@ export function ApiKeysClient({
           <div>
             <p className="mb-2 text-sm font-medium">Search</p>
             <pre className="overflow-x-auto rounded-lg bg-muted p-4 text-xs">
-              <code>{`curl -X GET "https://lupa.build/api/search?projectId=${projectId}&deploymentId=YOUR_DEPLOYMENT_ID&query=YOUR_QUERY" \\
+              <code>{`curl -X GET "${getAPIBaseURL(projectId)}/search/?query=YOUR_QUERY" \\
   -H "Authorization: Bearer YOUR_API_KEY"`}</code>
             </pre>
           </div>
@@ -116,7 +117,7 @@ export function ApiKeysClient({
           <div>
             <p className="mb-2 text-sm font-medium">Create Document</p>
             <pre className="overflow-x-auto rounded-lg bg-muted p-4 text-xs">
-              <code>{`curl -X POST "https://lupa.build/api/documents" \\
+              <code>{`curl -X POST "${getAPIBaseURL(projectId)}/documents" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: multipart/form-data" \\
   -F "project_id=${projectId}" \\

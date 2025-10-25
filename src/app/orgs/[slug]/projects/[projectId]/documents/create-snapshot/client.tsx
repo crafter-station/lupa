@@ -4,6 +4,7 @@ import { useOrganization } from "@clerk/nextjs";
 import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { FileText, Globe, Loader2, Plus, Upload } from "lucide-react";
+import { useParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import React from "react";
 import { toast } from "sonner";
@@ -37,8 +38,10 @@ import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
+import { getAPIBaseURL } from "@/lib/utils";
 
 export function CreateSnapshot() {
+  const { projectId } = useParams<{ projectId: string }>();
   const [open, setOpen] = React.useState(false);
   const [_newSnapshot, setNewSnapshot] = useQueryState(
     "newSnapshot",
@@ -143,13 +146,10 @@ export function CreateSnapshot() {
         formData.append("enhance", snapshot.enhance.toString());
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/snapshots`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const response = await fetch(`${getAPIBaseURL(projectId)}/snapshots`, {
+        method: "POST",
+        body: formData,
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to create snapshot: ${response.statusText}`);

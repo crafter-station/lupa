@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/hover-card";
 import type { DeploymentSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
+import { getAPIBaseURL } from "@/lib/utils";
 import { AIPlayground } from "../ai-playground";
 import { SearchPlayground } from "../search-playground";
-
 import type { DeploymentDetailsLoadingContextProps } from "./index";
 
 export function DeploymentDetailsLiveQuery({
@@ -73,7 +73,7 @@ export function DeploymentDetailsContent({
             ? "bg-red-100 text-red-800 border-red-200"
             : "bg-gray-100 text-gray-800 border-gray-200";
 
-  const apiUrl = `https://www.lupa.build/api/search/${projectId}/${deploymentId}/<query>`;
+  const apiUrl = `${getAPIBaseURL(projectId)}/search/?query=<query>`;
 
   return (
     <div className="space-y-4">
@@ -111,6 +111,7 @@ export function DeploymentDetailsContent({
                 <p className="text-xs font-medium">API Endpoint</p>
                 <code className="block rounded bg-muted p-2 text-xs break-all">
                   GET {apiUrl}
+                  HEADER Deployment-Id = {deployment.id}
                 </code>
                 {deployment.vector_index_id && (
                   <div className="pt-2 border-t">

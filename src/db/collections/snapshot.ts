@@ -4,6 +4,7 @@ import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { SNAPSHOT_TABLE, type SnapshotSelect } from "@/db/schema";
+import { appBaseURL } from "@/lib/utils";
 
 export const SnapshotCollection = ({
   document_id,
@@ -16,7 +17,7 @@ export const SnapshotCollection = ({
     electricCollectionOptions<SnapshotSelect>({
       id: `${SNAPSHOT_TABLE}|${document_id ?? ""}|${snapshot_id ?? ""}`,
       shapeOptions: {
-        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshots`,
+        url: `${appBaseURL}/api/collections/snapshots`,
         params: snapshot_id
           ? {
               where: `"id"=$1`,
