@@ -1,4 +1,5 @@
-// app/dynamic/[p]/[transport]/route.ts
+// mcp server
+// users will hit https://<projectId>.lupa.build/api/mcp
 
 import { createMcpHandler } from "mcp-handler";
 import type { NextRequest } from "next/server";
@@ -146,7 +147,7 @@ const handler = async (
     {
       // Optional redis config
       redisUrl: process.env.REDIS_URL,
-      basePath: `/api/projects/${projectId}/deployments/${deploymentId}/mcp`,
+      basePath: `${getAPIBaseURL(projectId)}/`,
       maxDuration: 60,
       verboseLogs: true,
     },

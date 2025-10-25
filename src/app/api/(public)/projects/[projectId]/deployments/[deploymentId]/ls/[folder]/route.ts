@@ -1,11 +1,18 @@
 // ls /path/to/folder
 // list files and directories in current location
+// users will hit https://<projectId>.lupa.build/api/ls/?folder=/path/to/folder/
 
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import type { FileListItem } from "@/lib/types/search";
+
+export const preferredRegion = "iad1";
+
+export const revalidate = false;
+
+export const dynamic = "force-static";
 
 const querySchema = z.object({
   allSnapshots: z

@@ -1,3 +1,7 @@
+// ls /path/to/folder
+// list files and directories in current location
+// users will hit https://<projectId>.lupa.build/api/search/?query=<query>
+
 import z from "zod";
 import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 

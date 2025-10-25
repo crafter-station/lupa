@@ -1,9 +1,16 @@
 // cat /path/to/file.md
 // display file contents
+// users will hit https://<projectId>.lupa.build/api/cat/?path=/path/to/file.md
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+
+export const preferredRegion = "iad1";
+
+export const revalidate = false;
+
+export const dynamic = "force-static";
 
 export async function GET(
   _request: Request,
