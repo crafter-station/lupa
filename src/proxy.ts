@@ -104,9 +104,6 @@ export default clerkMiddleware(
       const query = url.searchParams.get("query");
 
       if (projectId && deploymentId && query) {
-        const requestId = nanoid();
-        const startTime = Date.now();
-
         const validation = await validateApiKey(req);
         const isApiKeyAuth = validation.valid;
 
@@ -126,99 +123,31 @@ export default clerkMiddleware(
           );
         }
 
-        const apiUrl = new URL(
-          `/api/search/${projectId}/${deploymentId}/${encodeURIComponent(query)}`,
+        const rewriteUrl = new URL(
+          `/api/search/${projectId}/${deploymentId}`,
           req.url,
         );
+        rewriteUrl.searchParams.set("query", query);
 
-        try {
-          const response = await fetch(apiUrl.toString(), {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          const responseTime = Date.now() - startTime;
-          const data = await response.json();
-
-          const results = data.results || [];
-          const scores = results
-            .map((r: { score: number }) => r.score)
-            .filter((s: number) => typeof s === "number");
-
-          const loggingPromises = [
-            logSearchRequest({
-              requestId,
-              projectId,
-              deploymentId,
-              query: decodeURIComponent(query),
-              statusCode: response.status,
-              responseTimeMs: responseTime,
-              resultsReturned: results.length,
-              avgSimilarityScore:
-                scores.length > 0
-                  ? scores.reduce((a: number, b: number) => a + b, 0) /
-                    scores.length
-                  : 0,
-              minSimilarityScore: scores.length > 0 ? Math.min(...scores) : 0,
-              maxSimilarityScore: scores.length > 0 ? Math.max(...scores) : 0,
-            }),
-            logSearchResults(requestId, projectId, deploymentId, results),
-          ];
-
-          if (isApiKeyAuth && validation.apiKeyId) {
-            loggingPromises.push(
-              logApiKeyUsage({
-                timestamp: new Date(),
-                projectId,
-                apiKeyId: validation.apiKeyId,
-                endpoint: "/api/search",
-                method: "GET",
-                statusCode: response.status,
-                responseTimeMs: responseTime,
-              }),
-            );
+        const otherParams = ["documentIds", "topK"];
+        for (const param of otherParams) {
+          const value = url.searchParams.get(param);
+          if (value) {
+            rewriteUrl.searchParams.set(param, value);
           }
-
-          event.waitUntil(Promise.all(loggingPromises));
-
-          return new Response(JSON.stringify(data), {
-            status: response.status,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-        } catch (error) {
-          console.error("Middleware search error:", error);
-
-          // Log the error asynchronously
-          const responseTime = Date.now() - startTime;
-          event.waitUntil(
-            logSearchRequest({
-              requestId,
-              projectId,
-              deploymentId,
-              query: decodeURIComponent(query),
-              statusCode: 500,
-              responseTimeMs: responseTime,
-              resultsReturned: 0,
-              avgSimilarityScore: 0,
-              minSimilarityScore: 0,
-              maxSimilarityScore: 0,
-            }),
-          );
-
-          return new Response(
-            JSON.stringify({ error: "Internal server error" }),
-            {
-              status: 500,
-              headers: {
-                "Content-Type": "application/json",
-              },
-            },
-          );
         }
+
+        const requestId = nanoid();
+        const response = NextResponse.rewrite(rewriteUrl);
+
+        response.headers.set("x-request-id", requestId);
+        if (isApiKeyAuth && validation.apiKeyId) {
+          response.headers.set("x-api-key-id", validation.apiKeyId);
+        }
+        response.headers.set("x-project-id", projectId);
+        response.headers.set("x-deployment-id", deploymentId);
+
+        return response;
       }
     }
 
