@@ -4,7 +4,7 @@ import { z } from "zod/v3";
 import { db } from "@/db";
 import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";
-import { invalidateVectorCache } from "@/lib/vector";
+import { invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const deploy = schemaTask({
   id: "deploy",
@@ -194,7 +194,7 @@ export const pushSnapshot = schemaTask({
 
       const vector = await (async () => {
         try {
-          const { getVectorIndex } = await import("@/lib/vector");
+          const { getVectorIndex } = await import("@/lib/crypto/vector");
           return await getVectorIndex(deploymentId, { skipCache: true });
         } catch (error) {
           logger.error("Failed to get vector index using cache", { error });

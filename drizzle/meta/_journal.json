@@ -57,6 +57,13 @@
       "when": 1761193529815,
       "tag": "0007_smiling_slayback",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1761504269608,
+      "tag": "0008_freezing_impossible_man",
+      "breakpoints": true
     }
   ]
 }

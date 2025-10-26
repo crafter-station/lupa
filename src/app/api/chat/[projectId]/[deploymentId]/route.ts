@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { GET_DOCUMENT_CONTENTS_PROMPT } from "@/lib/prompts/get-document-contents.prompt";
 import { SEARCH_KNOWLEDGE_PROMPT } from "@/lib/prompts/search-knowledge.prompt";
 import { SYSTEM_PROMPT } from "@/lib/prompts/system.prompt";
@@ -110,9 +111,12 @@ export async function POST(
 
             const searchUrl = `${getAPIBaseURL(projectId)}/search/?${params.toString()}`;
 
+            const internalToken = generateInternalToken(projectId);
+
             const response = await fetch(searchUrl, {
               headers: {
                 "Deployment-Id": deploymentId,
+                "X-Internal-Token": internalToken,
               },
             });
 
@@ -162,9 +166,11 @@ export async function POST(
           execute: async ({ path }) => {
             const snapshotUrl = `${getAPIBaseURL(projectId)}/cat/?${path}`;
 
+            const internalToken = generateInternalToken(projectId);
             const response = await fetch(snapshotUrl, {
               headers: {
                 "Deployment-Id": deploymentId,
+                "X-Internal-Token": internalToken,
               },
             });
 

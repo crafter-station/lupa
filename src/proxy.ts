@@ -4,7 +4,8 @@ import {
   type NextRequest,
   NextResponse,
 } from "next/server";
-import { validateApiKey } from "./lib/api-key";
+import { validateApiKey } from "./lib/crypto/api-key";
+import { verifyInternalToken } from "./lib/crypto/internal-token";
 
 import { rootDomain } from "./lib/utils";
 
@@ -62,17 +63,20 @@ export default clerkMiddleware(
         subdomain,
       });
 
-      const {
-        valid,
-        apiKeyId,
-        projectId: p,
-      } = await validateApiKey(req, projectId);
+      const internalToken = req.headers.get("X-Internal-Token");
+      let isAuthenticated = false;
 
-      if (!valid) {
-        console.log(apiKeyId, p);
+      if (internalToken && verifyInternalToken(internalToken, projectId)) {
+        isAuthenticated = true;
+      } else {
+        const { valid } = await validateApiKey(req, event, projectId);
+        isAuthenticated = valid;
+      }
+
+      if (!isAuthenticated) {
         return new Response(
           JSON.stringify({
-            error: "API key does not have access to this project",
+            error: "API Key is not valid",
           }),
           {
             status: 403,
@@ -81,11 +85,21 @@ export default clerkMiddleware(
         );
       }
 
+      // POST <projectId>.lupa.build/api/deployments (no deploymentId needed)
+
+      if (url.pathname.startsWith("/api/deployments")) {
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/deployments`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
+      }
+
       const deploymentId = req.headers.get("Deployment-Id");
 
+      // AGENT TOOLS
       if (url.pathname.startsWith("/api/search")) {
-        console.log("calling search api (proxy)");
-
         const query = url.searchParams.get("query");
 
         if (!query) {
@@ -147,6 +161,8 @@ export default clerkMiddleware(
 
         return NextResponse.rewrite(rewriteUrl);
       }
+
+      /// MCP
       if (url.pathname.startsWith("/api/mcp")) {
         const rewriteUrl = new URL(
           `/api/projects/${projectId}/deployments/${deploymentId}/mcp/mcp`,

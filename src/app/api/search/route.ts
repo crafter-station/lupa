@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-
-import { getAPIBaseURL, protocol, rootDomain } from "@/lib/utils";
+import { generateInternalToken } from "@/lib/crypto/internal-token";
+import { getAPIBaseURL } from "@/lib/utils";
 
 export const POST = async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
@@ -26,13 +26,14 @@ export const POST = async (req: NextRequest) => {
     return NextResponse.json({ error: "Query is required" }, { status: 400 });
   }
 
-  let response: Response;
+  const internalToken = generateInternalToken(projectId);
 
-  response = await fetch(
+  const response = await fetch(
     `${getAPIBaseURL(projectId)}/search/?query=${encodeURIComponent(query)}`,
     {
       headers: {
         "Deployment-Id": deploymentId,
+        "X-Internal-Token": internalToken,
       },
     },
   );

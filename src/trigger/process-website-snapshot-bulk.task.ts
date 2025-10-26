@@ -1,6 +1,6 @@
 import { schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod/v3";
-import { FIRECRAWL_API_KEYS } from "@/lib/firecrawl";
+import { FIRECRAWL_API_KEYS } from "@/clients/firecrawl";
 import { processSnapshotTask } from "./process-snapshot.task";
 
 // TODO: handle errors

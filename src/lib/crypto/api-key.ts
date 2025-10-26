@@ -1,0 +1,197 @@
+import { createHash } from "node:crypto";
+import { eq } from "drizzle-orm";
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { db } from "@/db";
+import { redis } from "@/db/redis";
+import { ApiKey } from "@/db/schema";
+
+export function hashApiKey(apiKey: string): string {
+  return createHash("sha256").update(apiKey).digest("hex");
+}
+
+interface ApiKeyCache {
+  id: string;
+  org_id: string;
+  project_id: string;
+  is_active: boolean;
+  name: string;
+}
+
+interface ValidatedApiKey {
+  id: string;
+  org_id: string;
+  project_id: string;
+  name: string;
+}
+
+export async function validateApiKey(
+  req: NextRequest,
+  event: NextFetchEvent,
+  projectId?: string,
+): Promise<{
+  valid: boolean;
+  apiKeyId?: string;
+  projectId?: string;
+  data?: ValidatedApiKey;
+}> {
+  const authHeader = req.headers.get("authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return { valid: false };
+  }
+
+  const apiKey = authHeader.replace("Bearer ", "").trim();
+
+  if (!apiKey.startsWith("lupa_sk_") || apiKey.length < 40) {
+    return { valid: false };
+  }
+
+  const keyHash = hashApiKey(apiKey);
+  const redisKey = `apikey:${keyHash}`;
+
+  try {
+    const cached = await redis.get<string>(redisKey);
+
+    if (cached) {
+      const keyData: ApiKeyCache = JSON.parse(cached);
+
+      if (!keyData.is_active) {
+        return { valid: false };
+      }
+
+      if (projectId && keyData.project_id !== projectId) {
+        return { valid: false };
+      }
+
+      updateLastUsed(keyData.id).catch(console.error);
+
+      return {
+        valid: true,
+        apiKeyId: keyData.id,
+        projectId: keyData.project_id,
+        data: {
+          id: keyData.id,
+          org_id: keyData.org_id,
+          project_id: keyData.project_id,
+          name: keyData.name,
+        },
+      };
+    }
+
+    const keyRecord = await db.query.ApiKey.findFirst({
+      where: (keys, { eq, and }) =>
+        and(eq(keys.key_hash, keyHash), eq(keys.is_active, true)),
+    });
+
+    if (!keyRecord) {
+      await redis.set(redisKey, "invalid", { ex: 300 });
+      return { valid: false };
+    }
+
+    if (projectId && keyRecord.project_id !== projectId) {
+      return { valid: false };
+    }
+
+    await redis.set(
+      redisKey,
+      JSON.stringify({
+        id: keyRecord.id,
+        org_id: keyRecord.org_id,
+        project_id: keyRecord.project_id,
+        is_active: keyRecord.is_active,
+        name: keyRecord.name,
+      }),
+      { ex: 60 * 60 * 24 * 30 },
+    );
+
+    event.waitUntil(updateLastUsed(keyRecord.id).catch(console.error));
+
+    return {
+      valid: true,
+      apiKeyId: keyRecord.id,
+      projectId: keyRecord.project_id,
+      data: {
+        id: keyRecord.id,
+        org_id: keyRecord.org_id,
+        project_id: keyRecord.project_id,
+        name: keyRecord.name,
+      },
+    };
+  } catch (error) {
+    console.error("API key validation error:", error);
+    return validateFromPostgres(keyHash, projectId);
+  }
+}
+
+async function updateLastUsed(keyId: string) {
+  try {
+    await db
+      .update(ApiKey)
+      .set({
+        last_used_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .where(eq(ApiKey.id, keyId));
+  } catch (error) {
+    console.error("Failed to update last_used_at:", error);
+  }
+}
+
+async function validateFromPostgres(keyHash: string, projectId?: string) {
+  const keyRecord = await db.query.ApiKey.findFirst({
+    where: (keys, { eq, and }) =>
+      and(eq(keys.key_hash, keyHash), eq(keys.is_active, true)),
+  });
+
+  if (!keyRecord) {
+    return { valid: false };
+  }
+
+  if (projectId && keyRecord.project_id !== projectId) {
+    return { valid: false };
+  }
+
+  return {
+    valid: true,
+    apiKeyId: keyRecord.id,
+    projectId: keyRecord.project_id,
+    data: {
+      id: keyRecord.id,
+      org_id: keyRecord.org_id,
+      project_id: keyRecord.project_id,
+      name: keyRecord.name,
+    },
+  };
+}
+
+export async function revokeApiKey(keyId: string) {
+  const key = await db.query.ApiKey.findFirst({
+    where: eq(ApiKey.id, keyId),
+  });
+
+  if (!key) return;
+
+  await db
+    .update(ApiKey)
+    .set({
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    })
+    .where(eq(ApiKey.id, keyId));
+
+  const redisKey = `apikey:${key.key_hash}`;
+  await redis.del(redisKey);
+}
+
+export async function deleteApiKey(keyId: string) {
+  const key = await db.query.ApiKey.findFirst({
+    where: eq(ApiKey.id, keyId),
+  });
+
+  if (!key) return;
+
+  await db.delete(ApiKey).where(eq(ApiKey.id, keyId));
+
+  const redisKey = `apikey:${key.key_hash}`;
+  await redis.del(redisKey);
+}

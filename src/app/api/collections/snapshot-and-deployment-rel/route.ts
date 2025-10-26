@@ -1,9 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import { z } from "zod/v3";
-
+import { ELECTRIC_URL } from "@/clients/electric";
 import { SNAPSHOT_AND_DEPLOYMENT_REL_TABLE } from "@/db";
-import { ELECTRIC_URL } from "@/lib/electric";
 
 export const preferredRegion = "iad1";
 

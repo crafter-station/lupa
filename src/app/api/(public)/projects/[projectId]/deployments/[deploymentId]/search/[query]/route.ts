@@ -3,7 +3,7 @@
 // users will hit https://<projectId>.lupa.build/api/search/?query=<query>
 
 import z from "zod/v3";
-import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
+import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const preferredRegion = "iad1";
 

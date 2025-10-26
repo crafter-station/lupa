@@ -4,7 +4,7 @@ import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { DEPLOYMENT_TABLE, type DeploymentSelect } from "@/db/schema";
-import { appBaseURL, getAPIBaseURL } from "@/lib/utils";
+import { appBaseURL } from "@/lib/utils";
 
 export const DeploymentCollection = ({
   project_id,
@@ -36,16 +36,16 @@ export const DeploymentCollection = ({
       onInsert: async (item) => {
         if (!project_id) throw new Error("Project ID is required");
 
-        const response = await fetch(
-          `${getAPIBaseURL(project_id)}/api/deployments`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ ...item.transaction.mutations[0].changes }),
+        const response = await fetch(`${appBaseURL}/api/deployments`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            deploymentId: item.transaction.mutations[0].changes.id,
+            projectId: project_id,
+          }),
+        });
 
         if (!response.ok) {
           throw new Error(

@@ -1,31 +1,22 @@
-import { auth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v3";
-
+import { clerk } from "@/clients/clerk";
 import * as schema from "@/db/schema";
+import { generateId, IdSchema } from "@/lib/generate-id";
 import { deploy } from "@/trigger/deploy.task";
 
 export const preferredRegion = "iad1";
 
 export const CreateDeploymentBodySchema = z.object({
-  id: z.string().min(1, "id is required"),
-  status: z.enum(["pending", "running", "completed", "failed"]),
-  logs: z
-    .array(
-      z.object({
-        timestamp: z.string().describe("ISO 8601 format"),
-        message: z.string(),
-      }),
-    )
-    .default([]),
+  deploymentId: IdSchema.optional(),
 });
 
 export const CreateDeploymentSuccessResponseSchema = z.object({
   success: z.literal(true),
-  txid: z.number(),
+  txid: z.number().optional(),
 });
 
 /**
@@ -37,15 +28,28 @@ export const CreateDeploymentSuccessResponseSchema = z.object({
  * @response 500:ErrorResponseSchema
  * @openapi
  */
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{
+      projectId: string;
+    }>;
+  },
+) {
   let pool: Pool | undefined;
   try {
+    const { projectId } = await params;
     const json = await request.json();
 
-    const data = schema.DeploymentInsertSchema.parse({
+    let { deploymentId } = CreateDeploymentBodySchema.parse({
       ...json,
-      org_id: session.orgId,
     });
+
+    if (!deploymentId) {
+      deploymentId = generateId();
+    }
 
     if (!process.env.DATABASE_URL) {
       return Response.json(
@@ -63,7 +67,7 @@ export async function POST(request: Request) {
     });
 
     const project = await db.query.Project.findFirst({
-      where: eq(schema.Project.id, data.project_id),
+      where: eq(schema.Project.id, projectId),
     });
 
     if (!project) {
@@ -73,19 +77,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (project.org_id !== data.org_id) {
-      return Response.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 },
-      );
-    }
-
     const result = await db.transaction(async (tx) => {
       await tx.insert(schema.Deployment).values({
-        ...data,
-        created_at: undefined,
-        updated_at: undefined,
-      } as typeof schema.Deployment.$inferInsert);
+        id: deploymentId,
+        project_id: project.id,
+        org_id: project.org_id,
+        status: "queued",
+      } satisfies schema.DeploymentInsert);
 
       const txid = await tx.execute(
         sql`SELECT pg_current_xact_id()::xid::text as txid`,
@@ -96,12 +94,16 @@ export async function POST(request: Request) {
       };
     });
 
+    const org = await clerk.organizations.getOrganization({
+      organizationId: project.org_id,
+    });
+
     await pool.end();
 
-    revalidatePath(`/projects/${data.project_id}/deployments`);
+    revalidatePath(`/orgs/${org.slug}/projects/${project.id}/deployments`);
 
     await deploy.trigger({
-      deploymentId: data.id,
+      deploymentId: deploymentId,
     });
 
     return Response.json(
