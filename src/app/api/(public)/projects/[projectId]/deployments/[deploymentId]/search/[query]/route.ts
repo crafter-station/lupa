@@ -2,7 +2,7 @@
 // list files and directories in current location
 // users will hit https://<projectId>.lupa.build/api/search/?query=<query>
 
-import z from "zod";
+import z from "zod/v3";
 import { getVectorIndex, invalidateVectorCache } from "@/lib/vector";
 
 export const preferredRegion = "iad1";

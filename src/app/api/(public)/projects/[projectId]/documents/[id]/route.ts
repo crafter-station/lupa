@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { z } from "zod";
+import { z } from "zod/v3";
 import type { RefreshFrequency } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { DocumentSelectSchema } from "@/db/schema";

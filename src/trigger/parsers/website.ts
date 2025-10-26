@@ -1,13 +1,13 @@
 import Firecrawl, { SdkError } from "@mendable/firecrawl-js";
 import { queue, schemaTask } from "@trigger.dev/sdk";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { FIRECRAWL_API_KEYS } from "@/lib/firecrawl";
 import { folderFromUrl } from "@/lib/folder-utils";
 
 export const parseWebsiteTask = schemaTask({
   id: "parse-website",
   schema: z.object({
-    url: z.url(),
+    url: z.string().url(),
     enhance: z.boolean().optional(),
   }),
   retry: {

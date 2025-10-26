@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { firecrawl } from "@/lib/firecrawl";
 
 export const preferredRegion = "iad1";

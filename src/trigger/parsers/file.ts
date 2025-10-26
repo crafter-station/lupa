@@ -1,5 +1,5 @@
 import { schemaTask } from "@trigger.dev/sdk/v3";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { initializeDefaultParsers, parseDocument } from "@/lib/parsers";
 
 export const parseFileTask = schemaTask({

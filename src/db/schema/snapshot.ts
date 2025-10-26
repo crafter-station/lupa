@@ -8,7 +8,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import z from "zod";
+import z from "zod/v3";
 
 export const SNAPSHOT_TABLE = "snapshot";
 
@@ -93,7 +93,7 @@ export type SnapshotInsert = typeof Snapshot.$inferInsert;
 const BaseSnapshotSchema = {
   id: z.string(),
   document_id: z.string(),
-  url: z.url(),
+  url: z.string().url(),
   created_at: z.number(), // milliseconds since epoch (legacy shape)
 };
 

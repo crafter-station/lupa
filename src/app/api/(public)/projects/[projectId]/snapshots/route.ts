@@ -3,7 +3,7 @@ import { Pool } from "@neondatabase/serverless";
 import { put } from "@vercel/blob";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { z } from "zod";
+import { z } from "zod/v3";
 import * as schema from "@/db/schema";
 import { deleteDocumentSchedule } from "@/lib/schedules";
 import { processSnapshotTask } from "@/trigger/process-snapshot.task";
@@ -92,8 +92,6 @@ export async function POST(request: Request) {
       | string
       | null;
     const enhance = formData.get("enhance") as boolean | null;
-
-    console.log(JSON.stringify(Object.fromEntries(formData)));
 
     if (!id || !document_id || !type || !status) {
       return Response.json(

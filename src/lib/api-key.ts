@@ -12,6 +12,7 @@ export interface ApiKeyValidationResult {
 
 export async function validateApiKey(
   request: NextRequest,
+  requestProjectId: string,
 ): Promise<ApiKeyValidationResult> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -49,7 +50,7 @@ export async function validateApiKey(
           .where(eq(ApiKey.id, keyRecord.id));
 
         return {
-          valid: true,
+          valid: projectId === requestProjectId,
           projectId: keyRecord.project_id,
           apiKeyId: keyRecord.id,
         };

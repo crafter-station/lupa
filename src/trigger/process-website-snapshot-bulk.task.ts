@@ -1,5 +1,5 @@
 import { schemaTask } from "@trigger.dev/sdk";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { FIRECRAWL_API_KEYS } from "@/lib/firecrawl";
 import { processSnapshotTask } from "./process-snapshot.task";
 

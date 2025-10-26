@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import z from "zod";
+import z from "zod/v3";
 
 export const DEPLOYMENT_TABLE = "deployment";
 
@@ -28,7 +28,7 @@ export type DeploymentLogLevel = (typeof DeploymentLogLevel.enumValues)[number];
 export const DeploymentLogSchema = z.object({
   message: z.string(),
   timestamp: z.number(),
-  level: DeploymentLogLevelSchema,
+  level: z.enum(DeploymentLogLevel.enumValues),
 });
 
 export type DeploymentLog = z.infer<typeof DeploymentLogSchema>;

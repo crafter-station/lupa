@@ -1,6 +1,6 @@
 import { batch, logger, schemaTask, wait } from "@trigger.dev/sdk";
 import { and, desc, eq, lte } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { db } from "@/db";
 import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";

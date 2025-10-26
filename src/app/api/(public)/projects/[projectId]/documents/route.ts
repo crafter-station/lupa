@@ -3,7 +3,7 @@ import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "zod/v3";
 import * as schema from "@/db/schema";
 import { folderFromUrl, normalizeFolderPath } from "@/lib/folder-utils";
 import { createDocumentSchedule } from "@/lib/schedules";

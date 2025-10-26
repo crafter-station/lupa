@@ -50,7 +50,7 @@ async function searchDeployment(
   metadataFilters?: MetadataFilter[],
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
-  const params = new URLSearchParams({ query });
+  const params = new URLSearchParams({ query, projectId, deploymentId });
 
   if (documentIds && documentIds.length > 0) {
     params.set("documentIds", documentIds.join(","));
@@ -63,10 +63,10 @@ async function searchDeployment(
     }
   }
 
-  const response = await fetch(
-    `/api/search/${projectId}/${deploymentId}?${params.toString()}`,
-    { signal },
-  );
+  const response = await fetch(`/api/search/?${params.toString()}`, {
+    method: "POST",
+    signal,
+  });
 
   if (!response.ok) {
     throw new Error("Search failed");

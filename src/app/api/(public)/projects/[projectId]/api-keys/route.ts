@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { db } from "@/db";
 import { ApiKey, Project } from "@/db/schema";
 import { hashApiKey } from "@/lib/crypto";

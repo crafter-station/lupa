@@ -17,7 +17,6 @@ export default clerkMiddleware(
     const url = req.nextUrl;
 
     const subdomain = extractSubdomain(req);
-    console.log(subdomain);
 
     // Rewrite docs subdomain requests to /docs route
     if (subdomain === "docs") {
@@ -25,17 +24,52 @@ export default clerkMiddleware(
       rewriteUrl.search = url.search;
 
       return NextResponse.rewrite(rewriteUrl);
-    } else if (subdomain?.length === 10) {
-      const projectId = subdomain;
+    }
 
-      const validation = await validateApiKey(req);
-      const isApiKeyAuth = validation.valid;
+    if (isProtectedRoute(req)) await auth.protect();
 
-      if (
-        !isApiKeyAuth &&
-        validation.projectId &&
-        validation.projectId !== projectId
-      ) {
+    if (url.pathname.startsWith("/app")) {
+      const session = await auth();
+
+      return NextResponse.redirect(
+        new URL(`/orgs/${session.orgSlug}/projects`, url.origin),
+      );
+    }
+
+    if (isPrivateRoute(req)) {
+      const orgSlug = url.pathname.split("/")[2];
+      const session = await auth();
+      await auth.protect(() => orgSlug === session.orgSlug);
+    }
+
+    // Redirect www.lupa.build/docs/* to docs.lupa.build/*
+    if (!subdomain && url.pathname.startsWith("/docs")) {
+      const redirectUrl = new URL(url.href);
+      redirectUrl.hostname = "docs.lupa.build";
+      redirectUrl.pathname = url.pathname.replace(/^\/docs/, "") || "/";
+
+      return NextResponse.redirect(redirectUrl, 301);
+    }
+
+    // https://<project_id>.lupa.build/api/
+
+    if (subdomain) {
+      const projectId = subdomain.toLowerCase();
+
+      console.log({
+        pathname: url.pathname,
+        searchParams: url.searchParams,
+        subdomain,
+      });
+
+      const {
+        valid,
+        apiKeyId,
+        projectId: p,
+      } = await validateApiKey(req, projectId);
+
+      if (!valid) {
+        console.log(apiKeyId, p);
         return new Response(
           JSON.stringify({
             error: "API key does not have access to this project",
@@ -49,7 +83,9 @@ export default clerkMiddleware(
 
       const deploymentId = req.headers.get("Deployment-Id");
 
-      if (url.pathname === "/api/search") {
+      if (url.pathname.startsWith("/api/search")) {
+        console.log("calling search api (proxy)");
+
         const query = url.searchParams.get("query");
 
         if (!query) {
@@ -71,7 +107,7 @@ export default clerkMiddleware(
 
         return NextResponse.rewrite(rewriteUrl);
       }
-      if (url.pathname === "/api/ls") {
+      if (url.pathname.startsWith("/api/ls")) {
         const folder = url.searchParams.get("folder");
         if (!folder) {
           return NextResponse.json(
@@ -91,7 +127,7 @@ export default clerkMiddleware(
 
         return NextResponse.rewrite(rewriteUrl);
       }
-      if (url.pathname === "/api/cat") {
+      if (url.pathname.startsWith("/api/cat")) {
         const path = url.searchParams.get("path");
         if (!path) {
           return NextResponse.json(
@@ -111,7 +147,7 @@ export default clerkMiddleware(
 
         return NextResponse.rewrite(rewriteUrl);
       }
-      if (url.pathname === "/api/mcp") {
+      if (url.pathname.startsWith("/api/mcp")) {
         const rewriteUrl = new URL(
           `/api/projects/${projectId}/deployments/${deploymentId}/mcp/mcp`,
           req.url,
@@ -119,31 +155,22 @@ export default clerkMiddleware(
 
         return NextResponse.rewrite(rewriteUrl);
       }
-    }
+      if (url.pathname.startsWith("/api/sse")) {
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/deployments/${deploymentId}/mcp/sse`,
+          req.url,
+        );
 
-    if (isProtectedRoute(req)) await auth.protect();
+        return NextResponse.rewrite(rewriteUrl);
+      }
+      if (url.pathname.startsWith("/api/message")) {
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/deployments/${deploymentId}/mcp/message`,
+          req.url,
+        );
 
-    if (url.pathname === "/app") {
-      const session = await auth();
-
-      return NextResponse.redirect(
-        new URL(`/orgs/${session.orgSlug}/projects`, url.origin),
-      );
-    }
-
-    if (isPrivateRoute(req)) {
-      const orgSlug = url.pathname.split("/")[2];
-      const session = await auth();
-      await auth.protect(() => orgSlug === session.orgSlug);
-    }
-
-    // Redirect www.lupa.build/docs/* to docs.lupa.build/*
-    if (!subdomain && url.pathname.startsWith("/docs")) {
-      const redirectUrl = new URL(url.href);
-      redirectUrl.hostname = "docs.lupa.build";
-      redirectUrl.pathname = url.pathname.replace(/^\/docs/, "") || "/";
-
-      return NextResponse.redirect(redirectUrl, 301);
+        return NextResponse.rewrite(rewriteUrl);
+      }
     }
 
     // For all other routes, continue normally
@@ -170,7 +197,9 @@ export const config = {
 
 function extractSubdomain(request: NextRequest): string | null {
   const url = request.url;
+
   const host = request.headers.get("host") || "";
+
   const hostname = host.split(":")[0];
 
   // Local development environment

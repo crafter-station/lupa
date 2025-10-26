@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { db } from "@/db";
 import { ApiKey, Project } from "@/db/schema";
 

@@ -6,8 +6,13 @@ import {
   tool,
   type UIMessage,
 } from "ai";
-import dedent from "dedent";
-import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { z } from "zod/v3";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { GET_DOCUMENT_CONTENTS_PROMPT } from "@/lib/prompts/get-document-contents.prompt";
+import { SEARCH_KNOWLEDGE_PROMPT } from "@/lib/prompts/search-knowledge.prompt";
+import { SYSTEM_PROMPT } from "@/lib/prompts/system.prompt";
 import { getAPIBaseURL } from "@/lib/utils";
 
 export const maxDuration = 120;
@@ -40,40 +45,22 @@ export async function POST(
       contextFileNames?: string[];
     } = await request.json();
 
-    let systemPrompt = dedent`You are a helpful assistant with access to a knowledge base through two complementary tools:
+    const [project] = await db
+      .select({
+        name: schema.Project.name,
+        description: schema.Project.description,
+      })
+      .from(schema.Project)
+      .where(eq(schema.Project.id, projectId));
 
-1. **search-knowledge**: Returns CHUNKS (partial text excerpts) from documents matching your semantic search query. Each result includes:
-   - content: A text chunk from the document (not the full document)
-   - score: Similarity score
-   - metadata: Contains snapshotId, documentId, chunkIndex, and other document metadata
+    if (!project) {
+      throw new Error(`Project not found for id ${projectId}`);
+    }
 
-2. **get-snapshot-contents**: Returns the COMPLETE markdown content of a specific document snapshot.
+    const searchKnowledgePrompt = SEARCH_KNOWLEDGE_PROMPT(project);
+    const getDocumentContentsPrompt = GET_DOCUMENT_CONTENTS_PROMPT(project);
 
-**When to use each tool:**
-
-Use search-knowledge to:
-- Discover which documents contain relevant information
-- Find specific facts, data points, or keywords
-- Get a quick overview of available information
-- Locate documents when you don't know which ones are relevant
-
-You MUST use get-snapshot-contents when:
-- Users explicitly ask to summarize, analyze, review, or explain an entire document
-- Search results show the same snapshotId appearing multiple times (indicating high relevance)
-- Users request detailed information that requires understanding full document context
-- Users ask questions that span multiple sections of a document
-- You need to provide comprehensive answers that go beyond isolated text fragments
-- Users ask "what does this document say about..." or similar holistic questions
-- Users want comparisons across different parts of the same document
-
-**Recommended workflow:**
-1. Start with search-knowledge to find relevant snapshots
-2. Examine the snapshotId field in the metadata of search results
-3. If the same snapshotId appears in multiple results OR the user's question requires complete context, immediately call get-snapshot-contents with that snapshotId
-4. Use the full document content to provide thorough, well-informed answers
-5. Always prefer complete document context over fragmented chunks when the question demands depth
-
-**Important**: Search results are CHUNKS, not full documents. Don't assume you have complete information from search alone. When in doubt about whether you need more context, use get-snapshot-contents.`;
+    let systemPrompt = SYSTEM_PROMPT(project);
 
     if (contextFileNames && contextFileNames.length > 0) {
       systemPrompt += `\n\n[CONTEXT]: The user has selected specific files: ${contextFileNames.join(", ")}. When they ask about "this document", "these files", or use similar references, they are referring to these specific files. Always use the search-knowledge tool to find information from these documents when answering questions about them.`;
@@ -99,8 +86,7 @@ You MUST use get-snapshot-contents when:
       system: systemPrompt,
       tools: {
         "search-knowledge": tool({
-          description:
-            "Search the knowledge base and return up to 5 relevant CHUNKS (text excerpts) with similarity scores and metadata. Each result is a partial excerpt from a document, not the complete document. Results include metadata with snapshotId (use this to retrieve full documents with get-snapshot-contents), documentId, chunkIndex, and other document metadata. Use this tool to discover which documents contain information related to your query. The search can be filtered by document IDs if context filters are active.",
+          description: searchKnowledgePrompt,
           inputSchema: z.object({
             query: z
               .string()
@@ -164,13 +150,14 @@ You MUST use get-snapshot-contents when:
             };
           },
         }),
-        "get-snapshot-contents": tool({
-          description:
-            "Retrieve the COMPLETE markdown content of a specific document snapshot. Use this tool when: (1) the same snapshotId appears repeatedly in search results, indicating high relevance; (2) users ask to summarize, analyze, review, or explain a document; (3) you need full document context to answer comprehensively; (4) users request detailed information spanning multiple sections; (5) the question requires understanding the complete document rather than isolated fragments. Always use this after search-knowledge identifies relevant snapshots. Input the snapshotId from search results metadata.",
+        "get-document-contents": tool({
+          description: getDocumentContentsPrompt,
           inputSchema: z.object({
             path: z
               .string()
-              .describe("The snapshot ID to retrieve the full content for"),
+              .describe(
+                "The path of the document to retrieve the full content for",
+              ),
           }),
           execute: async ({ path }) => {
             const snapshotUrl = `${getAPIBaseURL(projectId)}/cat/?${path}`;

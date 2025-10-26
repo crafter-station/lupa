@@ -4,7 +4,7 @@ import { auth as triggerAuth } from "@trigger.dev/sdk/v3";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "zod/v3";
 import type {
   DocumentInsert,
   RefreshFrequency,

@@ -3,7 +3,7 @@
 // users will hit https://<projectId>.lupa.build/api/ls/?folder=/path/to/folder/
 
 import { and, desc, eq } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import type { FileListItem } from "@/lib/types/search";

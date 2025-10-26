@@ -1,10 +1,14 @@
 // mcp server
 // users will hit https://<projectId>.lupa.build/api/mcp
 
+import { eq, sql } from "drizzle-orm";
 import { createMcpHandler } from "mcp-handler";
 import type { NextRequest } from "next/server";
-import { z } from "zod-v3";
-import { redis } from "@/db/redis";
+import { z } from "zod/v3";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { GET_DOCUMENT_CONTENTS_PROMPT } from "@/lib/prompts/get-document-contents.prompt";
+import { SEARCH_KNOWLEDGE_PROMPT } from "@/lib/prompts/search-knowledge.prompt";
 import { getAPIBaseURL } from "@/lib/utils";
 
 const handler = async (
@@ -19,30 +23,37 @@ const handler = async (
     }>;
   },
 ) => {
-  const { projectId, deploymentId } = await params;
+  const { projectId, deploymentId, transport } = await params;
 
-  const searchKnowledgePrompt = await redis.get<string>(
-    `search-knowledge-prompt:${projectId}:${deploymentId}`,
-  );
+  const [project] = await db
+    .select({
+      name: schema.Project.name,
+      description: schema.Project.description,
+    })
+    .from(schema.Project)
+    .where(eq(schema.Project.id, projectId))
+    .limit(1);
 
-  if (!searchKnowledgePrompt) {
-    throw new Error(
-      `Search knowledge prompt not found for project ${projectId} and deployment ${deploymentId}`,
-    );
+  console.log(project);
+
+  if (!project) {
+    throw new Error(`Project not found for id ${projectId}`);
   }
 
-  const getDocumentContentsPrompt = await redis.get<string>(
-    `get-document-contents-prompt:${projectId}:${deploymentId}`,
-  );
+  const searchKnowledgePrompt = SEARCH_KNOWLEDGE_PROMPT(project);
+  const getDocumentContentsPrompt = GET_DOCUMENT_CONTENTS_PROMPT(project);
 
-  if (!getDocumentContentsPrompt) {
-    throw new Error(
-      `Get document contents prompt not found for project ${projectId} and deployment ${deploymentId}`,
-    );
-  }
+  console.log({
+    projectId,
+    deploymentId,
+    transport,
+    redis: process.env.REDIS_URL,
+  });
 
   return createMcpHandler(
     (server) => {
+      console.log("Server initialized");
+
       server.tool(
         "search-knowledge",
         searchKnowledgePrompt,
@@ -52,14 +63,18 @@ const handler = async (
             .describe("The search query to find relevant information"),
         },
         async ({ query }) => {
-          const searchUrl = `${getAPIBaseURL(projectId)}/search/?query=${encodeURIComponent(query)}`;
+          let response: Response;
+          console.log("calling search api");
 
-          const response = await fetch(searchUrl, {
-            headers: {
-              Authorization: `Bearer ${process.env.LUPA_API_KEY}`,
-              "Deployment-Id": deploymentId,
+          response = await fetch(
+            `${getAPIBaseURL(projectId)}/search/?query=${encodeURIComponent(query)}`,
+            {
+              headers: {
+                "Deployment-Id": deploymentId,
+                Authorization: req.headers.get("Authorization")!,
+              },
             },
-          });
+          );
 
           if (!response.ok) {
             throw new Error(`Search failed: ${response.statusText}`);
@@ -115,14 +130,17 @@ const handler = async (
             ),
         },
         async ({ path }) => {
-          const snapshotUrl = `${getAPIBaseURL(projectId)}/cat/?path=${path}`;
+          let response: Response;
 
-          const response = await fetch(snapshotUrl, {
-            headers: {
-              Authorization: `Bearer ${process.env.LUPA_API_KEY}`,
-              "Deployment-Id": deploymentId,
+          response = await fetch(
+            `${getAPIBaseURL(projectId)}/cat/?path=${encodeURIComponent(path)}`,
+            {
+              headers: {
+                "Deployment-Id": deploymentId,
+                Authorization: req.headers.get("Authorization")!,
+              },
             },
-          });
+          );
 
           if (!response.ok) {
             throw new Error(`Failed to fetch snapshot: ${response.statusText}`);
@@ -147,7 +165,7 @@ const handler = async (
     {
       // Optional redis config
       redisUrl: process.env.REDIS_URL,
-      basePath: `${getAPIBaseURL(projectId)}/`,
+      basePath: "/api",
       maxDuration: 60,
       verboseLogs: true,
     },

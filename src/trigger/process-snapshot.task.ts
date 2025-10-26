@@ -1,7 +1,7 @@
 import { queue, schemaTask } from "@trigger.dev/sdk";
 import { put } from "@vercel/blob";
 import { desc, eq } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { extractMetadata } from "@/lib/metadata";
