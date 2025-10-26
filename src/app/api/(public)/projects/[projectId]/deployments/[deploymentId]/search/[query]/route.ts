@@ -67,7 +67,12 @@ export async function GET(
     return new Response(
       JSON.stringify({
         query: decodedQuery,
-        results,
+        results: results.map((result) => ({
+          id: result.id,
+          score: result.score,
+          data: result.data,
+          metadata: result.metadata,
+        })),
       }),
       {
         headers: { "Content-Type": "application/json" },

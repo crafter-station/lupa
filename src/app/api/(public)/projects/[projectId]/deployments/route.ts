@@ -12,8 +12,6 @@ export const preferredRegion = "iad1";
 
 export const CreateDeploymentBodySchema = z.object({
   id: z.string().min(1, "id is required"),
-  project_id: z.string().min(1, "project_id is required"),
-  vector_index_id: z.string().optional(),
   status: z.enum(["pending", "running", "completed", "failed"]),
   logs: z
     .array(
@@ -42,15 +40,6 @@ export const CreateDeploymentSuccessResponseSchema = z.object({
 export async function POST(request: Request) {
   let pool: Pool | undefined;
   try {
-    const session = await auth();
-
-    if (!session.orgId) {
-      return Response.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
     const json = await request.json();
 
     const data = schema.DeploymentInsertSchema.parse({

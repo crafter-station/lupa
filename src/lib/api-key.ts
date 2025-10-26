@@ -14,7 +14,9 @@ export async function validateApiKey(
   request: NextRequest,
   requestProjectId: string,
 ): Promise<ApiKeyValidationResult> {
-  const authHeader = request.headers.get("authorization");
+  const authHeader =
+    request.headers.get("authorization") ||
+    request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return { valid: false };
   }

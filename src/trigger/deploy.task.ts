@@ -221,12 +221,6 @@ export const pushSnapshot = schemaTask({
       const chunkSize = 1000;
       const chunkOverlap = 200;
 
-      const fileName =
-        snapshot.type === "upload" && snapshot.metadata
-          ? (snapshot.metadata as { file_name?: string }).file_name ||
-            document.name
-          : document.name;
-
       for (let i = 0; i < markdown.length; i += chunkSize - chunkOverlap) {
         const chunk = markdown.slice(i, i + chunkSize);
         const chunkId = `${snapshot.document_id}_chunk_${Math.floor(i / (chunkSize - chunkOverlap))}`;
@@ -235,14 +229,9 @@ export const pushSnapshot = schemaTask({
           id: chunkId,
           content: chunk,
           metadata: {
-            snapshotId: snapshot.id,
-            documentId: snapshot.document_id,
-            documentName: document.name,
-            documentPath: document.folder,
-            fileName,
+            path: `${document.folder}${document.name}.md`,
             chunkIndex: Math.floor(i / (chunkSize - chunkOverlap)),
-            chunkSize: chunk.length,
-            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             ...(snapshot.extracted_metadata || {}),
           },
         });
