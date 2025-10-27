@@ -43,7 +43,6 @@ export async function POST(
   try {
     const { projectId } = await params;
 
-    console.log({ hello: "freidn" });
     const body = await request.json();
     const { documents: docs } = BulkCreateDocumentsRequestSchema.parse(body);
 

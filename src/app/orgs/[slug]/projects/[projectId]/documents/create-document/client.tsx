@@ -429,10 +429,9 @@ export function CreateDocument() {
               disabled={isUploading}
               onChange={(e) => {
                 const sanitized = e.target.value
-                  .toLowerCase()
                   .trim()
                   .replace(/\s+/g, "-")
-                  .replace(/[^a-z0-9_-]/g, "");
+                  .replace(/[^a-zA-Z0-9_-]/g, "");
                 setNameValue(sanitized);
               }}
               className={isDuplicate ? "border-destructive" : ""}
@@ -444,7 +443,7 @@ export function CreateDocument() {
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Only lowercase letters, numbers, hyphens, and underscores
+                Only letters (a-z, A-Z), numbers, hyphens, and underscores
                 allowed
               </p>
             )}

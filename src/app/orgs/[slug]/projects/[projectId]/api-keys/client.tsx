@@ -1,13 +1,14 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Key, Plus } from "lucide-react";
 import { useState } from "react";
-import { CreateApiKeyDialog } from "@/components/elements/api-key-dialog";
-import { ApiKeyList } from "@/components/elements/api-key-list";
 import { Button } from "@/components/ui/button";
 import { getAPIBaseURL } from "@/lib/utils";
+import { ApiKeyList } from "./api-key-list";
+import { CreateApiKeyDialog } from "./create-api-key-dialog";
 
-interface ApiKey {
+export interface ApiKey {
   id: string;
   name: string;
   key_preview: string;
@@ -24,30 +25,40 @@ export function ApiKeysClient({
   projectId,
   preloadedApiKeys,
 }: ApiKeysClientProps) {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>(preloadedApiKeys);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const refreshKeys = async () => {
-    setRefreshing(true);
-    try {
-      const response = await fetch(`/api/projects/${projectId}/api-keys`);
-      if (response.ok) {
+  const {
+    data: apiKeys,
+    status,
+    fetchStatus,
+  } = useQuery<ApiKey[]>({
+    queryKey: ["api-keys", projectId],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/api-keys?projectId=${projectId}`);
+        if (!response.ok) {
+          throw new Error("not ok");
+        }
         const data = await response.json();
-        setApiKeys(data);
+        return data;
+      } catch {
+        throw new Error("unknown error");
       }
-    } catch (error) {
-      console.error("Failed to refresh API keys:", error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+    },
+    initialData: preloadedApiKeys,
+    enabled: !!projectId,
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">API Keys</h2>
+          <h2
+            className="text-2xl font-bold tracking-tight"
+            key={JSON.stringify({ status, fetchStatus })}
+          >
+            API Keys {JSON.stringify({ status, fetchStatus })}
+          </h2>
           <p className="text-sm text-muted-foreground">
             Manage API keys to authenticate programmatic access to your project.
           </p>
@@ -83,23 +94,9 @@ export function ApiKeysClient({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium">Active Keys</h4>
-            {apiKeys.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refreshKeys}
-                disabled={refreshing}
-              >
-                {refreshing ? "Refreshing..." : "Refresh"}
-              </Button>
-            )}
           </div>
 
-          <ApiKeyList
-            apiKeys={apiKeys}
-            projectId={projectId}
-            onDelete={refreshKeys}
-          />
+          <ApiKeyList apiKeys={apiKeys} projectId={projectId} />
         </div>
       </div>
 
@@ -133,7 +130,6 @@ export function ApiKeysClient({
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         projectId={projectId}
-        onSuccess={refreshKeys}
       />
     </div>
   );

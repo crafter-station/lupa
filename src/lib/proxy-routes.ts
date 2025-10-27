@@ -66,6 +66,16 @@ export const SUBDOMAIN_ROUTES: RouteConfig[] = [
     },
   },
   {
+    pattern: /^\/api\/tree/,
+    requiresDeploymentId: true,
+    rewrite: (ctx) => {
+      const folder = ctx.searchParams.get("folder") || "/";
+      const depth = ctx.searchParams.get("depth") || "0";
+      if (!ctx.deploymentId) return null;
+      return `/api/projects/${ctx.projectId}/deployments/${ctx.deploymentId}/tree/${encodeURIComponent(folder)}/${depth}`;
+    },
+  },
+  {
     pattern: /^\/api\/mcp/,
     requiresDeploymentId: true,
     rewrite: (ctx) => {

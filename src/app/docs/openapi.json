@@ -168,6 +168,19 @@
         },
         "required": ["error"]
       },
+      "type": {
+        "type": "string",
+        "enum": ["website", "upload"]
+      },
+      "DocumentNameSchema": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[a-zA-Z0-9_-]+$"
+      },
+      "FolderPathSchema": {
+        "type": "string",
+        "pattern": "/"
+      },
       "BaseDocumentSchema": {
         "type": "object",
         "properties": {
@@ -178,11 +191,10 @@
             "type": "object"
           },
           "folder": {
-            "type": "string",
-            "pattern": "/"
+            "type": "object"
           },
           "name": {
-            "type": "string"
+            "type": "object"
           },
           "description": {
             "type": "string",
@@ -197,11 +209,7 @@
             "nullable": true
           }
         },
-        "required": ["folder", "name"]
-      },
-      "type": {
-        "type": "string",
-        "enum": ["website", "upload"]
+        "required": ["folder", "folder", "name", "name"]
       },
       "WebsiteSnapshotSchema": {
         "type": "object",

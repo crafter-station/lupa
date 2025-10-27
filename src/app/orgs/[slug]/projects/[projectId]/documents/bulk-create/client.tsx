@@ -447,10 +447,9 @@ export function BulkCreateClient() {
                           value={link.name}
                           onChange={(e) => {
                             const sanitized = e.target.value
-                              .toLowerCase()
                               .trim()
                               .replace(/\s+/g, "-")
-                              .replace(/[^a-z0-9_-]/g, "");
+                              .replace(/[^a-zA-Z0-9_-]/g, "");
                             updateLink(link.id, "name", sanitized);
                           }}
                           disabled={isCreating}

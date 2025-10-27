@@ -37,10 +37,9 @@ export function InlineEditableField({
   const sanitizeValue = (val: string) => {
     if (!sanitizeName) return val;
     return val
-      .toLowerCase()
       .trim()
       .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9_-]/g, "");
+      .replace(/[^a-zA-Z0-9_-]/g, "");
   };
 
   React.useEffect(() => {

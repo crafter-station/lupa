@@ -118,7 +118,10 @@ export const deploy = schemaTask({
         })
         .where(eq(schema.Deployment.id, deploymentId));
 
-      await redis.set(`vectorIndexId:${deploymentId}`, vectorIndex.id);
+      await redis.set(
+        `vectorIndexId:${deployment.project_id}:${deploymentId}`,
+        vectorIndex.id,
+      );
 
       await wait.for({ seconds: 15 });
 
@@ -128,6 +131,7 @@ export const deploy = schemaTask({
           payload: {
             deploymentId,
             snapshotId: snapshot.id,
+            projectId: deployment.project_id,
           },
         })),
       );
@@ -160,10 +164,11 @@ export const deploy = schemaTask({
 export const pushSnapshot = schemaTask({
   id: "push-snapshot",
   schema: z.object({
+    projectId: z.string(),
     deploymentId: z.string(),
     snapshotId: z.string(),
   }),
-  run: async ({ deploymentId, snapshotId }) => {
+  run: async ({ projectId, deploymentId, snapshotId }) => {
     try {
       const snapshots = await db
         .select()
@@ -195,7 +200,7 @@ export const pushSnapshot = schemaTask({
       const vector = await (async () => {
         try {
           const { getVectorIndex } = await import("@/lib/crypto/vector");
-          return await getVectorIndex(deploymentId, { skipCache: true });
+          return await getVectorIndex(projectId, deploymentId);
         } catch (error) {
           logger.error("Failed to get vector index using cache", { error });
           throw error;

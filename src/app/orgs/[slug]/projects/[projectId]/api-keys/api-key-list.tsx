@@ -29,10 +29,9 @@ interface ApiKey {
 interface ApiKeyListProps {
   apiKeys: ApiKey[];
   projectId: string;
-  onDelete: () => void;
 }
 
-export function ApiKeyList({ apiKeys, projectId, onDelete }: ApiKeyListProps) {
+export function ApiKeyList({ projectId, apiKeys }: ApiKeyListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (keyId: string, keyName: string) => {
@@ -56,8 +55,6 @@ export function ApiKeyList({ apiKeys, projectId, onDelete }: ApiKeyListProps) {
       if (!response.ok) {
         throw new Error("Failed to delete API key");
       }
-
-      onDelete();
     } catch (error) {
       console.error("Failed to delete API key:", error);
       alert("Failed to delete API key");
@@ -125,10 +122,10 @@ export function ApiKeyList({ apiKeys, projectId, onDelete }: ApiKeyListProps) {
                 {key.key_preview}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {formatRelativeTime(key.last_used_at)}
+                <time>{formatRelativeTime(key.last_used_at)}</time>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {formatDate(key.created_at)}
+                <time>{formatDate(key.created_at)}</time>
               </TableCell>
               <TableCell>
                 <DropdownMenu>

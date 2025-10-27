@@ -12,6 +12,7 @@ import {
   deleteDocumentSchedule,
   updateDocumentSchedule,
 } from "@/lib/schedules";
+import { DocumentNameSchema } from "@/lib/validation";
 
 export const preferredRegion = "iad1";
 
@@ -47,19 +48,6 @@ export async function PATCH(
       refresh_enabled: true,
       refresh_frequency: true,
     })
-      .extend({
-        name: z
-          .string()
-          .min(1)
-          .regex(
-            /^[a-z0-9_-]+$/,
-            "Name must be lowercase and contain only letters, numbers, hyphens, and underscores",
-          )
-          .refine((val) => val === val.toLowerCase(), {
-            message: "Name must be lowercase",
-          })
-          .optional(),
-      })
       .partial()
       .parse(json);
 

@@ -71,10 +71,11 @@ interface CachedVectorConfig {
 }
 
 export async function getVectorIndex(
+  projectId: string,
   deploymentId: string,
   options?: { skipCache?: boolean },
 ): Promise<VectorIndex> {
-  const cacheKey = `vectorConfig:${deploymentId}`;
+  const cacheKey = `vectorConfig:${projectId}:${deploymentId}`;
 
   if (!options?.skipCache) {
     const cachedVectorConfig = await redis.get<CachedVectorConfig>(cacheKey);
@@ -91,11 +92,11 @@ export async function getVectorIndex(
   }
 
   const vectorIndexId = await redis.get<string>(
-    `vectorIndexId:${deploymentId}`,
+    `vectorIndexId:${projectId}:${deploymentId}`,
   );
 
   if (!vectorIndexId) {
-    throw new Error(`Deployment ${deploymentId} does not have a vector index`);
+    throw new Error("Vector index not found");
   }
 
   const url = `https://api.upstash.com/v2/vector/index/${vectorIndexId}`;
@@ -135,7 +136,8 @@ export async function getVectorIndex(
 }
 
 export async function invalidateVectorCache(
+  projectId: string,
   deploymentId: string,
 ): Promise<void> {
-  await redis.del(`vectorConfig:${deploymentId}`);
+  await redis.del(`vectorConfig:${projectId}:${deploymentId}`);
 }

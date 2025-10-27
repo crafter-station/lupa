@@ -3,6 +3,7 @@
 // users will hit https://<projectId>.lupa.build/api/search/?query=<query>
 
 import z from "zod/v3";
+
 import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const preferredRegion = "iad1";
@@ -52,10 +53,11 @@ export async function GET(
   },
 ) {
   try {
-    const { deploymentId, query } = await params;
+    const { deploymentId, projectId, query } = await params;
+
     const decodedQuery = decodeURIComponent(query);
 
-    const vector = await getVectorIndex(deploymentId);
+    const vector = await getVectorIndex(projectId, deploymentId);
 
     const results = await vector.query({
       data: decodedQuery,
@@ -80,17 +82,20 @@ export async function GET(
     );
   } catch (error) {
     console.error("Search API error:", error);
-    const { deploymentId } = await params;
+    const { projectId, deploymentId } = await params;
 
     let statusCode = 500;
     let errorMessage = "Internal server error";
 
     if (error instanceof Error) {
-      if (error.message.includes("ENCRYPTION_SECRET")) {
+      if (error.message.includes("Vector index not found")) {
+        errorMessage = "Vector index not found";
+        statusCode = 404;
+      } else if (error.message.includes("ENCRYPTION_SECRET")) {
         errorMessage = "Server configuration error";
         statusCode = 500;
       } else if (error.message.includes("Invalid encrypted data")) {
-        await invalidateVectorCache(deploymentId);
+        await invalidateVectorCache(projectId, deploymentId);
         errorMessage = "Cache corrupted, please retry";
         statusCode = 500;
       } else if (error.message.includes("not found")) {

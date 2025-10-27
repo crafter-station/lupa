@@ -50,10 +50,14 @@ export async function validateApiKey(
   const redisKey = `apikey:${keyHash}`;
 
   try {
-    const cached = await redis.get<string>(redisKey);
+    const cached = await redis.get<ApiKeyCache | "invalid" | null>(redisKey);
+
+    if (cached === "invalid") {
+      return { valid: false };
+    }
 
     if (cached) {
-      const keyData: ApiKeyCache = JSON.parse(cached);
+      const keyData = cached;
 
       if (!keyData.is_active) {
         return { valid: false };

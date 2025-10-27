@@ -6,15 +6,75 @@ import { db } from "@/db";
 import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";
 import { hashApiKey } from "@/lib/crypto/api-key";
-import { IdSchema } from "@/lib/generate-id";
+import { generateId, IdSchema } from "@/lib/generate-id";
 
 export const preferredRegion = "iad1";
 
 const CreateApiKeyRequestSchema = z.object({
-  apiKeyId: IdSchema,
   name: z.string().min(1, "Name is required").max(100),
   projectId: IdSchema,
 });
+
+const GetApiKeysRequestSchema = z.object({
+  projectId: IdSchema,
+});
+
+export async function GET(request: Request) {
+  try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get("projectId");
+
+    const { projectId: validatedProjectId } = GetApiKeysRequestSchema.parse({
+      projectId,
+    });
+
+    const [project] = await db
+      .select()
+      .from(schema.Project)
+      .where(
+        and(
+          eq(schema.Project.id, validatedProjectId),
+          eq(schema.Project.org_id, orgId),
+        ),
+      )
+      .limit(1);
+
+    if (!project) {
+      return Response.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    const apiKeys = await db
+      .select({
+        id: schema.ApiKey.id,
+        name: schema.ApiKey.name,
+        key_preview: schema.ApiKey.key_preview,
+        last_used_at: schema.ApiKey.last_used_at,
+        created_at: schema.ApiKey.created_at,
+      })
+      .from(schema.ApiKey)
+      .where(eq(schema.ApiKey.project_id, validatedProjectId));
+
+    return Response.json(apiKeys, { status: 200 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return Response.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+    console.error("Failed to fetch API keys:", error);
+    return Response.json(
+      { error: "Failed to fetch API keys" },
+      { status: 500 },
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +85,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { apiKeyId, name, projectId } = CreateApiKeyRequestSchema.parse(body);
+    const { name, projectId } = CreateApiKeyRequestSchema.parse(body);
 
     const [project] = await db
       .select()
@@ -44,38 +104,39 @@ export async function POST(request: Request) {
     const keyPreview = `****${randomPart.slice(-4)}`;
     const keyHash = hashApiKey(apiKey);
 
-    const [newApiKey] = await db
-      .insert(schema.ApiKey)
-      .values({
-        id: apiKeyId,
-        project_id: project.id,
-        org_id: project.org_id,
-        name,
-        key_hash: keyHash,
-        key_preview: keyPreview,
-        is_active: true,
-      })
-      .returning();
+    const apiKeyId = generateId();
+
+    const date = new Date().toISOString();
+    await db.insert(schema.ApiKey).values({
+      id: apiKeyId,
+      project_id: project.id,
+      org_id: project.org_id,
+      name,
+      key_hash: keyHash,
+      key_preview: keyPreview,
+      is_active: true,
+    });
 
     await redis.set(
       `apikey:${keyHash}`,
       JSON.stringify({
-        id: newApiKey.id,
-        org_id: newApiKey.org_id,
-        project_id: newApiKey.project_id,
-        is_active: newApiKey.is_active,
-        name: newApiKey.name,
+        id: apiKeyId,
+        org_id: project.org_id,
+        project_id: project.id,
+        is_active: true,
+        name: name,
       }),
       { ex: 60 * 60 * 24 * 30 },
     );
 
     return Response.json(
       {
-        id: newApiKey.id,
-        name: newApiKey.name,
-        key: apiKey,
-        key_preview: newApiKey.key_preview,
-        created_at: newApiKey.created_at,
+        id: apiKeyId,
+        name,
+        api_key: apiKey,
+        key_preview: keyPreview,
+        created_at: date,
+        last_used_at: null,
       },
       { status: 201 },
     );

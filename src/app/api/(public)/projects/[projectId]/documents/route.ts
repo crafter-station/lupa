@@ -11,6 +11,7 @@ import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { generateId, IdSchema } from "@/lib/generate-id";
 import { createDocumentSchedule } from "@/lib/schedules";
 import { getAPIBaseURL } from "@/lib/utils";
+import { DocumentNameSchema, FolderPathSchema } from "@/lib/validation";
 
 export const preferredRegion = "iad1";
 
@@ -18,17 +19,8 @@ const BaseDocumentSchema = z.object({
   documentId: IdSchema.optional(),
   snapshotId: IdSchema.optional(),
 
-  folder: z.string().startsWith("/").endsWith("/"),
-  name: z
-    .string()
-    .min(1)
-    .regex(
-      /^[a-z0-9_-]+$/,
-      "Name must be lowercase and contain only letters, numbers, hyphens, and underscores",
-    )
-    .refine((val) => val === val.toLowerCase(), {
-      message: "Name must be lowercase",
-    }),
+  folder: FolderPathSchema,
+  name: DocumentNameSchema,
   description: z.string().optional(),
 
   enhance: z.boolean().optional(),
