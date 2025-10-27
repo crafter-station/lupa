@@ -38,7 +38,16 @@ export async function PATCH(
     const { projectId, id: documentId } = await params;
     const json = await request.json();
 
-    const updates = DocumentSelectSchema.partial().parse(json);
+    const updates = DocumentSelectSchema.pick({
+      folder: true,
+      name: true,
+      description: true,
+      metadata_schema: true,
+      refresh_enabled: true,
+      refresh_frequency: true,
+    })
+      .partial()
+      .parse(json);
 
     if (updates.folder) {
       updates.folder = normalizeFolderPath(updates.folder);

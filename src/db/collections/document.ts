@@ -4,7 +4,7 @@ import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { DOCUMENT_TABLE, type DocumentSelect } from "@/db/schema";
-import { appBaseURL, getAPIBaseURL } from "@/lib/utils";
+import { appBaseURL } from "@/lib/utils";
 
 export const DocumentCollection = ({
   project_id,
@@ -41,13 +41,17 @@ export const DocumentCollection = ({
         const changes = item.transaction.mutations[0].changes;
 
         const response = await fetch(
-          `${getAPIBaseURL(project_id)}/api/documents/${documentId}`,
+          `${appBaseURL}/api/documents/${documentId}`,
           {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(changes),
+            body: JSON.stringify({
+              ...changes,
+              project_id,
+              updated_at: undefined,
+            }),
           },
         );
 

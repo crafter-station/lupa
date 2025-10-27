@@ -10,6 +10,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+
 import { InlineEditableField } from "@/components/elements/inline-editable-field";
 import { InlineEditableFolder } from "@/components/elements/inline-editable-folder";
 import { InlineEditableRefreshSettings } from "@/components/elements/inline-editable-refresh-settings";
@@ -20,11 +21,15 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import type { DocumentSelect, RefreshFrequency, SnapshotSelect } from "@/db";
+
 import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { useMarkdown } from "@/hooks/use-markdown";
+
 import { generateId } from "@/lib/generate-id";
+
 import { CreateSnapshot } from "../../create-snapshot";
 import type { DocumentVersionViewerLoadingContextProps } from "./index";
 

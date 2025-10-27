@@ -22,16 +22,16 @@ export const PATCH = async (
     const { documentId } = await params;
 
     const body = await req.json();
-    const { projectId, ...updates } = z
+    const { project_id, ...updates } = z
       .object({
-        projectId: IdSchema,
+        project_id: IdSchema,
       })
       .passthrough()
       .parse(body);
 
-    await validateProjectOwnership(projectId, orgId);
+    await validateProjectOwnership(project_id, orgId);
 
-    return await proxyToPublicAPI(projectId, `/documents/${documentId}`, {
+    return await proxyToPublicAPI(project_id, `/documents/${documentId}`, {
       method: "PATCH",
       body: JSON.stringify(updates),
       headers: {
