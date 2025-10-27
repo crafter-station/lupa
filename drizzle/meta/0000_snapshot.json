@@ -1,9 +1,101 @@
 {
-  "id": "73fa03eb-2a2e-4e3f-8b42-c83c10af87fb",
+  "id": "9de35967-c517-454c-9881-f15b5528b6b7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.api_key": {
+      "name": "api_key",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key_hash": {
+          "name": "key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key_preview": {
+          "name": "key_preview",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "api_key_project_id_project_id_fk": {
+          "name": "api_key_project_id_project_id_fk",
+          "tableFrom": "api_key",
+          "tableTo": "project",
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "api_key_key_hash_unique": {
+          "name": "api_key_key_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": ["key_hash"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.deployment": {
       "name": "deployment",
       "schema": "",
@@ -12,6 +104,12 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true
+        },
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
           "notNull": true
         },
         "project_id": {
@@ -73,6 +171,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "folder": {
           "name": "folder",
           "type": "text",
@@ -101,6 +205,26 @@
         "metadata_schema": {
           "name": "metadata_schema",
           "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_enabled": {
+          "name": "refresh_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "refresh_frequency": {
+          "name": "refresh_frequency",
+          "type": "refresh_frequency_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_schedule_id": {
+          "name": "refresh_schedule_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -135,6 +259,12 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true
+        },
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
           "notNull": true
         },
         "name": {
@@ -182,6 +312,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "document_id": {
           "name": "document_id",
           "type": "text",
@@ -219,6 +355,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        },
+        "enhance": {
+          "name": "enhance",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "metadata": {
           "name": "metadata",
@@ -265,6 +408,12 @@
       "name": "snapshot_and_deployment_rel",
       "schema": "",
       "columns": {
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "snapshot_id": {
           "name": "snapshot_id",
           "type": "text",
@@ -335,6 +484,11 @@
       "name": "deployment_status_enum",
       "schema": "public",
       "values": ["cancelled", "queued", "building", "error", "ready"]
+    },
+    "public.refresh_frequency_enum": {
+      "name": "refresh_frequency_enum",
+      "schema": "public",
+      "values": ["daily", "weekly", "monthly"]
     },
     "public.snapshot_status_enum": {
       "name": "snapshot_status_enum",

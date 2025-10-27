@@ -1,1 +1,0 @@
-ALTER TABLE "snapshot" ADD COLUMN "enhance" boolean DEFAULT false NOT NULL;

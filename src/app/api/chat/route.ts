@@ -18,23 +18,19 @@ import { getAPIBaseURL } from "@/lib/utils";
 
 export const maxDuration = 120;
 
-export async function POST(
-  request: Request,
-  {
-    params,
-  }: {
-    params: Promise<{ projectId: string; deploymentId: string }>;
-  },
-) {
+export async function POST(request: Request) {
   try {
-    const { projectId, deploymentId } = await params;
     const {
+      projectId,
+      deploymentId,
       messages,
       model,
       documentIds,
       metadataFilters,
       contextFileNames,
     }: {
+      projectId: string;
+      deploymentId: string;
       messages: UIMessage[];
       model: string;
       documentIds?: string[];
