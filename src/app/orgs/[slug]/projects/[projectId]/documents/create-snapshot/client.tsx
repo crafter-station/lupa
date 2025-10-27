@@ -121,6 +121,7 @@ export function CreateSnapshot() {
       let response: Response;
 
       if (snapshot.type === "website") {
+        const enabled = refreshFrequency !== "none";
         const body = {
           projectId,
           type: "website" as const,
@@ -131,6 +132,8 @@ export function CreateSnapshot() {
           metadataSchema: metadataSchema
             ? JSON.stringify(metadataSchema)
             : undefined,
+          refreshEnabled: enabled,
+          refreshFrequency: enabled ? refreshFrequency : undefined,
         };
 
         response = await fetch("/api/snapshots", {

@@ -128,7 +128,7 @@ export function CreateDocument() {
             ? JSON.stringify(document.metadata_schema)
             : undefined,
           url: document.snapshot.url || "",
-          refresh: document.refresh_enabled,
+          refreshEnabled: document.refresh_enabled,
           refreshFrequency: document.refresh_frequency || undefined,
           enhance: document.snapshot.enhance || undefined,
         };
@@ -249,7 +249,7 @@ export function CreateDocument() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           org_id: organization?.id ?? "",
-          enhance: false,
+          enhance,
         },
       });
 
@@ -267,6 +267,7 @@ export function CreateDocument() {
       router,
       slug,
       organization,
+      enhance,
     ],
   );
 
@@ -332,7 +333,7 @@ export function CreateDocument() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             org_id: organization?.id ?? "",
-            enhance: false,
+            enhance,
             file: selectedFile,
             parsing_instruction: parsingInstruction || undefined,
           },
@@ -360,6 +361,7 @@ export function CreateDocument() {
       router,
       slug,
       organization,
+      enhance,
     ],
   );
 

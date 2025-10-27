@@ -16,16 +16,18 @@ export const preferredRegion = "iad1";
 const BaseDocumentSchema = z.object({
   documentId: IdSchema.optional(),
   snapshotId: IdSchema.optional(),
+
   folder: z.string().startsWith("/").endsWith("/"),
   name: z.string(),
   description: z.string().optional(),
+
   enhance: z.boolean().optional(),
   metadataSchema: z.string().optional(),
 });
 
 const WebsiteDocumentSchema = BaseDocumentSchema.extend({
   url: z.string().url(),
-  refresh: z.boolean().optional(),
+  refreshEnabled: z.boolean().optional(),
   refreshFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
 });
 
@@ -70,7 +72,7 @@ async function createDocumentWithTxid(
     folder: string;
     name: string;
     description?: string;
-    refresh?: boolean;
+    refreshEnabled?: boolean;
     refreshFrequency?: "daily" | "weekly" | "monthly";
   },
 ): Promise<string> {
@@ -93,7 +95,7 @@ async function createDocumentWithTxid(
         folder: data.folder,
         name: data.name,
         description: data.description,
-        refresh_enabled: data.refresh,
+        refresh_enabled: data.refreshEnabled,
         refresh_frequency: data.refreshFrequency,
       });
 
@@ -122,7 +124,7 @@ async function createDocumentSimple(
     folder: string;
     name: string;
     description?: string;
-    refresh?: boolean;
+    refreshEnabled?: boolean;
     refreshFrequency?: "daily" | "weekly" | "monthly";
   },
 ): Promise<void> {
@@ -133,7 +135,7 @@ async function createDocumentSimple(
     folder: data.folder,
     name: data.name,
     description: data.description,
-    refresh_enabled: data.refresh,
+    refresh_enabled: data.refreshEnabled,
     refresh_frequency: data.refreshFrequency,
   });
 }
@@ -195,7 +197,6 @@ async function createSnapshot(
 
 export async function POST(
   request: NextRequest,
-
   {
     params,
   }: {
@@ -224,9 +225,9 @@ export async function POST(
           folder: data.folder,
           name: data.name,
           description: data.description,
-          refresh:
+          refreshEnabled:
             type === "website"
-              ? (data as z.infer<typeof WebsiteDocumentSchema>).refresh
+              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled
               : undefined,
           refreshFrequency:
             type === "website"
@@ -240,9 +241,9 @@ export async function POST(
           folder: data.folder,
           name: data.name,
           description: data.description,
-          refresh:
+          refreshEnabled:
             type === "website"
-              ? (data as z.infer<typeof WebsiteDocumentSchema>).refresh
+              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled
               : undefined,
           refreshFrequency:
             type === "website"
@@ -277,7 +278,7 @@ export async function POST(
 
     if (
       type === "website" &&
-      (data as z.infer<typeof WebsiteDocumentSchema>).refresh &&
+      (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled &&
       (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
     ) {
       const refreshFrequency = (data as z.infer<typeof WebsiteDocumentSchema>)

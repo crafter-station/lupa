@@ -15,17 +15,23 @@ export const preferredRegion = "iad1";
 const WebsiteSnapshotSchema = z.object({
   snapshotId: IdSchema.optional(),
   documentId: IdSchema,
-  url: z.string().url(),
+
   enhance: z.boolean().optional(),
   metadataSchema: z.string().optional(),
+
+  url: z.string().url(),
+  refreshEnabled: z.boolean().optional(),
+  refreshFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
 });
 
 const UploadSnapshotSchema = z.object({
   snapshotId: IdSchema.optional(),
   documentId: IdSchema,
-  file: z.instanceof(File),
+
   enhance: z.boolean().optional(),
   metadataSchema: z.string().optional(),
+
+  file: z.instanceof(File),
   parsingInstructions: z.string().optional(),
 });
 
@@ -274,7 +280,20 @@ export async function POST(
     let snapshotUrl = "";
 
     if (type === "website") {
-      snapshotUrl = (data as z.infer<typeof WebsiteSnapshotSchema>).url;
+      const websiteData = data as z.infer<typeof WebsiteSnapshotSchema>;
+      snapshotUrl = websiteData.url;
+
+      if (websiteData.refreshEnabled !== undefined) {
+        await db
+          .update(schema.Document)
+          .set({
+            refresh_enabled: websiteData.refreshEnabled,
+            refresh_frequency: websiteData.refreshFrequency || null,
+            metadata_schema: snapshotMetadata.metadata_schema || null,
+            updated_at: sql`NOW()`,
+          })
+          .where(eq(schema.Document.id, data.documentId));
+      }
     } else if (file) {
       const uploadResult = await uploadFile(
         file,
