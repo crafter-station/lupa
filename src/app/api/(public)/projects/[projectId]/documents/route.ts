@@ -1,7 +1,6 @@
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { NextResponse } from "next/server";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -11,6 +10,182 @@ import { getAPIBaseURL } from "@/lib/utils";
 
 export const preferredRegion = "iad1";
 
+const BaseDocumentSchema = z.object({
+  documentId: IdSchema.optional(),
+  snapshotId: IdSchema.optional(),
+  folder: z.string().startsWith("/").endsWith("/"),
+  name: z.string(),
+  description: z.string().optional(),
+  enhance: z.boolean().optional(),
+  metadataSchema: z.string().optional(),
+});
+
+const WebsiteDocumentSchema = BaseDocumentSchema.extend({
+  url: z.string().url(),
+  refresh: z.boolean().optional(),
+  refreshFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+});
+
+const UploadDocumentSchema = BaseDocumentSchema.extend({
+  file: z.instanceof(File),
+  parsingInstructions: z.string().optional(),
+});
+
+async function parseRequestData(request: Request, type: "website" | "upload") {
+  if (type === "website") {
+    const body = await request.json();
+    return {
+      data: WebsiteDocumentSchema.parse(body),
+      file: undefined,
+    };
+  }
+
+  const formData = await request.formData();
+  const data = UploadDocumentSchema.parse(Object.fromEntries(formData));
+  return { data, file: data.file };
+}
+
+async function validateProject(projectId: string) {
+  const [project] = await db
+    .select()
+    .from(schema.Project)
+    .where(eq(schema.Project.id, projectId))
+    .limit(1);
+
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  return project;
+}
+
+async function createDocumentWithTxid(
+  documentId: string,
+  projectId: string,
+  orgId: string,
+  data: {
+    folder: string;
+    name: string;
+    description?: string;
+    refresh?: boolean;
+    refreshFrequency?: "daily" | "weekly" | "monthly";
+  },
+): Promise<string> {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL not configured");
+  }
+
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL.replace("-pooler", ""),
+  });
+
+  try {
+    const dbPool = drizzle({ client: pool, schema });
+
+    const result = await dbPool.transaction(async (tx) => {
+      await tx.insert(schema.Document).values({
+        id: documentId,
+        project_id: projectId,
+        org_id: orgId,
+        folder: data.folder,
+        name: data.name,
+        description: data.description,
+        refresh_enabled: data.refresh,
+        refresh_frequency: data.refreshFrequency,
+      });
+
+      const txidResult = await tx.execute(
+        sql`SELECT pg_current_xact_id()::xid::text as txid`,
+      );
+
+      if (!txidResult.rows[0]?.txid) {
+        throw new Error("Failed to get transaction ID");
+      }
+
+      return { txid: txidResult.rows[0].txid as string };
+    });
+
+    return result.txid;
+  } finally {
+    await pool.end();
+  }
+}
+
+async function createDocumentSimple(
+  documentId: string,
+  projectId: string,
+  orgId: string,
+  data: {
+    folder: string;
+    name: string;
+    description?: string;
+    refresh?: boolean;
+    refreshFrequency?: "daily" | "weekly" | "monthly";
+  },
+): Promise<void> {
+  await db.insert(schema.Document).values({
+    id: documentId,
+    project_id: projectId,
+    org_id: orgId,
+    folder: data.folder,
+    name: data.name,
+    description: data.description,
+    refresh_enabled: data.refresh,
+    refresh_frequency: data.refreshFrequency,
+  });
+}
+
+async function createSnapshot(
+  projectId: string,
+  type: "website" | "upload",
+  data: {
+    snapshotId?: string;
+    documentId: string;
+    url?: string;
+    file?: File;
+    enhance?: boolean;
+    metadataSchema?: string;
+    parsingInstructions?: string;
+  },
+): Promise<{ snapshotId: string; txid: string }> {
+  const apiUrl = `${getAPIBaseURL(projectId)}/snapshots?type=${type}`;
+
+  let body: BodyInit;
+  const headers: HeadersInit = {};
+
+  if (type === "website") {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify({
+      snapshotId: data.snapshotId,
+      documentId: data.documentId,
+      url: data.url,
+      enhance: data.enhance,
+      metadataSchema: data.metadataSchema,
+    });
+  } else {
+    const formData = new FormData();
+    if (data.snapshotId) formData.append("snapshotId", data.snapshotId);
+    formData.append("documentId", data.documentId);
+    if (data.file) formData.append("file", data.file);
+    if (data.enhance !== undefined)
+      formData.append("enhance", String(data.enhance));
+    if (data.metadataSchema)
+      formData.append("metadataSchema", data.metadataSchema);
+    if (data.parsingInstructions)
+      formData.append("parsingInstructions", data.parsingInstructions);
+    body = formData;
+  }
+
+  const response = await fetch(apiUrl, { method: "POST", headers, body });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Snapshot creation failed: ${error}`);
+  }
+
+  return response.json();
+}
+
 export async function POST(
   request: Request,
   {
@@ -18,7 +193,7 @@ export async function POST(
     searchParams,
   }: {
     params: Promise<{ projectId: string }>;
-    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+    searchParams: Promise<{ type?: string }>;
   },
 ) {
   try {
@@ -27,153 +202,81 @@ export async function POST(
 
     const type = z.enum(["website", "upload"]).parse(rawType);
 
+    const project = await validateProject(projectId);
+
+    const { data } = await parseRequestData(request, type);
+
+    const documentId = data.documentId || generateId();
     let documentTxid: string | undefined;
-    let snapshotTxid: string | undefined;
 
-    let documentId: string | undefined;
-    let snapshotId: string | undefined;
-
-    if (type === "website") {
-      const body = await request.json();
-      const {
-        documentId: existingDocId,
-        snapshotId: existingSnapId,
-
-        folder,
-        name,
-        description,
-
-        enhance,
-        metadataSchema,
-
-        url,
-        refresh,
-        refreshFrequency,
-      } = z
-        .object({
-          documentId: IdSchema.optional(),
-          snapshotId: IdSchema.optional(),
-
-          folder: z.string().startsWith("/").endsWith("/"),
-          name: z.string(),
-          description: z.string().optional(),
-
-          enhance: z.boolean().optional(),
-          metadataSchema: z.string().optional(),
-
-          // website specific
-          url: z.string().url(),
-          refresh: z.boolean().optional(),
-          refreshFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
-        })
-        .parse(body);
-
-      const [project] = await db
-        .select()
-        .from(schema.Project)
-        .where(eq(schema.Project.id, projectId))
-        .limit(1);
-
-      if (!project) {
-        return Response.json(
-          { success: false, error: "Project not found" },
-          { status: 404 },
-        );
-      }
-
-      documentId = existingDocId;
-      if (documentId) {
-        let pool: Pool | undefined;
-        try {
-          pool = new Pool({
-            connectionString: process.env.DATABASE_URL?.replace("-pooler", ""),
-          });
-
-          const dbPool = drizzle({
-            client: pool,
-            schema,
-          });
-          const documentResult = await dbPool.transaction(async (tx) => {
-            await tx.insert(schema.Document).values({
-              // biome-ignore lint/style/noNonNullAssertion: it's no longer undefined
-              id: documentId!,
-              project_id: project.id,
-              org_id: project.org_id,
-
-              folder,
-              name,
-              description,
-              refresh_enabled: refresh,
-              refresh_frequency: refreshFrequency,
-            });
-
-            const txid = await tx.execute(
-              sql`SELECT pg_current_xact_id()::xid::text as txid`,
-            );
-
-            return {
-              txid: txid.rows[0].txid as string,
-            };
-          });
-
-          documentTxid = documentResult.txid;
-        } catch {
-          return Response.json(
-            {
-              error: "Something went wrong",
-            },
-            {
-              status: 400,
-            },
-          );
-        } finally {
-          if (pool) {
-            pool.end();
-          }
-        }
-      } else {
-        documentId = generateId();
-        try {
-          await db.insert(schema.Document).values({
-            id: documentId,
-            project_id: project.id,
-            org_id: project.org_id,
-
-            folder,
-            name,
-
-            description,
-
-            refresh_enabled: refresh,
-            refresh_frequency: refreshFrequency,
-          });
-        } catch {}
-      }
-
-      if (existingSnapId) {
-        snapshotId = existingSnapId;
-      }
-
-      const response = await fetch(
-        `${getAPIBaseURL(projectId)}/snapshots?type=website`,
+    if (data.documentId) {
+      documentTxid = await createDocumentWithTxid(
+        documentId,
+        project.id,
+        project.org_id,
         {
-          method: "POST",
-          body: JSON.stringify({
-            snapshotId,
-            documentId,
-
-            url,
-
-            enhance,
-            metadataSchema,
-          }),
+          folder: data.folder,
+          name: data.name,
+          description: data.description,
+          refresh:
+            type === "website"
+              ? (data as z.infer<typeof WebsiteDocumentSchema>).refresh
+              : undefined,
+          refreshFrequency:
+            type === "website"
+              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
+              : undefined,
         },
       );
-      const data = await response.json();
-      snapshotId = data.snapshotId;
-      snapshotTxid = data.txid;
+    } else {
+      try {
+        await createDocumentSimple(documentId, project.id, project.org_id, {
+          folder: data.folder,
+          name: data.name,
+          description: data.description,
+          refresh:
+            type === "website"
+              ? (data as z.infer<typeof WebsiteDocumentSchema>).refresh
+              : undefined,
+          refreshFrequency:
+            type === "website"
+              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
+              : undefined,
+        });
+      } catch (error) {
+        throw new Error(
+          `Failed to create document: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
+    }
 
-      if (refresh && refreshFrequency) {
+    const snapshotData = await createSnapshot(projectId, type, {
+      snapshotId: data.snapshotId,
+      documentId,
+      url:
+        type === "website"
+          ? (data as z.infer<typeof WebsiteDocumentSchema>).url
+          : undefined,
+      file:
+        type === "upload"
+          ? (data as z.infer<typeof UploadDocumentSchema>).file
+          : undefined,
+      enhance: data.enhance,
+      metadataSchema: data.metadataSchema,
+      parsingInstructions:
+        type === "upload"
+          ? (data as z.infer<typeof UploadDocumentSchema>).parsingInstructions
+          : undefined,
+    });
+
+    if (
+      type === "website" &&
+      (data as z.infer<typeof WebsiteDocumentSchema>).refresh &&
+      (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
+    ) {
+      const refreshFrequency = (data as z.infer<typeof WebsiteDocumentSchema>)
+        .refreshFrequency;
+      if (refreshFrequency) {
         try {
           const schedule = await createDocumentSchedule(
             documentId,
@@ -182,160 +285,36 @@ export async function POST(
 
           await db
             .update(schema.Document)
-            .set({
-              refresh_schedule_id: schedule.id,
-            })
+            .set({ refresh_schedule_id: schedule.id })
             .where(eq(schema.Document.id, documentId));
         } catch (error) {
           console.error("Failed to create schedule:", error);
         }
       }
-    } else {
-      const formData = await request.formData();
-      const {
-        documentId: existingDocId,
-        snapshotId: existingSnapId,
-
-        folder,
-        name,
-        description,
-
-        enhance,
-        metadataSchema,
-
-        file,
-        parsingInstructions,
-      } = z
-        .object({
-          documentId: IdSchema.optional(),
-          snapshotId: IdSchema.optional(),
-
-          folder: z.string().startsWith("/").endsWith("/"),
-          name: z.string(),
-          description: z.string().optional(),
-
-          enhance: z.boolean().optional(),
-          metadataSchema: z.string().optional(),
-
-          // upload specific
-          file: z.instanceof(File),
-          parsingInstructions: z.string().optional(),
-        })
-        .parse(Object.fromEntries(formData));
-
-      const [project] = await db
-        .select()
-        .from(schema.Project)
-        .where(eq(schema.Project.id, projectId))
-        .limit(1);
-
-      if (!project) {
-        return Response.json(
-          { success: false, error: "Project not found" },
-          { status: 404 },
-        );
-      }
-
-      documentId = existingDocId;
-      if (documentId) {
-        let pool: Pool | undefined;
-        try {
-          pool = new Pool({
-            connectionString: process.env.DATABASE_URL?.replace("-pooler", ""),
-          });
-
-          const dbPool = drizzle({
-            client: pool,
-            schema,
-          });
-          const documentResult = await dbPool.transaction(async (tx) => {
-            await tx.insert(schema.Document).values({
-              // biome-ignore lint/style/noNonNullAssertion: it's no longer undefined
-              id: documentId!,
-              project_id: project.id,
-              org_id: project.org_id,
-
-              folder,
-              name,
-              description,
-            });
-
-            const txid = await tx.execute(
-              sql`SELECT pg_current_xact_id()::xid::text as txid`,
-            );
-
-            return {
-              txid: txid.rows[0].txid as string,
-            };
-          });
-
-          documentTxid = documentResult.txid;
-        } catch {}
-      } else {
-        documentId = generateId();
-        try {
-          await db.insert(schema.Document).values({
-            id: documentId,
-            project_id: project.id,
-            org_id: project.org_id,
-
-            folder,
-            name,
-
-            description,
-          });
-        } catch {}
-      }
-
-      const snapshotFormData = new FormData();
-      Object.entries({
-        documentId,
-        snapshotId,
-
-        enhance,
-        metadataSchema,
-
-        file,
-        parsingInstructions,
-      }).forEach(([key, value]) => {
-        if (value) {
-          snapshotFormData.append(
-            key,
-            typeof value === "boolean" ? String(value) : value,
-          );
-        }
-      });
-
-      if (existingSnapId) {
-        snapshotId = existingSnapId;
-      }
-
-      const response = await fetch(
-        `${getAPIBaseURL(projectId)}/snapshots?type=upload`,
-        {
-          method: "POST",
-          body: snapshotFormData,
-        },
-      );
-      const data = await response.json();
-      snapshotId = data.snapshotId;
-      snapshotTxid = data.txid;
     }
 
-    return NextResponse.json({
+    return Response.json({
       documentTxid,
-      snapshotTxid,
+      snapshotTxid: snapshotData.txid,
       documentId,
-      snapshotId,
+      snapshotId: snapshotData.snapshotId,
     });
   } catch (error) {
     console.error(error);
-    return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+
+    if (error instanceof z.ZodError) {
+      return Response.json(
+        { error: "Validation failed", details: error.errors },
+        { status: 400 },
+      );
+    }
+
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message === "Project not found") {
+      return Response.json({ error: message }, { status: 404 });
+    }
+
+    return Response.json({ error: message }, { status: 500 });
   }
 }
