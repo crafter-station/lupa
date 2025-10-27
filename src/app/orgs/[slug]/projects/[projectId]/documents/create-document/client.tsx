@@ -416,7 +416,18 @@ export function CreateDocument() {
               name="name"
               required={snapshotType === "website"}
               disabled={isUploading}
+              onChange={(e) => {
+                const sanitized = e.target.value
+                  .toLowerCase()
+                  .trim()
+                  .replace(/\s+/g, "-")
+                  .replace(/[^a-z0-9_-]/g, "");
+                e.target.value = sanitized;
+              }}
             />
+            <p className="text-xs text-muted-foreground">
+              Only lowercase letters, numbers, hyphens, and underscores allowed
+            </p>
           </div>
 
           <div className="space-y-2">

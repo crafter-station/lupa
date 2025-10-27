@@ -414,9 +414,14 @@ export function BulkCreateClient() {
                   <TableCell>
                     <Input
                       value={link.name}
-                      onChange={(e) =>
-                        updateLink(link.id, "name", e.target.value)
-                      }
+                      onChange={(e) => {
+                        const sanitized = e.target.value
+                          .toLowerCase()
+                          .trim()
+                          .replace(/\s+/g, "-")
+                          .replace(/[^a-z0-9_-]/g, "");
+                        updateLink(link.id, "name", sanitized);
+                      }}
                       disabled={isCreating}
                       className="text-sm"
                     />

@@ -342,6 +342,7 @@ export function DocumentVersionViewerContent({
                   onSave={handleUpdateName}
                   className="text-xl font-semibold"
                   required
+                  sanitizeName
                 />
               </div>
             </div>

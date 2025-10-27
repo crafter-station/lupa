@@ -13,6 +13,7 @@ interface InlineEditableFieldProps {
   className?: string;
   placeholder?: string;
   required?: boolean;
+  sanitizeName?: boolean;
 }
 
 export function InlineEditableField({
@@ -21,11 +22,21 @@ export function InlineEditableField({
   className,
   placeholder = "Click to edit",
   required = false,
+  sanitizeName = false,
 }: InlineEditableFieldProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value);
   const [isSaving, setIsSaving] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const sanitizeValue = (val: string) => {
+    if (!sanitizeName) return val;
+    return val
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9_-]/g, "");
+  };
 
   React.useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -77,7 +88,10 @@ export function InlineEditableField({
           ref={inputRef}
           type="text"
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
+          onChange={(e) => {
+            const newValue = sanitizeValue(e.target.value);
+            setEditValue(newValue);
+          }}
           onKeyDown={handleKeyDown}
           className={cn("h-8", className)}
           disabled={isSaving}

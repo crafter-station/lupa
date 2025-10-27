@@ -19,7 +19,16 @@ const BaseDocumentSchema = z.object({
   snapshotId: IdSchema.optional(),
 
   folder: z.string().startsWith("/").endsWith("/"),
-  name: z.string(),
+  name: z
+    .string()
+    .min(1)
+    .regex(
+      /^[a-z0-9_-]+$/,
+      "Name must be lowercase and contain only letters, numbers, hyphens, and underscores",
+    )
+    .refine((val) => val === val.toLowerCase(), {
+      message: "Name must be lowercase",
+    }),
   description: z.string().optional(),
 
   enhance: z.boolean().optional(),
