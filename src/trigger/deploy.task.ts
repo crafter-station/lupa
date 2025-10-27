@@ -269,7 +269,7 @@ export const pushSnapshot = schemaTask({
 
       logger.info(`Successfully uploaded ${uploadedCount} vectors`);
 
-      await invalidateVectorCache(deploymentId);
+      await invalidateVectorCache(projectId, deploymentId);
 
       return { uploadedCount };
     } catch (error) {

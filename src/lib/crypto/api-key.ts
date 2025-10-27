@@ -15,6 +15,8 @@ interface ApiKeyCache {
   project_id: string;
   is_active: boolean;
   name: string;
+  environment: "live" | "test";
+  key_type: "sk" | "pk";
 }
 
 interface ValidatedApiKey {
@@ -22,6 +24,8 @@ interface ValidatedApiKey {
   org_id: string;
   project_id: string;
   name: string;
+  environment: "live" | "test";
+  key_type: "sk" | "pk";
 }
 
 export async function validateApiKey(
@@ -42,7 +46,10 @@ export async function validateApiKey(
 
   const apiKey = authHeader.replace("Bearer ", "").trim();
 
-  if (!apiKey.startsWith("lupa_sk_") || apiKey.length < 40) {
+  const legacyPattern = /^lupa_sk_[a-zA-Z0-9_-]{32,}$/;
+  const newPattern = /^lupa_(sk|pk)_(live|test)_[a-zA-Z0-9_-]+$/;
+
+  if (!legacyPattern.test(apiKey) && !newPattern.test(apiKey)) {
     return { valid: false };
   }
 
@@ -78,6 +85,8 @@ export async function validateApiKey(
           org_id: keyData.org_id,
           project_id: keyData.project_id,
           name: keyData.name,
+          environment: keyData.environment,
+          key_type: keyData.key_type,
         },
       };
     }
@@ -104,6 +113,8 @@ export async function validateApiKey(
         project_id: keyRecord.project_id,
         is_active: keyRecord.is_active,
         name: keyRecord.name,
+        environment: keyRecord.environment,
+        key_type: keyRecord.key_type,
       }),
       { ex: 60 * 60 * 24 * 30 },
     );
@@ -119,6 +130,8 @@ export async function validateApiKey(
         org_id: keyRecord.org_id,
         project_id: keyRecord.project_id,
         name: keyRecord.name,
+        environment: keyRecord.environment,
+        key_type: keyRecord.key_type,
       },
     };
   } catch (error) {
@@ -164,6 +177,8 @@ async function validateFromPostgres(keyHash: string, projectId?: string) {
       org_id: keyRecord.org_id,
       project_id: keyRecord.project_id,
       name: keyRecord.name,
+      environment: keyRecord.environment,
+      key_type: keyRecord.key_type,
     },
   };
 }

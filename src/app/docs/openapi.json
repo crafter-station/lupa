@@ -24,6 +24,17 @@
       }
     },
     "schemas": {
+      "200": {},
+      "UpdateEnvironmentBodySchema": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "enum": ["production", "staging"]
+          }
+        },
+        "required": ["environment"]
+      },
       "SearchResponseSchema": {
         "type": "object",
         "properties": {
@@ -99,6 +110,11 @@
                 "$ref": "#/components/schemas/IdSchema"
               }
             ]
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["production", "staging"],
+            "nullable": true
           }
         }
       },
@@ -274,9 +290,6 @@
       "CreateApiKeyRequestSchema": {
         "type": "object",
         "properties": {
-          "apiKeyId": {
-            "type": "object"
-          },
           "name": {
             "type": "string",
             "minLength": 1,
@@ -284,9 +297,28 @@
           },
           "projectId": {
             "type": "object"
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["live", "test"],
+            "default": "test"
+          },
+          "keyType": {
+            "type": "string",
+            "enum": ["sk", "pk"],
+            "default": "sk"
           }
         },
-        "required": ["apiKeyId", "apiKeyId", "name", "projectId", "projectId"]
+        "required": ["name", "projectId", "projectId", "environment", "keyType"]
+      },
+      "GetApiKeysRequestSchema": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "object"
+          }
+        },
+        "required": ["projectId", "projectId"]
       },
       "BulkDocumentItemSchema": {
         "type": "object",
@@ -866,6 +898,69 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateDeploymentSuccessResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/deployments/{deploymentId}/environment": {
+      "patch": {
+        "operationId": "patch-projects-{projectId}-deployments-{deploymentId}-environment",
+        "summary": "Update deployment environment",
+        "description": "Updates the environment of a deployment",
+        "tags": ["Projects"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnvironmentBodySchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/200"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/deployments/{deploymentId}/promote": {
+      "patch": {
+        "operationId": "patch-projects-{projectId}-deployments-{deploymentId}-promote",
+        "summary": "Promote deployment to production",
+        "description": "Promotes a deployment to production environment and demotes the current production deployment",
+        "tags": ["Projects"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/200"
                 }
               }
             }

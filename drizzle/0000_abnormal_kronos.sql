@@ -1,3 +1,6 @@
+CREATE TYPE "public"."api_key_environment_enum" AS ENUM('live', 'test');--> statement-breakpoint
+CREATE TYPE "public"."api_key_type_enum" AS ENUM('sk', 'pk');--> statement-breakpoint
+CREATE TYPE "public"."deployment_environment_enum" AS ENUM('production', 'staging');--> statement-breakpoint
 CREATE TYPE "public"."deployment_log_level_enum" AS ENUM('info', 'warning', 'error');--> statement-breakpoint
 CREATE TYPE "public"."deployment_status_enum" AS ENUM('cancelled', 'queued', 'building', 'error', 'ready');--> statement-breakpoint
 CREATE TYPE "public"."refresh_frequency_enum" AS ENUM('daily', 'weekly', 'monthly');--> statement-breakpoint
@@ -10,6 +13,8 @@ CREATE TABLE "api_key" (
 	"name" text NOT NULL,
 	"key_hash" text NOT NULL,
 	"key_preview" text NOT NULL,
+	"environment" "api_key_environment_enum" DEFAULT 'live' NOT NULL,
+	"key_type" "api_key_type_enum" DEFAULT 'sk' NOT NULL,
 	"is_active" boolean DEFAULT true NOT NULL,
 	"last_used_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -23,6 +28,7 @@ CREATE TABLE "deployment" (
 	"project_id" text NOT NULL,
 	"vector_index_id" text,
 	"status" "deployment_status_enum" NOT NULL,
+	"environment" "deployment_environment_enum",
 	"logs" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -40,7 +46,8 @@ CREATE TABLE "document" (
 	"refresh_frequency" "refresh_frequency_enum",
 	"refresh_schedule_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "document_project_folder_name_unique" UNIQUE("project_id","folder","name")
 );
 --> statement-breakpoint
 CREATE TABLE "project" (
@@ -48,6 +55,8 @@ CREATE TABLE "project" (
 	"org_id" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
+	"production_deployment_id" text,
+	"staging_deployment_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -80,4 +89,6 @@ CREATE TABLE "snapshot_and_deployment_rel" (
 --> statement-breakpoint
 ALTER TABLE "api_key" ADD CONSTRAINT "api_key_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "snapshot_and_deployment_rel" ADD CONSTRAINT "snapshot_and_deployment_rel_snapshot_id_snapshot_id_fk" FOREIGN KEY ("snapshot_id") REFERENCES "public"."snapshot"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "snapshot_and_deployment_rel" ADD CONSTRAINT "snapshot_and_deployment_rel_deployment_id_deployment_id_fk" FOREIGN KEY ("deployment_id") REFERENCES "public"."deployment"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "snapshot_and_deployment_rel" ADD CONSTRAINT "snapshot_and_deployment_rel_deployment_id_deployment_id_fk" FOREIGN KEY ("deployment_id") REFERENCES "public"."deployment"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "api_key_project_env_type_name_unique" ON "api_key" USING btree ("project_id","environment","key_type","name") WHERE "api_key"."is_active" = true;--> statement-breakpoint
+CREATE UNIQUE INDEX "deployment_one_production_per_project" ON "deployment" USING btree ("project_id") WHERE "deployment"."environment" = 'production' AND "deployment"."status" = 'ready';

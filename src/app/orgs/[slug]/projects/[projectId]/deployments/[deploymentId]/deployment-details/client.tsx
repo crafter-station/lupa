@@ -4,6 +4,9 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Copy } from "lucide-react";
 import { useParams } from "next/navigation";
 import React from "react";
+import { EnvironmentBadge } from "@/components/elements/environment-badge";
+import { PromoteToProductionButton } from "@/components/elements/promote-to-production-button";
+import { PromoteToStagingButton } from "@/components/elements/promote-to-staging-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -26,12 +29,12 @@ import type { DeploymentDetailsLoadingContextProps } from "./index";
 export function DeploymentDetailsLiveQuery({
   preloadedDeployment,
 }: DeploymentDetailsLoadingContextProps) {
-  const { deploymentId } = useParams<{
+  const { deploymentId, projectId } = useParams<{
     deploymentId: string;
     projectId: string;
   }>();
 
-  const { DeploymentCollection } = useCollections();
+  const { DeploymentCollection, ProjectCollection } = useCollections();
 
   const { data: freshData, status } = useLiveQuery((q) =>
     q
@@ -40,20 +43,39 @@ export function DeploymentDetailsLiveQuery({
       .where(({ deployment }) => eq(deployment.id, deploymentId)),
   );
 
+  const { data: projectData } = useLiveQuery((q) =>
+    q
+      .from({ project: ProjectCollection })
+      .select(({ project }) => ({ ...project }))
+      .where(({ project }) => eq(project.id, projectId)),
+  );
+
   const deployment = React.useMemo(() => {
     const data = status === "ready" ? freshData : [preloadedDeployment];
     return data[0];
   }, [status, freshData, preloadedDeployment]);
 
-  return <DeploymentDetailsContent deployment={deployment} />;
+  const project = projectData?.[0];
+
+  return (
+    <DeploymentDetailsContent
+      deployment={deployment}
+      productionDeploymentId={project?.production_deployment_id}
+      stagingDeploymentId={project?.staging_deployment_id}
+    />
+  );
 }
 
 export function DeploymentDetailsContent({
   deployment,
+  productionDeploymentId,
+  stagingDeploymentId,
 }: {
   deployment: DeploymentSelect;
+  productionDeploymentId?: string | null;
+  stagingDeploymentId?: string | null;
 }) {
-  const { deploymentId, projectId } = useParams<{
+  const { projectId } = useParams<{
     deploymentId: string;
     projectId: string;
   }>();
@@ -75,12 +97,32 @@ export function DeploymentDetailsContent({
 
   const apiUrl = `${getAPIBaseURL(projectId)}/search/?query=<query>`;
 
+  const isProduction = deployment.environment === "production";
+  const isStaging = deployment.environment === "staging";
+  const hasNoEnvironment = !deployment.environment;
+  const isReady = deployment.status === "ready";
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold">Deployment</h1>
           <Badge className={statusColor}>{deployment.status}</Badge>
+          <EnvironmentBadge environment={deployment.environment} />
+          {isReady && hasNoEnvironment && (
+            <PromoteToStagingButton
+              deploymentId={deployment.id}
+              projectId={projectId}
+              currentStagingDeploymentId={stagingDeploymentId}
+            />
+          )}
+          {isReady && isStaging && (
+            <PromoteToProductionButton
+              deploymentId={deployment.id}
+              projectId={projectId}
+              currentProductionDeploymentId={productionDeploymentId}
+            />
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span className="font-mono text-xs">{deployment.id}</span>

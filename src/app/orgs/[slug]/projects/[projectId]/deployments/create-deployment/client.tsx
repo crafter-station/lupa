@@ -22,6 +22,7 @@ export const CreateDeployment = () => {
       vector_index_id: null,
 
       status: "queued",
+      environment: "staging",
       logs: [],
 
       created_at: new Date().toISOString(),

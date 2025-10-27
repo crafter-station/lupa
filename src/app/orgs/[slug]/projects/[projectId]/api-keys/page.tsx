@@ -26,6 +26,8 @@ export default async function ApiKeysPage({
       id: schema.ApiKey.id,
       name: schema.ApiKey.name,
       key_preview: schema.ApiKey.key_preview,
+      environment: schema.ApiKey.environment,
+      key_type: schema.ApiKey.key_type,
       last_used_at: schema.ApiKey.last_used_at,
       created_at: schema.ApiKey.created_at,
     })

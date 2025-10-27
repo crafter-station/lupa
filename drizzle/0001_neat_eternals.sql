@@ -1,1 +1,0 @@
-ALTER TABLE "document" ADD CONSTRAINT "document_project_folder_name_unique" UNIQUE("project_id","folder","name");

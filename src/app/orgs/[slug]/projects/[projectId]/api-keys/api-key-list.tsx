@@ -1,7 +1,9 @@
 "use client";
 
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { Eye, Lock, MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { EnvironmentKeyBadge } from "@/components/elements/api-key-badges";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,11 +19,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface ApiKey {
   id: string;
   name: string;
   key_preview: string;
+  environment: "live" | "test";
+  key_type: "sk" | "pk";
   last_used_at: string | null;
   created_at: string;
 }
@@ -108,6 +113,8 @@ export function ApiKeyList({ projectId, apiKeys }: ApiKeyListProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Default Target</TableHead>
+            <TableHead>Access Level</TableHead>
             <TableHead>Key</TableHead>
             <TableHead>Last Used</TableHead>
             <TableHead>Created</TableHead>
@@ -115,42 +122,63 @@ export function ApiKeyList({ projectId, apiKeys }: ApiKeyListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {apiKeys.map((key) => (
-            <TableRow key={key.id}>
-              <TableCell className="font-medium">{key.name}</TableCell>
-              <TableCell className="font-mono text-xs text-muted-foreground">
-                {key.key_preview}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                <time>{formatRelativeTime(key.last_used_at)}</time>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                <time>{formatDate(key.created_at)}</time>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={deletingId === key.id}
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDelete(key.id, key.name)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+          {apiKeys.map((key) => {
+            const isReadOnly = key.key_type === "pk";
+            const AccessIcon = isReadOnly ? Eye : Lock;
+
+            return (
+              <TableRow key={key.id}>
+                <TableCell className="font-medium">{key.name}</TableCell>
+                <TableCell>
+                  <EnvironmentKeyBadge environment={key.environment} />
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      isReadOnly
+                        ? "bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 border-purple-500/20"
+                        : "bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border-blue-500/20",
+                    )}
+                  >
+                    <AccessIcon className="h-3 w-3" />
+                    {isReadOnly ? "Read-only" : "Read+Write"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">
+                  {key.key_preview}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  <time>{formatRelativeTime(key.last_used_at)}</time>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  <time>{formatDate(key.created_at)}</time>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={deletingId === key.id}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDelete(key.id, key.name)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

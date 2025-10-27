@@ -284,14 +284,19 @@ export async function POST(
       snapshotUrl = websiteData.url;
 
       if (websiteData.refreshEnabled !== undefined) {
+        const updateData: Record<string, unknown> = {
+          refresh_enabled: websiteData.refreshEnabled,
+          refresh_frequency: websiteData.refreshFrequency || null,
+          updated_at: sql`NOW()`,
+        };
+
+        if (snapshotMetadata.metadata_schema) {
+          updateData.metadata_schema = snapshotMetadata.metadata_schema;
+        }
+
         await db
           .update(schema.Document)
-          .set({
-            refresh_enabled: websiteData.refreshEnabled,
-            refresh_frequency: websiteData.refreshFrequency || null,
-            metadata_schema: snapshotMetadata.metadata_schema || null,
-            updated_at: sql`NOW()`,
-          })
+          .set(updateData)
           .where(eq(schema.Document.id, data.documentId));
       }
     } else if (file) {

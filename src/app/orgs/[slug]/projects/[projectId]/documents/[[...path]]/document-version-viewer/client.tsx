@@ -191,6 +191,7 @@ export function DocumentVersionViewerLiveQuery({
                     project_id: document.project_id,
                     vector_index_id: null,
                     status: "queued",
+                    environment: "staging",
                     logs: [],
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),

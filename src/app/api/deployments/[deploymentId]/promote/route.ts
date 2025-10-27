@@ -8,29 +8,38 @@ import {
 } from "@/lib/api-proxy";
 import { IdSchema } from "@/lib/generate-id";
 
-export const POST = async (req: NextRequest) => {
+export const PATCH = async (
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{ deploymentId: string }>;
+  },
+) => {
   try {
     const orgId = await extractSessionOrgId();
+    const { deploymentId } = await params;
 
     const body = await req.json();
 
-    const { projectId, deploymentId, environment } = z
+    const { projectId } = z
       .object({
         projectId: IdSchema,
-        deploymentId: IdSchema,
-        environment: z.enum(["production", "staging"]).optional().nullable(),
       })
       .parse(body);
 
     await validateProjectOwnership(projectId, orgId);
 
-    return await proxyToPublicAPI(projectId, "/deployments", {
-      method: "POST",
-      body: JSON.stringify({ deploymentId, environment }),
-      headers: {
-        "Content-Type": "application/json",
+    return await proxyToPublicAPI(
+      projectId,
+      `/deployments/${deploymentId}/promote`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
   } catch (error) {
     return handleApiError(error);
   }

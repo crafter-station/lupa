@@ -12,6 +12,8 @@ export interface ApiKey {
   id: string;
   name: string;
   key_preview: string;
+  environment: "live" | "test";
+  key_type: "sk" | "pk";
   last_used_at: string | null;
   created_at: string;
 }

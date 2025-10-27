@@ -4,7 +4,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
-
+import { EnvironmentBadge } from "@/components/elements/environment-badge";
 import {
   Table,
   TableBody,
@@ -13,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import type { DeploymentSelect } from "@/db";
 import { useCollections } from "@/hooks/use-collections";
 
@@ -55,6 +54,7 @@ export function DeploymentListContent({
           <TableRow>
             <TableHead>ID</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Environment</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Updated</TableHead>
           </TableRow>
@@ -92,6 +92,9 @@ export function DeploymentListContent({
                   >
                     {deployment.status}
                   </span>
+                </TableCell>
+                <TableCell>
+                  <EnvironmentBadge environment={deployment.environment} />
                 </TableCell>
                 <TableCell>
                   {new Date(deployment.created_at).toLocaleString()}

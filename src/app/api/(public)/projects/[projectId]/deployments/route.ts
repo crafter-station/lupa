@@ -12,6 +12,7 @@ export const preferredRegion = "iad1";
 
 export const CreateDeploymentBodySchema = z.object({
   deploymentId: IdSchema.optional(),
+  environment: z.enum(["production", "staging"]).optional().nullable(),
 });
 
 export const CreateDeploymentSuccessResponseSchema = z.object({
@@ -43,7 +44,7 @@ export async function POST(
     const { projectId } = await params;
     const json = await request.json();
 
-    let { deploymentId } = CreateDeploymentBodySchema.parse({
+    let { deploymentId, environment } = CreateDeploymentBodySchema.parse({
       ...json,
     });
 
@@ -83,6 +84,7 @@ export async function POST(
         project_id: project.id,
         org_id: project.org_id,
         status: "queued",
+        environment,
       } satisfies schema.DeploymentInsert);
 
       const txid = await tx.execute(

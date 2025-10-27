@@ -6,7 +6,8 @@
 - **Lint**: `bun run lint` (Biome check - auto-runs on pre-commit)
 - **Format**: `bun run format` (Biome format --write)
 - **Test**: No test framework configured
-- **DB Push**: `bunx drizzle-kit push` (Apply schema changes)
+- **Generate DB Migration**: `npx drizzle-kit generate` (Always generate migrations with drizzle, you just update typescript schema and generate with the command)
+- **Apply DB Migration**: `npx drizzle-kit migrate` (Always apply migrations with drizzle)
 
 ## Code Style
 - **TypeScript**: Strict mode, ES2017, use `type` imports

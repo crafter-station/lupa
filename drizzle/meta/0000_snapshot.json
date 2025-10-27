@@ -1,5 +1,5 @@
 {
-  "id": "9de35967-c517-454c-9881-f15b5528b6b7",
+  "id": "d695fabb-de4f-4e2d-96f5-368bcf2f8aa5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -44,6 +44,22 @@
           "primaryKey": false,
           "notNull": true
         },
+        "environment": {
+          "name": "environment",
+          "type": "api_key_environment_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'live'"
+        },
+        "key_type": {
+          "name": "key_type",
+          "type": "api_key_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'sk'"
+        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -72,7 +88,42 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "api_key_project_env_type_name_unique": {
+          "name": "api_key_project_env_type_name_unique",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "environment",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "key_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"api_key\".\"is_active\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "api_key_project_id_project_id_fk": {
           "name": "api_key_project_id_project_id_fk",
@@ -131,6 +182,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "environment": {
+          "name": "environment",
+          "type": "deployment_environment_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "logs": {
           "name": "logs",
           "type": "jsonb",
@@ -153,7 +211,24 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "deployment_one_production_per_project": {
+          "name": "deployment_one_production_per_project",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"deployment\".\"environment\" = 'production' AND \"deployment\".\"status\" = 'ready'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -246,7 +321,13 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "document_project_folder_name_unique": {
+          "name": "document_project_folder_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["project_id", "folder", "name"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -275,6 +356,18 @@
         },
         "description": {
           "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "production_deployment_id": {
+          "name": "production_deployment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "staging_deployment_id": {
+          "name": "staging_deployment_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -475,6 +568,21 @@
     }
   },
   "enums": {
+    "public.api_key_environment_enum": {
+      "name": "api_key_environment_enum",
+      "schema": "public",
+      "values": ["live", "test"]
+    },
+    "public.api_key_type_enum": {
+      "name": "api_key_type_enum",
+      "schema": "public",
+      "values": ["sk", "pk"]
+    },
+    "public.deployment_environment_enum": {
+      "name": "deployment_environment_enum",
+      "schema": "public",
+      "values": ["production", "staging"]
+    },
     "public.deployment_log_level_enum": {
       "name": "deployment_log_level_enum",
       "schema": "public",

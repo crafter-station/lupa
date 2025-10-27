@@ -28,6 +28,8 @@ export function CreateProject() {
         id: generateId(),
         name: formData.get("name") as string,
         description: formData.get("description") as string,
+        production_deployment_id: null,
+        staging_deployment_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         org_id: organization?.id ?? "",

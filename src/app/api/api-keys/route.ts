@@ -13,6 +13,8 @@ export const preferredRegion = "iad1";
 const CreateApiKeyRequestSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   projectId: IdSchema,
+  environment: z.enum(["live", "test"]).default("test"),
+  keyType: z.enum(["sk", "pk"]).default("sk"),
 });
 
 const GetApiKeysRequestSchema = z.object({
@@ -54,6 +56,8 @@ export async function GET(request: Request) {
         id: schema.ApiKey.id,
         name: schema.ApiKey.name,
         key_preview: schema.ApiKey.key_preview,
+        environment: schema.ApiKey.environment,
+        key_type: schema.ApiKey.key_type,
         last_used_at: schema.ApiKey.last_used_at,
         created_at: schema.ApiKey.created_at,
       })
@@ -85,7 +89,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, projectId } = CreateApiKeyRequestSchema.parse(body);
+    const { name, projectId, environment, keyType } =
+      CreateApiKeyRequestSchema.parse(body);
 
     const [project] = await db
       .select()
@@ -99,9 +104,29 @@ export async function POST(request: Request) {
       return Response.json({ error: "Project not found" }, { status: 404 });
     }
 
+    const existingKey = await db.query.ApiKey.findFirst({
+      where: and(
+        eq(schema.ApiKey.project_id, projectId),
+        eq(schema.ApiKey.environment, environment),
+        eq(schema.ApiKey.key_type, keyType),
+        eq(schema.ApiKey.name, name),
+        eq(schema.ApiKey.is_active, true),
+      ),
+    });
+
+    if (existingKey) {
+      return Response.json(
+        {
+          error:
+            "An active key with this name, environment, and type already exists",
+        },
+        { status: 409 },
+      );
+    }
+
     const randomPart = nanoid(32);
-    const apiKey = `lupa_sk_${randomPart}`;
-    const keyPreview = `****${randomPart.slice(-4)}`;
+    const apiKey = `lupa_${keyType}_${environment}_${randomPart}`;
+    const keyPreview = `lupa_${keyType}_${environment}_****${randomPart.slice(-4)}`;
     const keyHash = hashApiKey(apiKey);
 
     const apiKeyId = generateId();
@@ -114,6 +139,8 @@ export async function POST(request: Request) {
       name,
       key_hash: keyHash,
       key_preview: keyPreview,
+      environment,
+      key_type: keyType,
       is_active: true,
     });
 
@@ -125,6 +152,8 @@ export async function POST(request: Request) {
         project_id: project.id,
         is_active: true,
         name: name,
+        environment,
+        key_type: keyType,
       }),
       { ex: 60 * 60 * 24 * 30 },
     );
@@ -135,6 +164,8 @@ export async function POST(request: Request) {
         name,
         api_key: apiKey,
         key_preview: keyPreview,
+        environment,
+        key_type: keyType,
         created_at: date,
         last_used_at: null,
       },
