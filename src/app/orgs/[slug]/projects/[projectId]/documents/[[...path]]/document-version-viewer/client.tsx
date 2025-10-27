@@ -300,6 +300,24 @@ export function DocumentVersionViewerContent({
     [handleUpdateDocument],
   );
 
+  const validateName = React.useCallback(
+    (name: string) => {
+      const isDuplicate = allDocuments.some(
+        (doc) =>
+          doc.id !== preloadedDocument.id &&
+          doc.folder === preloadedDocument.folder &&
+          doc.name === name,
+      );
+      return {
+        valid: !isDuplicate,
+        message: isDuplicate
+          ? `A document named "${name}" already exists in this folder`
+          : undefined,
+      };
+    },
+    [allDocuments, preloadedDocument.id, preloadedDocument.folder],
+  );
+
   const snapshots = React.useMemo(() => {
     return [...snapshotsData].sort(
       (a, b) =>
@@ -340,6 +358,7 @@ export function DocumentVersionViewerContent({
                 <InlineEditableField
                   value={preloadedDocument.name}
                   onSave={handleUpdateName}
+                  onValidate={validateName}
                   className="text-xl font-semibold"
                   required
                   sanitizeName

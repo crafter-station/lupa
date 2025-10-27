@@ -49,6 +49,7 @@ export function CreateDocument() {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [enhance, setEnhance] = React.useState(false);
+  const [nameValue, setNameValue] = React.useState("");
 
   const { organization } = useOrganization();
 
@@ -82,8 +83,17 @@ export function CreateDocument() {
       setIsUploading(false);
       setRefreshFrequency("none");
       setEnhance(false);
+      setNameValue("");
     }
   }, [open, contextFolder]);
+
+  const isDuplicate = React.useMemo(() => {
+    const trimmedName = nameValue.trim();
+    if (!trimmedName) return false;
+    return allDocuments.some(
+      (doc) => doc.folder === selectedFolder && doc.name === trimmedName,
+    );
+  }, [allDocuments, selectedFolder, nameValue]);
 
   const createDocument = createOptimisticAction<
     DocumentSelect & {
@@ -414,6 +424,7 @@ export function CreateDocument() {
                   : "Name"
               }
               name="name"
+              value={nameValue}
               required={snapshotType === "website"}
               disabled={isUploading}
               onChange={(e) => {
@@ -422,12 +433,21 @@ export function CreateDocument() {
                   .trim()
                   .replace(/\s+/g, "-")
                   .replace(/[^a-z0-9_-]/g, "");
-                e.target.value = sanitized;
+                setNameValue(sanitized);
               }}
+              className={isDuplicate ? "border-destructive" : ""}
             />
-            <p className="text-xs text-muted-foreground">
-              Only lowercase letters, numbers, hyphens, and underscores allowed
-            </p>
+            {isDuplicate ? (
+              <p className="text-xs text-destructive">
+                A document named "{nameValue}" already exists in folder "
+                {selectedFolder}"
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Only lowercase letters, numbers, hyphens, and underscores
+                allowed
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -579,7 +599,10 @@ export function CreateDocument() {
           <Button
             type="submit"
             disabled={
-              isUploading || (snapshotType === "upload" && !selectedFile)
+              isUploading ||
+              (snapshotType === "upload" && !selectedFile) ||
+              (snapshotType === "website" && isDuplicate) ||
+              (snapshotType === "website" && !nameValue.trim())
             }
           >
             {isUploading ? (
