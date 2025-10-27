@@ -1,9 +1,12 @@
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import type { NextRequest } from "next/server";
 import { z } from "zod/v3";
+
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { generateId, IdSchema } from "@/lib/generate-id";
 import { createDocumentSchedule } from "@/lib/schedules";
 import { getAPIBaseURL } from "@/lib/utils";
@@ -151,7 +154,11 @@ async function createSnapshot(
   const apiUrl = `${getAPIBaseURL(projectId)}/snapshots?type=${type}`;
 
   let body: BodyInit;
-  const headers: HeadersInit = {};
+  const internalToken = generateInternalToken(projectId);
+
+  const headers: HeadersInit = {
+    "X-Internal-Token": internalToken,
+  };
 
   if (type === "website") {
     headers["Content-Type"] = "application/json";
@@ -187,20 +194,19 @@ async function createSnapshot(
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
+
   {
     params,
-    searchParams,
   }: {
     params: Promise<{ projectId: string }>;
-    searchParams: Promise<{ type?: string }>;
   },
 ) {
   try {
     const { projectId } = await params;
-    const { type: rawType } = await searchParams;
+    const search = request.nextUrl.searchParams;
 
-    const type = z.enum(["website", "upload"]).parse(rawType);
+    const type = z.enum(["website", "upload"]).parse(search.get("type"));
 
     const project = await validateProject(projectId);
 
@@ -294,7 +300,7 @@ export async function POST(
     }
 
     return Response.json({
-      documentTxid,
+      documentTxid: documentTxid ? parseInt(documentTxid, 10) : undefined,
       snapshotTxid: snapshotData.txid,
       documentId,
       snapshotId: snapshotData.snapshotId,

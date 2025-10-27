@@ -96,6 +96,24 @@ export default clerkMiddleware(
         return NextResponse.rewrite(rewriteUrl);
       }
 
+      if (url.pathname.startsWith("/api/documents")) {
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/documents${url.search}`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
+      }
+
+      if (url.pathname.startsWith("/api/snapshots")) {
+        const rewriteUrl = new URL(
+          `/api/projects/${projectId}/snapshots${url.search}`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
+      }
+
       const deploymentId = req.headers.get("Deployment-Id");
 
       // AGENT TOOLS

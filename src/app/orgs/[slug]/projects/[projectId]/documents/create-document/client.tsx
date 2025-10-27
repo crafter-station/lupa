@@ -39,7 +39,6 @@ import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
-import { getAPIBaseURL } from "@/lib/utils";
 
 export function CreateDocument() {
   const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
@@ -114,81 +113,100 @@ export function CreateDocument() {
       });
     },
     mutationFn: async (document) => {
-      const formData = new FormData();
+      let response: Response;
 
-      formData.append("id", document.id);
-      formData.append("project_id", document.project_id);
-      formData.append("folder", document.folder);
-      formData.append("name", document.name);
-      if (document.description) {
-        formData.append("description", document.description);
-      }
-      if (document.metadata_schema) {
-        formData.append(
-          "metadata_schema",
-          JSON.stringify(document.metadata_schema),
-        );
-      }
-      formData.append("refresh_enabled", document.refresh_enabled.toString());
-      if (document.refresh_frequency) {
-        formData.append("refresh_frequency", document.refresh_frequency);
-      }
+      if (document.snapshot.type === "website") {
+        const body = {
+          projectId: document.project_id,
+          type: "website" as const,
+          documentId: document.id,
+          snapshotId: document.snapshot.id,
+          folder: document.folder,
+          name: document.name,
+          description: document.description || undefined,
+          metadataSchema: document.metadata_schema
+            ? JSON.stringify(document.metadata_schema)
+            : undefined,
+          url: document.snapshot.url || "",
+          refresh: document.refresh_enabled,
+          refreshFrequency: document.refresh_frequency || undefined,
+          enhance: document.snapshot.enhance || undefined,
+        };
 
-      formData.append("snapshot.id", document.snapshot.id);
-      formData.append("snapshot.type", document.snapshot.type);
-      formData.append("snapshot.status", document.snapshot.status);
+        response = await fetch("/api/documents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+      } else {
+        const formData = new FormData();
 
-      if (document.snapshot.type === "website" && document.snapshot.url) {
-        formData.append("snapshot.url", document.snapshot.url);
-      }
+        formData.append("projectId", document.project_id);
+        formData.append("type", "upload");
+        formData.append("documentId", document.id);
+        formData.append("snapshotId", document.snapshot.id);
+        formData.append("folder", document.folder);
+        formData.append("name", document.name);
 
-      if (document.snapshot.type === "upload" && document.snapshot.file) {
-        formData.append("snapshot.file", document.snapshot.file);
-      }
+        if (document.description) {
+          formData.append("description", document.description);
+        }
 
-      if (document.snapshot.metadata) {
-        formData.append(
-          "snapshot.metadata",
-          JSON.stringify(document.snapshot.metadata),
-        );
-      }
-      if (document.snapshot.parsing_instruction) {
-        formData.append(
-          "snapshot.parsing_instruction",
-          document.snapshot.parsing_instruction,
-        );
-      }
+        if (document.metadata_schema) {
+          formData.append(
+            "metadataSchema",
+            JSON.stringify(document.metadata_schema),
+          );
+        }
 
-      if (document.snapshot.enhance) {
-        formData.append(
-          "snapshot.enhance",
-          document.snapshot.enhance.toString(),
-        );
-      }
+        if (document.snapshot.file) {
+          formData.append("file", document.snapshot.file);
+        }
 
-      const response = await fetch(`${getAPIBaseURL(projectId)}/documents`, {
-        method: "POST",
-        body: formData,
-      });
+        if (document.snapshot.parsing_instruction) {
+          formData.append(
+            "parsingInstructions",
+            document.snapshot.parsing_instruction,
+          );
+        }
+
+        if (document.snapshot.enhance) {
+          formData.append("enhance", document.snapshot.enhance.toString());
+        }
+
+        response = await fetch("/api/documents", {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to insert document: ${response.statusText}`);
       }
 
       const data = (await response.json()) as {
-        success: boolean;
-        txid: number;
+        documentTxid?: number;
+        snapshotTxid?: number;
+        documentId: string;
+        snapshotId: string;
       };
 
-      await (DocumentCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
-      await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
+      if (data.documentTxid) {
+        await (DocumentCollection.utils as ElectricCollectionUtils).awaitTxId(
+          data.documentTxid,
+        );
+      }
+      if (data.snapshotTxid) {
+        await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
+          data.snapshotTxid,
+        );
+      }
 
       return {
-        txid: data.txid,
+        documentId: data.documentId,
+        snapshotId: data.snapshotId,
       };
     },
   });

@@ -38,7 +38,6 @@ import { useCollections } from "@/hooks/use-collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
-import { getAPIBaseURL } from "@/lib/utils";
 
 export function CreateSnapshot() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -119,53 +118,75 @@ export function CreateSnapshot() {
       });
     },
     mutationFn: async (snapshot) => {
-      const formData = new FormData();
+      let response: Response;
 
-      formData.append("id", snapshot.id);
-      formData.append("document_id", snapshot.document_id);
-      formData.append("type", snapshot.type);
-      formData.append("status", snapshot.status);
+      if (snapshot.type === "website") {
+        const body = {
+          projectId,
+          type: "website" as const,
+          snapshotId: snapshot.id,
+          documentId: snapshot.document_id,
+          url: snapshot.url || "",
+          enhance: snapshot.enhance || undefined,
+          metadataSchema: metadataSchema
+            ? JSON.stringify(metadataSchema)
+            : undefined,
+        };
 
-      if (snapshot.type === "website" && snapshot.url) {
-        formData.append("url", snapshot.url);
+        response = await fetch("/api/snapshots", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+      } else {
+        const formData = new FormData();
+
+        formData.append("projectId", projectId);
+        formData.append("type", "upload");
+        formData.append("snapshotId", snapshot.id);
+        formData.append("documentId", snapshot.document_id);
+
+        if (snapshot.file) {
+          formData.append("file", snapshot.file);
+        }
+
+        if (snapshot.enhance) {
+          formData.append("enhance", snapshot.enhance.toString());
+        }
+
+        if (metadataSchema) {
+          formData.append("metadataSchema", JSON.stringify(metadataSchema));
+        }
+
+        if (snapshot.parsingInstruction) {
+          formData.append("parsingInstructions", snapshot.parsingInstruction);
+        }
+
+        response = await fetch("/api/snapshots", {
+          method: "POST",
+          body: formData,
+        });
       }
-
-      if (snapshot.type === "upload" && snapshot.file) {
-        formData.append("file", snapshot.file);
-      }
-
-      if (snapshot.metadata) {
-        formData.append("metadata", JSON.stringify(snapshot.metadata));
-      }
-
-      if (snapshot.parsingInstruction) {
-        formData.append("parsing_instruction", snapshot.parsingInstruction);
-      }
-
-      if (snapshot.enhance) {
-        formData.append("enhance", snapshot.enhance.toString());
-      }
-
-      const response = await fetch(`${getAPIBaseURL(projectId)}/snapshots`, {
-        method: "POST",
-        body: formData,
-      });
 
       if (!response.ok) {
         throw new Error(`Failed to create snapshot: ${response.statusText}`);
       }
 
       const data = (await response.json()) as {
-        success: boolean;
-        txid: number;
+        snapshotId: string;
+        txid?: number;
       };
 
-      await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
+      if (data.txid) {
+        await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
+          data.txid,
+        );
+      }
 
       return {
-        txid: data.txid,
+        snapshotId: data.snapshotId,
       };
     },
   });

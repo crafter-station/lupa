@@ -2,6 +2,7 @@ import { Pool } from "@neondatabase/serverless";
 import { put } from "@vercel/blob";
 import { desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import type { NextRequest } from "next/server";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -243,13 +244,11 @@ async function createSnapshotSimple(
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   {
     params,
-    searchParams,
   }: {
     params: Promise<{ projectId: string }>;
-    searchParams: Promise<{ type?: string }>;
   },
 ) {
   if (!process.env.DATABASE_URL) {
@@ -261,9 +260,9 @@ export async function POST(
 
   try {
     const { projectId } = await params;
-    const { type: rawType } = await searchParams;
+    const search = request.nextUrl.searchParams;
 
-    const type = z.enum(["website", "upload"]).parse(rawType);
+    const type = z.enum(["website", "upload"]).parse(search.get("type"));
 
     const { data, file } = await parseRequestData(request, type);
 
@@ -351,7 +350,7 @@ export async function POST(
 
     return Response.json({
       snapshotId,
-      txid: snapshotTxid,
+      txid: snapshotTxid ? parseInt(snapshotTxid, 10) : undefined,
     });
   } catch (error) {
     console.error(error);

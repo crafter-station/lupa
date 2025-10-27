@@ -70,7 +70,7 @@ export const POST = async (req: NextRequest) => {
     }
 
     const response = await fetch(
-      `${getAPIBaseURL(projectId)}/documents?type=${type}`,
+      `${getAPIBaseURL(projectId)}/snapshots?type=${type}`,
       {
         method: "POST",
         body,
@@ -85,7 +85,7 @@ export const POST = async (req: NextRequest) => {
     } catch (error) {
       console.log(error);
       return NextResponse.json(
-        { error: "Document creation failed" },
+        { error: "Snapshot creation failed" },
         { status: 500 },
       );
     }
