@@ -99,7 +99,7 @@ function SnapshotPreview({ content }: { content: string }) {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-md bg-muted/50 p-3 text-xs font-mono whitespace-pre-wrap break-words">
+      <div className="rounded-md bg-muted/50 p-3 text-xs font-mono whitespace-pre-wrap wrap-break-word">
         {displayContent}
         {isTruncated && !showFull && "..."}
       </div>
@@ -159,11 +159,11 @@ function renderMessagePart(
           </ToolContent>
         </Tool>
       );
-    case "tool-get-snapshot-contents":
+    case "tool-get-document-contents":
       return (
         <Tool key={`${messageId}-${index}`}>
           <ToolHeader
-            title="Get Snapshot Contents"
+            title="Get Document Contents"
             type={part.type}
             state={part.state}
           />
@@ -228,7 +228,11 @@ export function AIPlayground() {
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
-      api: `/api/chat/${projectId}/${deploymentId}`,
+      api: "/api/chat",
+      body: {
+        projectId,
+        deploymentId,
+      },
     }),
     onError: (error) => {
       console.error("Chat error:", error);

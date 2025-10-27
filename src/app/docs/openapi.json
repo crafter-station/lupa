@@ -116,206 +116,6 @@
         },
         "required": ["success"]
       },
-      "UpdateDocumentRequestSchema": {
-        "type": "object",
-        "properties": {
-          "folder": {
-            "type": "string",
-            "description": "Folder path (starts and ends with slash)"
-          },
-          "name": {
-            "type": "string",
-            "description": "Document name"
-          },
-          "description": {
-            "type": "string",
-            "description": "Document description"
-          },
-          "metadata_schema": {
-            "type": "object",
-            "properties": {
-              "mode": {
-                "type": "string",
-                "enum": ["infer", "custom"]
-              },
-              "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "nullable": true
-              }
-            },
-            "required": ["mode"],
-            "nullable": true,
-            "description": "Metadata schema configuration"
-          },
-          "refresh_enabled": {
-            "type": "boolean",
-            "description": "Enable automatic refresh"
-          },
-          "refresh_frequency": {
-            "type": "string",
-            "enum": ["daily", "weekly", "monthly"],
-            "nullable": true,
-            "description": "Refresh frequency"
-          }
-        },
-        "required": ["folder", "name", "description", "refresh_enabled"],
-        "description": "All fields are optional for partial updates"
-      },
-      "DocumentSuccessResponseSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [true]
-          },
-          "txid": {
-            "type": "number"
-          }
-        },
-        "required": ["success", "txid"]
-      },
-      "CreateDocumentRequestSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "project_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "folder": {
-            "type": "string",
-            "default": "/",
-            "description": "Folder path (starts and ends with slash)"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "metadata_schema": {
-            "type": "string",
-            "nullable": true,
-            "description": "JSON stringified metadata schema configuration"
-          },
-          "refresh_enabled": {
-            "type": "string",
-            "enum": ["true", "false"],
-            "nullable": true,
-            "description": "Enable automatic refresh (string boolean)"
-          },
-          "refresh_frequency": {
-            "type": "string",
-            "enum": ["daily", "weekly", "monthly"],
-            "nullable": true
-          },
-          "snapshot.id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "snapshot.type": {
-            "type": "string",
-            "enum": ["website", "upload"]
-          },
-          "snapshot.status": {
-            "type": "string",
-            "enum": ["queued", "error", "running", "success"]
-          },
-          "snapshot.url": {
-            "type": "string",
-            "nullable": true,
-            "description": "URL for website snapshots"
-          },
-          "snapshot.file": {
-            "nullable": true,
-            "description": "File for upload snapshots"
-          },
-          "snapshot.metadata": {
-            "type": "string",
-            "nullable": true,
-            "description": "JSON stringified snapshot metadata"
-          },
-          "snapshot.parsingInstruction": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "id",
-          "project_id",
-          "folder",
-          "name",
-          "snapshot.id",
-          "snapshot.type",
-          "snapshot.status"
-        ]
-      },
-      "CreateSnapshotRequestSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Unique snapshot ID (use generateId with 'snap_' prefix)"
-          },
-          "document_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "ID of the parent document"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["website", "upload"],
-            "description": "Snapshot type"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["queued", "error", "running", "success"],
-            "description": "Initial snapshot status"
-          },
-          "url": {
-            "type": "string",
-            "nullable": true,
-            "description": "URL for website snapshots (required when type is 'website')"
-          },
-          "file": {
-            "nullable": true,
-            "description": "File for upload snapshots (required when type is 'upload'). Supported formats: PDF, DOCX, XLSX, PPTX, CSV, HTML, TXT"
-          },
-          "metadata": {
-            "type": "string",
-            "nullable": true,
-            "description": "JSON stringified snapshot metadata"
-          },
-          "parsingInstruction": {
-            "type": "string",
-            "nullable": true,
-            "description": "Custom parsing instructions for document processing"
-          }
-        },
-        "required": ["id", "document_id", "type", "status"]
-      },
-      "SnapshotSuccessResponseSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [true]
-          },
-          "txid": {
-            "type": "number"
-          }
-        },
-        "required": ["success", "txid"]
-      },
       "CreateProjectRequestSchema": {
         "type": "object",
         "properties": {
@@ -368,6 +168,101 @@
         },
         "required": ["error"]
       },
+      "BaseDocumentSchema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "object"
+          },
+          "snapshotId": {
+            "type": "object"
+          },
+          "folder": {
+            "type": "string",
+            "pattern": "/"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "enhance": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "metadataSchema": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["folder", "name"]
+      },
+      "type": {
+        "type": "string",
+        "enum": ["website", "upload"]
+      },
+      "WebsiteSnapshotSchema": {
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "object"
+          },
+          "documentId": {
+            "type": "object"
+          },
+          "enhance": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "metadataSchema": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "refreshEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "refreshFrequency": {
+            "type": "string",
+            "enum": ["daily", "weekly", "monthly"],
+            "nullable": true
+          }
+        },
+        "required": ["documentId", "documentId", "url"]
+      },
+      "UploadSnapshotSchema": {
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "object"
+          },
+          "documentId": {
+            "type": "object"
+          },
+          "enhance": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "metadataSchema": {
+            "type": "string",
+            "nullable": true
+          },
+          "file": {
+            "type": "string"
+          },
+          "parsingInstructions": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["documentId", "documentId", "file"]
+      },
       "CreateApiKeyRequestSchema": {
         "type": "object",
         "properties": {
@@ -384,11 +279,6 @@
           }
         },
         "required": ["apiKeyId", "apiKeyId", "name", "projectId", "projectId"]
-      },
-      "IdSchema": {
-        "type": "string",
-        "minLength": 10,
-        "maxLength": 10
       },
       "BulkDocumentItemSchema": {
         "type": "object",
@@ -425,8 +315,7 @@
         "type": "object",
         "properties": {
           "project_id": {
-            "type": "string",
-            "minLength": 1
+            "type": "object"
           },
           "documents": {
             "type": "array",
@@ -436,31 +325,12 @@
             "minItems": 1
           }
         },
-        "required": ["project_id", "documents"]
+        "required": ["project_id", "project_id", "documents"]
       },
-      "SnapshotErrorResponseSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [false]
-          },
-          "error": {
-            "type": "string"
-          }
-        },
-        "required": ["success", "error"]
-      },
-      "UpdateApiKeyRequestSchema": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
-          }
-        },
-        "required": ["name"]
+      "IdSchema": {
+        "type": "string",
+        "minLength": 10,
+        "maxLength": 10
       },
       "WhereParamsSchema": {
         "type": "object",
@@ -988,114 +858,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateDeploymentSuccessResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/projects/{projectId}/documents": {
-      "post": {
-        "operationId": "post-projects-{projectId}-documents",
-        "summary": "Create a new document with snapshot",
-        "description": "Creates a new document and its initial snapshot. Accepts multipart/form-data for file uploads or website URLs. Optionally configures automatic refresh scheduling.",
-        "tags": ["Projects"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDocumentRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentSuccessResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/projects/{projectId}/snapshots": {
-      "post": {
-        "operationId": "post-projects-{projectId}-snapshots",
-        "summary": "Create a new snapshot",
-        "description": "Creates a new snapshot for a document. Snapshots are immutable versions of documents that can be either website scrapes or file uploads. Website snapshots trigger the process-snapshot background task to scrape content with Firecrawl. Upload snapshots upload files to Vercel Blob and trigger the parse-document task to extract and chunk content using LlamaParse. If switching from website to upload type, any existing refresh schedule will be automatically deleted.",
-        "tags": ["Projects"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSnapshotRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SnapshotSuccessResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/projects/{projectId}/documents/{id}": {
-      "patch": {
-        "operationId": "patch-projects-{projectId}-documents-{id}",
-        "summary": "Update an existing document",
-        "description": "Updates document properties including name, description, folder, metadata schema, and refresh settings. All fields are optional for partial updates.",
-        "tags": ["Projects"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDocumentRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentSuccessResponseSchema"
                 }
               }
             }

@@ -1,24 +1,16 @@
-import { auth } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import z from "zod/v3";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { generateInternalToken } from "@/lib/crypto/internal-token";
+import { handleApiError } from "@/lib/api-error";
+import {
+  extractSessionOrgId,
+  proxyToPublicAPI,
+  validateProjectOwnership,
+} from "@/lib/api-proxy";
 import { IdSchema } from "@/lib/generate-id";
-import { getAPIBaseURL } from "@/lib/utils";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const session = await auth();
-    const orgId = session.orgId;
-
-    if (!orgId) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 400 },
-      );
-    }
+    const orgId = await extractSessionOrgId();
 
     const contentType = req.headers.get("content-type") || "";
     const isFormData = contentType.includes("multipart/form-data");
@@ -48,54 +40,20 @@ export const POST = async (req: NextRequest) => {
       body = JSON.stringify(cleanJson);
     }
 
-    const [project] = await db
-      .select()
-      .from(schema.Project)
-      .where(
-        and(eq(schema.Project.id, projectId), eq(schema.Project.org_id, orgId)),
-      );
+    await validateProjectOwnership(projectId, orgId);
 
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 400 });
-    }
-
-    const internalToken = generateInternalToken(projectId);
-
-    const headers: HeadersInit = {
-      "X-Internal-Token": internalToken,
-    };
+    const headers: Record<string, string> = {};
 
     if (!isFormData) {
       headers["Content-Type"] = "application/json";
     }
 
-    const response = await fetch(
-      `${getAPIBaseURL(projectId)}/documents?type=${type}`,
-      {
-        method: "POST",
-        body,
-        headers,
-      },
-    );
-
-    try {
-      const data = await response.json();
-
-      return NextResponse.json(data, { status: response.status });
-    } catch (error) {
-      console.log(error);
-      return NextResponse.json(
-        { error: "Document creation failed" },
-        { status: 500 },
-      );
-    }
+    return await proxyToPublicAPI(projectId, `/documents?type=${type}`, {
+      method: "POST",
+      body,
+      headers,
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      {
-        error: "Unknown error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 };

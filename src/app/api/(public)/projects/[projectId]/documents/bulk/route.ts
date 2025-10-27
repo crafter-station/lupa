@@ -1,16 +1,15 @@
-import { auth as clerkAuth } from "@clerk/nextjs/server";
-import { Pool } from "@neondatabase/serverless";
 import { auth as triggerAuth } from "@trigger.dev/sdk/v3";
-import { eq, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/neon-serverless";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v3";
+import { db } from "@/db";
 import type {
   DocumentInsert,
   RefreshFrequency,
   SnapshotInsert,
 } from "@/db/schema";
 import * as schema from "@/db/schema";
+import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
 import { generateId } from "@/lib/generate-id";
 import { createDocumentSchedule } from "@/lib/schedules";
 import { processWebsiteSnapshotBulkTask } from "@/trigger/process-website-snapshot-bulk.task";
@@ -30,58 +29,30 @@ const BulkDocumentItemSchema = z.object({
 });
 
 const BulkCreateDocumentsRequestSchema = z.object({
-  project_id: z.string().min(1),
   documents: z.array(BulkDocumentItemSchema).min(1),
 });
 
-export async function POST(request: Request) {
-  let pool: Pool | undefined;
+export async function POST(
+  request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{ projectId: string }>;
+  },
+) {
   try {
-    const { orgId } = await clerkAuth();
+    const { projectId } = await params;
 
-    if (!orgId) {
-      return Response.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
+    console.log({ hello: "freidn" });
     const body = await request.json();
-    const { project_id, documents: docs } =
-      BulkCreateDocumentsRequestSchema.parse(body);
-
-    if (!process.env.DATABASE_URL) {
-      return Response.json(
-        { success: false, error: "DATABASE_URL is not set" },
-        { status: 500 },
-      );
-    }
-
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL.replace("-pooler", ""),
-    });
-
-    const db = drizzle({
-      client: pool,
-      schema,
-    });
+    const { documents: docs } = BulkCreateDocumentsRequestSchema.parse(body);
 
     const project = await db.query.Project.findFirst({
-      where: eq(schema.Project.id, project_id),
+      where: eq(schema.Project.id, projectId),
     });
 
     if (!project) {
-      return Response.json(
-        { success: false, error: "Project not found" },
-        { status: 404 },
-      );
-    }
-
-    if (project.org_id !== orgId) {
-      return Response.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 },
-      );
+      throw new ApiError(ErrorCode.PROJECT_NOT_FOUND, "Project not found", 404);
     }
 
     const documents: DocumentInsert[] = [];
@@ -103,11 +74,11 @@ export async function POST(request: Request) {
 
       documents.push({
         id: docId,
-        org_id: orgId,
+        org_id: project.org_id,
         folder: doc.folder,
         name: doc.name,
         description: doc.description,
-        project_id,
+        project_id: projectId,
         metadata_schema: null,
         refresh_enabled: doc.refresh_frequency !== "none",
         refresh_frequency:
@@ -117,7 +88,7 @@ export async function POST(request: Request) {
 
       snapshots.push({
         id: generateId(),
-        org_id: orgId,
+        org_id: project.org_id,
         document_id: docId,
         type: "website" as const,
         status: "queued" as const,
@@ -131,18 +102,8 @@ export async function POST(request: Request) {
       });
     });
 
-    const result = await db.transaction(async (tx) => {
-      await tx.insert(schema.Document).values(documents);
-      await tx.insert(schema.Snapshot).values(snapshots);
-
-      const txidResult = await tx.execute(
-        sql`SELECT pg_current_xact_id()::xid::text as txid`,
-      );
-
-      return {
-        txid: txidResult.rows[0].txid as string,
-      };
-    });
+    await db.insert(schema.Document).values(documents);
+    await db.insert(schema.Snapshot).values(snapshots);
 
     for (const { docId, frequency } of schedulePromises) {
       try {
@@ -173,39 +134,15 @@ export async function POST(request: Request) {
       expirationTime: "1hr",
     });
 
-    revalidatePath(`/projects/${project_id}/documents`);
+    revalidatePath(`/projects/${projectId}/documents`);
 
-    await pool.end();
-
-    return Response.json(
-      {
-        success: true,
-        txid: Number.parseInt(result.txid, 10),
-        created_count: documents.length,
-        snapshot_ids: snapshots.map((snapshot) => snapshot.id),
-        run_id: handle.id,
-        public_access_token: publicAccessToken,
-      },
-      { status: 200 },
-    );
+    return Response.json({
+      created_count: documents.length,
+      snapshot_ids: snapshots.map((snapshot) => snapshot.id),
+      run_id: handle.id,
+      public_access_token: publicAccessToken,
+    });
   } catch (error) {
-    if (pool) {
-      await pool.end();
-    }
-
-    if (error instanceof z.ZodError) {
-      return Response.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 },
-      );
-    }
-
-    return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

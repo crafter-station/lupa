@@ -28,7 +28,7 @@ export async function GET(
     const { projectId, deploymentId, path } = await params;
 
     const folder = `/${path.split("/").slice(0, -1).join("/")}`;
-    const documentName = path.split("/").pop();
+    const documentName = path.split("/").pop()?.replace(".md", "");
 
     if (!documentName) {
       return new Response("Invalid path", { status: 400 });

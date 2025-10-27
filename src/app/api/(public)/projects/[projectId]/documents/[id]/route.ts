@@ -1,11 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { z } from "zod/v3";
 import type { RefreshFrequency } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { DocumentSelectSchema } from "@/db/schema";
+import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
 import { normalizeFolderPath } from "@/lib/folder-utils";
 import {
   createDocumentSchedule,
@@ -15,65 +14,28 @@ import {
 
 export const preferredRegion = "iad1";
 
-export const UpdateDocumentRequestSchema = z
-  .object({
-    folder: z.string().describe("Folder path (starts and ends with slash)"),
-    name: z.string().describe("Document name"),
-    description: z.string().describe("Document description"),
-    metadata_schema: z
-      .object({
-        mode: z.enum(["infer", "custom"]),
-        schema: z.record(z.string(), z.unknown()).optional(),
-      })
-      .optional()
-      .describe("Metadata schema configuration"),
-    refresh_enabled: z.boolean().describe("Enable automatic refresh"),
-    refresh_frequency: z
-      .enum(["daily", "weekly", "monthly"])
-      .nullable()
-      .optional()
-      .describe("Refresh frequency"),
-  })
-  .describe("All fields are optional for partial updates")
-  .partial();
-
-export const DocumentSuccessResponseSchema = z.object({
-  success: z.literal(true),
-  txid: z.number(),
-});
-
-export const ErrorResponseSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-});
-
-/**
- * Update an existing document
- * @description Updates document properties including name, description, folder, metadata schema, and refresh settings. All fields are optional for partial updates.
- * @param id Path parameter representing the document ID.
- * @body UpdateDocumentRequestSchema
- * @response 200:DocumentSuccessResponseSchema
- * @response 400:ErrorResponseSchema
- * @response 404:ErrorResponseSchema
- * @response 500:ErrorResponseSchema
- * @openapi
- */
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  {
+    params,
+  }: {
+    params: Promise<{ projectId: string; id: string }>;
+  },
 ) {
+  if (!process.env.DATABASE_URL) {
+    return Response.json(
+      { error: "DATABASE_URL not configured" },
+      { status: 500 },
+    );
+  }
+
+  const headers = request.headers;
+
+  console.log({ headers });
+
   let pool: Pool | undefined;
   try {
-    const { orgId } = await auth();
-
-    if (!orgId) {
-      return Response.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const { id: documentId } = await params;
+    const { projectId, id: documentId } = await params;
     const json = await request.json();
 
     const updates = DocumentSelectSchema.partial().parse(json);
@@ -83,44 +45,36 @@ export async function PATCH(
     }
 
     if (Object.keys(updates).length === 0) {
-      return Response.json(
-        { success: false, error: "No fields to update" },
-        { status: 400 },
-      );
-    }
-
-    if (!process.env.DATABASE_URL) {
-      return Response.json(
-        { success: false, error: "DATABASE_URL is not set" },
-        { status: 500 },
+      throw new ApiError(
+        ErrorCode.VALIDATION_ERROR,
+        "No fields to update",
+        400,
       );
     }
 
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL?.replace("-pooler", ""),
+      connectionString: process.env.DATABASE_URL.replace("-pooler", ""),
     });
 
-    const db = drizzle({
+    const dbPool = drizzle({
       client: pool,
       schema,
     });
 
-    const document = await db.query.Document.findFirst({
+    const document = await dbPool.query.Document.findFirst({
       where: eq(schema.Document.id, documentId),
     });
 
     if (!document) {
-      return Response.json(
-        { success: false, error: "Document not found" },
-        { status: 404 },
+      throw new ApiError(
+        ErrorCode.DOCUMENT_NOT_FOUND,
+        "Document not found",
+        404,
       );
     }
 
-    if (document.org_id !== orgId) {
-      return Response.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 },
-      );
+    if (document.project_id !== projectId) {
+      throw new ApiError(ErrorCode.FORBIDDEN, "Document not in project", 403);
     }
 
     const scheduleChanges: {
@@ -173,7 +127,7 @@ export async function PATCH(
       }
     }
 
-    const result = await db.transaction(async (tx) => {
+    const result = await dbPool.transaction(async (tx) => {
       await tx
         .update(schema.Document)
         .set({
@@ -194,20 +148,11 @@ export async function PATCH(
 
     await pool.end();
 
-    return Response.json(
-      { success: true, txid: parseInt(result.txid, 10) },
-      { status: 200 },
-    );
+    return Response.json({ txid: parseInt(result.txid, 10) });
   } catch (error) {
     if (pool) {
       await pool.end();
     }
-    return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

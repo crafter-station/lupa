@@ -6,12 +6,77 @@ import {
 } from "next/server";
 import { validateApiKey } from "./lib/crypto/api-key";
 import { verifyInternalToken } from "./lib/crypto/internal-token";
-
+import type { RouteRewriteContext } from "./lib/proxy-routes";
+import { matchRoute } from "./lib/proxy-routes";
 import { rootDomain } from "./lib/utils";
 
 const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
 
 const isPrivateRoute = createRouteMatcher(["/orgs/(.*)"]);
+
+async function handleSubdomainRequest(
+  req: NextRequest,
+  event: NextFetchEvent,
+  subdomain: string,
+  url: URL,
+) {
+  const projectId = subdomain.toLowerCase();
+
+  console.log({
+    pathname: url.pathname,
+    searchParams: url.searchParams,
+    subdomain,
+  });
+
+  const internalToken = req.headers.get("X-Internal-Token");
+  let isAuthenticated = false;
+
+  if (internalToken && verifyInternalToken(internalToken, projectId)) {
+    isAuthenticated = true;
+  } else {
+    const { valid } = await validateApiKey(req, event, projectId);
+    isAuthenticated = valid;
+  }
+
+  if (!isAuthenticated) {
+    return Response.json(
+      {
+        error: { code: "INVALID_API_KEY", message: "API Key is not valid" },
+      },
+      { status: 403 },
+    );
+  }
+
+  const deploymentId = req.headers.get("Deployment-Id");
+
+  const ctx: RouteRewriteContext = {
+    projectId,
+    deploymentId,
+    searchParams: url.searchParams,
+    pathname: url.pathname,
+  };
+
+  const rewritePath = matchRoute(ctx);
+
+  if (rewritePath === null) {
+    return Response.json(
+      {
+        error: {
+          code: "MISSING_PARAMETER",
+          message: "Missing required parameter",
+        },
+      },
+      { status: 400 },
+    );
+  }
+
+  if (rewritePath) {
+    const rewriteUrl = new URL(rewritePath, req.url);
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
+  return NextResponse.next();
+}
 
 export default clerkMiddleware(
   async (auth, req: NextRequest, event: NextFetchEvent) => {
@@ -52,159 +117,8 @@ export default clerkMiddleware(
       return NextResponse.redirect(redirectUrl, 301);
     }
 
-    // https://<project_id>.lupa.build/api/
-
     if (subdomain) {
-      const projectId = subdomain.toLowerCase();
-
-      console.log({
-        pathname: url.pathname,
-        searchParams: url.searchParams,
-        subdomain,
-      });
-
-      const internalToken = req.headers.get("X-Internal-Token");
-      let isAuthenticated = false;
-
-      if (internalToken && verifyInternalToken(internalToken, projectId)) {
-        isAuthenticated = true;
-      } else {
-        const { valid } = await validateApiKey(req, event, projectId);
-        isAuthenticated = valid;
-      }
-
-      if (!isAuthenticated) {
-        return new Response(
-          JSON.stringify({
-            error: "API Key is not valid",
-          }),
-          {
-            status: 403,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      // POST <projectId>.lupa.build/api/deployments (no deploymentId needed)
-
-      if (url.pathname.startsWith("/api/deployments")) {
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/deployments`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-
-      if (url.pathname.startsWith("/api/documents")) {
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/documents${url.search}`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-
-      if (url.pathname.startsWith("/api/snapshots")) {
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/snapshots${url.search}`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-
-      const deploymentId = req.headers.get("Deployment-Id");
-
-      // AGENT TOOLS
-      if (url.pathname.startsWith("/api/search")) {
-        const query = url.searchParams.get("query");
-
-        if (!query) {
-          return NextResponse.json(
-            {
-              error: "Missing `query` parameter",
-            },
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/deployments/${deploymentId}/search/${encodeURIComponent(query)}`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-      if (url.pathname.startsWith("/api/ls")) {
-        const folder = url.searchParams.get("folder");
-        if (!folder) {
-          return NextResponse.json(
-            {
-              error: "Missing `folder` parameter",
-            },
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/deployments/${deploymentId}/ls/${encodeURIComponent(folder)}`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-      if (url.pathname.startsWith("/api/cat")) {
-        const path = url.searchParams.get("path");
-        if (!path) {
-          return NextResponse.json(
-            {
-              error: "Missing `path` parameter",
-            },
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/deployments/${deploymentId}/cat/${encodeURIComponent(path)}`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-
-      /// MCP
-      if (url.pathname.startsWith("/api/mcp")) {
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/deployments/${deploymentId}/mcp/mcp`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-      if (url.pathname.startsWith("/api/sse")) {
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/deployments/${deploymentId}/mcp/sse`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-      if (url.pathname.startsWith("/api/message")) {
-        const rewriteUrl = new URL(
-          `/api/projects/${projectId}/deployments/${deploymentId}/mcp/message`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
+      return await handleSubdomainRequest(req, event, subdomain, url);
     }
 
     // For all other routes, continue normally

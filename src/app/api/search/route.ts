@@ -1,48 +1,59 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { generateInternalToken } from "@/lib/crypto/internal-token";
-import { getAPIBaseURL } from "@/lib/utils";
+import type { NextRequest } from "next/server";
+import {
+  createErrorResponse,
+  ErrorCode,
+  handleApiError,
+} from "@/lib/api-error";
+import {
+  extractSessionOrgId,
+  proxyToPublicAPI,
+  validateProjectOwnership,
+} from "@/lib/api-proxy";
 
 export const POST = async (req: NextRequest) => {
-  const { searchParams } = new URL(req.url);
-  const query = searchParams.get("query");
-  const projectId = searchParams.get("projectId");
-  const deploymentId = searchParams.get("deploymentId");
-
-  if (!projectId) {
-    return NextResponse.json(
-      { error: "Project ID is required" },
-      { status: 400 },
-    );
-  }
-
-  if (!deploymentId) {
-    return NextResponse.json(
-      { error: "Deployment ID is required" },
-      { status: 400 },
-    );
-  }
-
-  if (!query) {
-    return NextResponse.json({ error: "Query is required" }, { status: 400 });
-  }
-
-  const internalToken = generateInternalToken(projectId);
-
-  const response = await fetch(
-    `${getAPIBaseURL(projectId)}/search/?query=${encodeURIComponent(query)}`,
-    {
-      headers: {
-        "Deployment-Id": deploymentId,
-        "X-Internal-Token": internalToken,
-      },
-    },
-  );
-
   try {
-    const data = await response.json();
+    const orgId = await extractSessionOrgId();
 
-    return NextResponse.json(data, { status: response.status });
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get("query");
+    const projectId = searchParams.get("projectId");
+    const deploymentId = searchParams.get("deploymentId");
+
+    if (!projectId) {
+      return createErrorResponse(
+        ErrorCode.MISSING_PARAMETER,
+        "Project ID is required",
+        400,
+      );
+    }
+
+    if (!deploymentId) {
+      return createErrorResponse(
+        ErrorCode.MISSING_PARAMETER,
+        "Deployment ID is required",
+        400,
+      );
+    }
+
+    if (!query) {
+      return createErrorResponse(
+        ErrorCode.MISSING_PARAMETER,
+        "Query is required",
+        400,
+      );
+    }
+
+    await validateProjectOwnership(projectId, orgId);
+
+    return await proxyToPublicAPI(
+      projectId,
+      `/search/?query=${encodeURIComponent(query)}`,
+      {
+        method: "GET",
+        deploymentId,
+      },
+    );
   } catch (error) {
-    return NextResponse.json({ error: "Search failed" }, { status: 500 });
+    return handleApiError(error);
   }
 };

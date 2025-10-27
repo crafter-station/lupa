@@ -6,6 +6,7 @@ import { z } from "zod/v3";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
 import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { generateId, IdSchema } from "@/lib/generate-id";
 import { createDocumentSchedule } from "@/lib/schedules";
@@ -51,14 +52,12 @@ async function parseRequestData(request: Request, type: "website" | "upload") {
 }
 
 async function validateProject(projectId: string) {
-  const [project] = await db
-    .select()
-    .from(schema.Project)
-    .where(eq(schema.Project.id, projectId))
-    .limit(1);
+  const project = await db.query.Project.findFirst({
+    where: eq(schema.Project.id, projectId),
+  });
 
   if (!project) {
-    throw new Error("Project not found");
+    throw new ApiError(ErrorCode.PROJECT_NOT_FOUND, "Project not found", 404);
   }
 
   return project;
@@ -236,25 +235,19 @@ export async function POST(
         },
       );
     } else {
-      try {
-        await createDocumentSimple(documentId, project.id, project.org_id, {
-          folder: data.folder,
-          name: data.name,
-          description: data.description,
-          refreshEnabled:
-            type === "website"
-              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled
-              : undefined,
-          refreshFrequency:
-            type === "website"
-              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
-              : undefined,
-        });
-      } catch (error) {
-        throw new Error(
-          `Failed to create document: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
-      }
+      await createDocumentSimple(documentId, project.id, project.org_id, {
+        folder: data.folder,
+        name: data.name,
+        description: data.description,
+        refreshEnabled:
+          type === "website"
+            ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled
+            : undefined,
+        refreshFrequency:
+          type === "website"
+            ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
+            : undefined,
+      });
     }
 
     const snapshotData = await createSnapshot(projectId, type, {
@@ -307,21 +300,6 @@ export async function POST(
       snapshotId: snapshotData.snapshotId,
     });
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof z.ZodError) {
-      return Response.json(
-        { error: "Validation failed", details: error.errors },
-        { status: 400 },
-      );
-    }
-
-    const message = error instanceof Error ? error.message : "Unknown error";
-
-    if (message === "Project not found") {
-      return Response.json({ error: message }, { status: 404 });
-    }
-
-    return Response.json({ error: message }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -8,24 +8,32 @@ import {
 } from "@/lib/api-proxy";
 import { IdSchema } from "@/lib/generate-id";
 
-export const POST = async (req: NextRequest) => {
+export const PATCH = async (
+  req: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{ documentId: string }>;
+  },
+) => {
   try {
     const orgId = await extractSessionOrgId();
 
-    const body = await req.json();
+    const { documentId } = await params;
 
-    const { projectId, deploymentId } = z
+    const body = await req.json();
+    const { projectId, ...updates } = z
       .object({
         projectId: IdSchema,
-        deploymentId: IdSchema,
       })
+      .passthrough()
       .parse(body);
 
     await validateProjectOwnership(projectId, orgId);
 
-    return await proxyToPublicAPI(projectId, "/deployments", {
-      method: "POST",
-      body: JSON.stringify({ deploymentId }),
+    return await proxyToPublicAPI(projectId, `/documents/${documentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
       headers: {
         "Content-Type": "application/json",
       },

@@ -160,7 +160,7 @@ export async function POST(request: Request) {
               ),
           }),
           execute: async ({ path }) => {
-            const snapshotUrl = `${getAPIBaseURL(projectId)}/cat/?${path}`;
+            const snapshotUrl = `${getAPIBaseURL(projectId)}/cat/?path=${encodeURIComponent(path)}`;
 
             const internalToken = generateInternalToken(projectId);
             const response = await fetch(snapshotUrl, {
