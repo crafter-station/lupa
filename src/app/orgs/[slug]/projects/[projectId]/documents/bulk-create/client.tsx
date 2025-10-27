@@ -189,21 +189,17 @@ export function BulkCreateClient() {
       }
 
       const data = (await response.json()) as {
-        success: boolean;
-        txid: number;
         created_count: number;
         snapshot_ids: string[];
         run_id: string;
         public_access_token: string;
       };
 
-      if (data.success) {
-        setSnapshotIds(data.snapshot_ids);
-        setRunHandle({
-          id: data.run_id,
-          publicAccessToken: data.public_access_token,
-        });
-      }
+      setSnapshotIds(data.snapshot_ids);
+      setRunHandle({
+        id: data.run_id,
+        publicAccessToken: data.public_access_token,
+      });
     } catch (error) {
       console.error("Failed to create documents:", error);
       setIsCreating(false);
