@@ -36,7 +36,10 @@ export async function GET(
         folder: FolderPathSchema,
         documentName: DocumentNameSchema,
       })
-      .parse({ folder: rawFolder, documentName: rawDocumentName });
+      .parse({
+        folder: rawFolder,
+        documentName: rawDocumentName?.split(".")[0],
+      });
 
     console.log({ deploymentId, folder, documentName });
 

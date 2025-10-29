@@ -29,94 +29,94 @@ interface EndpointTest {
 }
 
 const ENDPOINT_TESTS: EndpointTest[] = [
-  // {
-  //   name: "Search Default",
-  //   method: "GET",
-  //   endpoint: "/search?query=refund+policy",
-  //   expectedStatusByKey: {
-  //     LUPA_SK_LIVE: 200,
-  //     LUPA_SK_TEST: 200,
-  //     LUPA_PK_LIVE: 200,
-  //     LUPA_PK_TEST: 200,
-  //   },
-  // },
-  // {
-  //   name: "Search",
-  //   method: "GET",
-  //   endpoint: "/search?query=refund+policy",
-  //   headers: { "Deployment-Id": DEPLOYMENT_ID },
-  //   expectedStatusByKey: {
-  //     LUPA_SK_LIVE: 200,
-  //     LUPA_SK_TEST: 200,
-  //     LUPA_PK_LIVE: 200,
-  //     LUPA_PK_TEST: 200,
-  //   },
-  // },
-  // {
-  //   name: "Get File Tree Default",
-  //   method: "GET",
-  //   endpoint: "/tree?folder=/&depth=2",
-  //   expectedStatusByKey: {
-  //     LUPA_SK_LIVE: 200,
-  //     LUPA_SK_TEST: 200,
-  //     LUPA_PK_LIVE: 200,
-  //     LUPA_PK_TEST: 200,
-  //   },
-  // },
-  // {
-  //   name: "Get File Tree",
-  //   method: "GET",
-  //   endpoint: "/tree?folder=/&depth=2",
-  //   headers: { "Deployment-Id": DEPLOYMENT_ID },
-  //   expectedStatusByKey: {
-  //     LUPA_SK_LIVE: 200,
-  //     LUPA_SK_TEST: 200,
-  //     LUPA_PK_LIVE: 200,
-  //     LUPA_PK_TEST: 200,
-  //   },
-  // },
+  {
+    name: "Search Default",
+    method: "GET",
+    endpoint: "/search?query=refund+policy",
+    expectedStatusByKey: {
+      LUPA_SK_LIVE: 200,
+      LUPA_SK_TEST: 200,
+      LUPA_PK_LIVE: 200,
+      LUPA_PK_TEST: 200,
+    },
+  },
+  {
+    name: "Search",
+    method: "GET",
+    endpoint: "/search?query=refund+policy",
+    headers: { "Deployment-Id": DEPLOYMENT_ID },
+    expectedStatusByKey: {
+      LUPA_SK_LIVE: 200,
+      LUPA_SK_TEST: 200,
+      LUPA_PK_LIVE: 200,
+      LUPA_PK_TEST: 200,
+    },
+  },
+  {
+    name: "Get File Tree Default",
+    method: "GET",
+    endpoint: "/tree?folder=/&depth=2",
+    expectedStatusByKey: {
+      LUPA_SK_LIVE: 200,
+      LUPA_SK_TEST: 200,
+      LUPA_PK_LIVE: 200,
+      LUPA_PK_TEST: 200,
+    },
+  },
+  {
+    name: "Get File Tree",
+    method: "GET",
+    endpoint: "/tree?folder=/&depth=2",
+    headers: { "Deployment-Id": DEPLOYMENT_ID },
+    expectedStatusByKey: {
+      LUPA_SK_LIVE: 200,
+      LUPA_SK_TEST: 200,
+      LUPA_PK_LIVE: 200,
+      LUPA_PK_TEST: 200,
+    },
+  },
 
-  // {
-  //   name: "Read File Default",
-  //   method: "GET",
-  //   endpoint: `/cat?path=${encodeURIComponent("/abc/abc")}`,
-  //   expectedStatusByKey: {
-  //     LUPA_SK_LIVE: 200,
-  //     LUPA_SK_TEST: 200,
-  //     LUPA_PK_LIVE: 200,
-  //     LUPA_PK_TEST: 200,
-  //   },
-  // },
-  // {
-  //   name: "Read File Default",
-  //   method: "GET",
-  //   endpoint: `/cat?path=${encodeURIComponent("/abc/abc")}`,
-  //   headers: { "Deployment-Id": DEPLOYMENT_ID },
-  //   expectedStatusByKey: {
-  //     LUPA_SK_LIVE: 200,
-  //     LUPA_SK_TEST: 200,
-  //     LUPA_PK_LIVE: 200,
-  //     LUPA_PK_TEST: 200,
-  //   },
-  // },
+  {
+    name: "Read File Default",
+    method: "GET",
+    endpoint: `/cat?path=${encodeURIComponent("/abc/abc")}`,
+    expectedStatusByKey: {
+      LUPA_SK_LIVE: 200,
+      LUPA_SK_TEST: 200,
+      LUPA_PK_LIVE: 200,
+      LUPA_PK_TEST: 200,
+    },
+  },
+  {
+    name: "Read File Default",
+    method: "GET",
+    endpoint: `/cat?path=${encodeURIComponent("/abc/abc")}`,
+    headers: { "Deployment-Id": DEPLOYMENT_ID },
+    expectedStatusByKey: {
+      LUPA_SK_LIVE: 200,
+      LUPA_SK_TEST: 200,
+      LUPA_PK_LIVE: 200,
+      LUPA_PK_TEST: 200,
+    },
+  },
 
-  // {
-  //   name: "Create Document",
-  //   method: "POST",
-  //   endpoint: "/documents?type=website",
-  //   body: {
-  //     folder: "/test/",
-  //     name: generateId(),
-  //     url: "https://example.com/test",
-  //     enhance: false,
-  //   },
-  //   expectedStatusByKey: {
-  //     LUPA_SK_LIVE: 200,
-  //     LUPA_SK_TEST: 200,
-  //     LUPA_PK_LIVE: 403,
-  //     LUPA_PK_TEST: 403,
-  //   },
-  // },
+  {
+    name: "Create Document",
+    method: "POST",
+    endpoint: "/documents?type=website",
+    body: {
+      folder: "/test/",
+      name: generateId(),
+      url: "https://example.com/test",
+      enhance: false,
+    },
+    expectedStatusByKey: {
+      LUPA_SK_LIVE: 200,
+      LUPA_SK_TEST: 200,
+      LUPA_PK_LIVE: 403,
+      LUPA_PK_TEST: 403,
+    },
+  },
   {
     name: "Get Document",
     method: "GET",

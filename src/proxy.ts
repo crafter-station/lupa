@@ -301,9 +301,11 @@ async function handleSubdomainRequest(
   const internalToken = req.headers.get("X-Internal-Token");
 
   if (internalToken && verifyInternalToken(internalToken, projectId)) {
+    const requestedDeploymentId = req.headers.get("Deployment-Id");
+
     const ctx: RouteRewriteContext = {
       projectId,
-      deploymentId: null,
+      deploymentId: requestedDeploymentId,
       searchParams: url.searchParams,
       pathname: url.pathname,
     };

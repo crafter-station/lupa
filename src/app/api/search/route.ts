@@ -1,47 +1,26 @@
 import type { NextRequest } from "next/server";
-import {
-  createErrorResponse,
-  ErrorCode,
-  handleApiError,
-} from "@/lib/api-error";
+import { z } from "zod/v3";
+import { handleApiError } from "@/lib/api-error";
 import {
   extractSessionOrg,
   proxyToPublicAPI,
   validateProjectOwnership,
 } from "@/lib/api-proxy";
+import { IdSchema } from "@/lib/generate-id";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const { orgId, orgSlug } = await extractSessionOrg();
+    const { orgId } = await extractSessionOrg();
 
-    const { searchParams } = new URL(req.url);
-    const query = searchParams.get("query");
-    const projectId = searchParams.get("projectId");
-    const deploymentId = searchParams.get("deploymentId");
+    const json = await req.json();
 
-    if (!projectId) {
-      return createErrorResponse(
-        ErrorCode.MISSING_PARAMETER,
-        "Project ID is required",
-        400,
-      );
-    }
-
-    if (!deploymentId) {
-      return createErrorResponse(
-        ErrorCode.MISSING_PARAMETER,
-        "Deployment ID is required",
-        400,
-      );
-    }
-
-    if (!query) {
-      return createErrorResponse(
-        ErrorCode.MISSING_PARAMETER,
-        "Query is required",
-        400,
-      );
-    }
+    const { query, projectId, deploymentId } = z
+      .object({
+        query: z.string().min(1).max(100),
+        projectId: IdSchema,
+        deploymentId: IdSchema,
+      })
+      .parse(json);
 
     await validateProjectOwnership(projectId, orgId);
 

@@ -45,25 +45,13 @@ async function searchDeployment(
   query: string,
   projectId: string,
   deploymentId: string,
-  documentIds?: string[],
-  metadataFilters?: MetadataFilter[],
+  _documentIds?: string[],
+  _metadataFilters?: MetadataFilter[],
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
-  const params = new URLSearchParams({ query, projectId, deploymentId });
-
-  if (documentIds && documentIds.length > 0) {
-    params.set("documentIds", documentIds.join(","));
-  }
-
-  if (metadataFilters && metadataFilters.length > 0) {
-    for (const filter of metadataFilters) {
-      const value = `${filter.operator}${filter.value}`;
-      params.set(`metadata.${filter.key}`, value);
-    }
-  }
-
-  const response = await fetch(`/api/search/?${params.toString()}`, {
+  const response = await fetch(`/api/search/`, {
     method: "POST",
+    body: JSON.stringify({ query, projectId, deploymentId }),
     signal,
   });
 
