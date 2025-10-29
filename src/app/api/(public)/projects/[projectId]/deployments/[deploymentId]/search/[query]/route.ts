@@ -55,9 +55,10 @@ export async function GET(
 
     const decodedQuery = decodeURIComponent(query);
 
-    const vector = await getVectorIndex(projectId, deploymentId);
+    const vector = await getVectorIndex(projectId);
+    const namespace = vector.namespace(deploymentId);
 
-    const results = await vector.query({
+    const results = await namespace.query({
       data: decodedQuery,
       topK: 5,
       includeData: true,
@@ -80,7 +81,7 @@ export async function GET(
     );
   } catch (error) {
     console.error("Search API error:", error);
-    const { projectId, deploymentId } = await params;
+    const { projectId } = await params;
 
     let statusCode = 500;
     let errorMessage = "Internal server error";
@@ -93,7 +94,7 @@ export async function GET(
         errorMessage = "Server configuration error";
         statusCode = 500;
       } else if (error.message.includes("Invalid encrypted data")) {
-        await invalidateVectorCache(projectId, deploymentId);
+        await invalidateVectorCache(projectId);
         errorMessage = "Cache corrupted, please retry";
         statusCode = 500;
       } else if (error.message.includes("not found")) {

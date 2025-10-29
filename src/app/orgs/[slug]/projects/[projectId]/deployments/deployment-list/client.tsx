@@ -45,8 +45,8 @@ export function DeploymentListLiveQuery({
     )[preloadedDeployments.length - 1];
 
     if (
-      new Date(lastDeploymentFresh.updated_at).getTime() >
-      new Date(lastDeploymentPreloaded.updated_at).getTime()
+      new Date(lastDeploymentFresh?.updated_at).getTime() >
+      new Date(lastDeploymentPreloaded?.updated_at).getTime()
     ) {
       return [...freshData];
     } else {

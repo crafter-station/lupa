@@ -1,6 +1,6 @@
 {
-  "id": "e50bd401-a1a5-49c4-ada6-7429ad6ecff6",
-  "prevId": "d695fabb-de4f-4e2d-96f5-368bcf2f8aa5",
+  "id": "f5c712f6-b47a-4bb1-842c-3d328c4c5a43",
+  "prevId": "9e5f4203-6e07-403d-978d-aff797852d16",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -175,6 +175,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "status": {
           "name": "status",
           "type": "deployment_status_enum",
@@ -212,34 +218,24 @@
         }
       },
       "indexes": {
-        "deployment_one_production_per_project": {
-          "name": "deployment_one_production_per_project",
+        "deployment_project_environment_unique": {
+          "name": "deployment_project_environment_unique",
           "columns": [
             {
               "expression": "project_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"deployment\".\"environment\" = 'production' AND \"deployment\".\"status\" = 'ready'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "deployment_one_staging_per_project": {
-          "name": "deployment_one_staging_per_project",
-          "columns": [
+            },
             {
-              "expression": "project_id",
+              "expression": "environment",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": true,
-          "where": "\"deployment\".\"environment\" = 'staging' AND \"deployment\".\"status\" = 'ready'",
+          "where": "\"deployment\".\"environment\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -535,6 +531,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "folder": {
+          "name": "folder",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -577,7 +585,13 @@
           "columns": ["snapshot_id", "deployment_id"]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "deployment_folder_name_unique": {
+          "name": "deployment_folder_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["deployment_id", "folder", "name"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

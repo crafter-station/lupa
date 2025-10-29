@@ -1,6 +1,6 @@
 {
-  "id": "3cc99540-1bfe-4439-b94e-4400f8236623",
-  "prevId": "e50bd401-a1a5-49c4-ada6-7429ad6ecff6",
+  "id": "7f875d85-33ad-4068-8b17-358dbcf808ae",
+  "prevId": "f5c712f6-b47a-4bb1-842c-3d328c4c5a43",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -169,11 +169,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "vector_index_id": {
-          "name": "vector_index_id",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "status": {
           "name": "status",
@@ -366,6 +366,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "vector_index_id": {
+          "name": "vector_index_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "production_deployment_id": {
           "name": "production_deployment_id",
           "type": "text",
@@ -525,6 +531,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "folder": {
+          "name": "folder",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -567,7 +585,13 @@
           "columns": ["snapshot_id", "deployment_id"]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "deployment_folder_name_unique": {
+          "name": "deployment_folder_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["deployment_id", "folder", "name"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

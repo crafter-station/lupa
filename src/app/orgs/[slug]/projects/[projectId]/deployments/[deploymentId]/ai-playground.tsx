@@ -49,6 +49,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { FileListItem, MetadataFilter } from "@/lib/types/search";
+import { cn } from "@/lib/utils";
 
 const models = [
   {
@@ -89,6 +90,98 @@ function getFileName(file: FileListItem): string {
     return uploadMetadata.file_name || file.documentName;
   }
   return file.documentName;
+}
+
+interface TreeNode {
+  type: "file" | "directory";
+  name: string;
+  path: string;
+  documentId?: string;
+  snapshotId?: string;
+  chunksCount?: number;
+  children?: TreeNode[];
+}
+
+function TreeNodeComponent({
+  node,
+  depth = 0,
+}: {
+  node: TreeNode;
+  depth?: number;
+}) {
+  const [isOpen, setIsOpen] = useState(depth < 2);
+  const isDirectory = node.type === "directory";
+
+  const handleToggle = () => {
+    if (isDirectory) {
+      setIsOpen(!isOpen);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isDirectory && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      setIsOpen(!isOpen);
+    }
+  };
+
+  if (isDirectory) {
+    return (
+      <div className="select-none">
+        <button
+          type="button"
+          className={cn(
+            "flex items-center gap-1.5 py-0.5 text-xs hover:bg-muted/50 rounded px-1 w-full text-left border-0 bg-transparent",
+          )}
+          style={{ paddingLeft: `${depth * 12}px` }}
+          onClick={handleToggle}
+          onKeyDown={handleKeyDown}
+          aria-expanded={isOpen}
+        >
+          <span className="text-muted-foreground">{isOpen ? "📂" : "📁"}</span>
+          <span className="font-medium">{node.name}</span>
+        </button>
+        {isOpen && node.children && (
+          <div>
+            {node.children.map((child, idx) => (
+              <TreeNodeComponent
+                key={`${child.path}-${idx}`}
+                node={child}
+                depth={depth + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="select-none">
+      <div
+        className="flex items-center gap-1.5 py-0.5 text-xs rounded px-1"
+        style={{ paddingLeft: `${depth * 12}px` }}
+      >
+        <span className="text-muted-foreground">📄</span>
+        <span>{node.name}</span>
+        {node.chunksCount !== undefined && (
+          <span className="text-muted-foreground ml-auto text-[10px]">
+            {node.chunksCount} chunks
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FileTreeView({ tree }: { tree: TreeNode[] }) {
+  return (
+    <div className="rounded-md bg-muted/50 p-3 font-mono text-xs">
+      {tree.map((node, idx) => (
+        <TreeNodeComponent key={`${node.path}-${idx}`} node={node} />
+      ))}
+    </div>
+  );
 }
 
 function SnapshotPreview({ content }: { content: string }) {
@@ -183,6 +276,36 @@ function renderMessagePart(
                       : JSON.stringify(part.output, null, 2)
                   }
                 />
+              </div>
+            ) : null}
+            {part.errorText && (
+              <ToolOutput output={part.output} errorText={part.errorText} />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    case "tool-get-file-tree":
+      return (
+        <Tool key={`${messageId}-${index}`}>
+          <ToolHeader
+            title="Get File Tree"
+            type={part.type}
+            state={part.state}
+          />
+          <ToolContent>
+            <ToolInput input={part.input} />
+            {part.output ? (
+              <div className="space-y-2 p-4">
+                <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                  Result
+                </h4>
+                {typeof part.output === "object" &&
+                "tree" in part.output &&
+                Array.isArray(part.output.tree) ? (
+                  <FileTreeView tree={part.output.tree as TreeNode[]} />
+                ) : (
+                  <ToolOutput output={part.output} errorText={part.errorText} />
+                )}
               </div>
             ) : null}
             {part.errorText && (

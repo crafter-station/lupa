@@ -72,10 +72,9 @@ interface CachedVectorConfig {
 
 export async function getVectorIndex(
   projectId: string,
-  deploymentId: string,
   options?: { skipCache?: boolean },
 ): Promise<VectorIndex> {
-  const cacheKey = `vectorConfig:${projectId}:${deploymentId}`;
+  const cacheKey = `vectorConfig:${projectId}`;
 
   if (!options?.skipCache) {
     const cachedVectorConfig = await redis.get<CachedVectorConfig>(cacheKey);
@@ -91,9 +90,7 @@ export async function getVectorIndex(
     }
   }
 
-  const vectorIndexId = await redis.get<string>(
-    `vectorIndexId:${projectId}:${deploymentId}`,
-  );
+  const vectorIndexId = await redis.get<string>(`vectorIndexId:${projectId}`);
 
   if (!vectorIndexId) {
     throw new Error("Vector index not found");
@@ -135,9 +132,6 @@ export async function getVectorIndex(
   });
 }
 
-export async function invalidateVectorCache(
-  projectId: string,
-  deploymentId: string,
-): Promise<void> {
-  await redis.del(`vectorConfig:${projectId}:${deploymentId}`);
+export async function invalidateVectorCache(projectId: string): Promise<void> {
+  await redis.del(`vectorConfig:${projectId}`);
 }

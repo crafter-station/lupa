@@ -57,8 +57,6 @@ export const Deployment = pgTable(
 
     project_id: text("project_id").notNull(),
 
-    vector_index_id: text("vector_index_id"),
-
     name: text("name").notNull(),
 
     status: DeploymentStatus("status").notNull(),

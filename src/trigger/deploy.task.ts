@@ -38,7 +38,10 @@ export const deploy = schemaTask({
         .from(schema.Document)
         .where(eq(schema.Document.project_id, deployment.project_id));
 
-      const snapshots: schema.SnapshotSelect[] = [];
+      const snapshots: (schema.SnapshotSelect & {
+        folder: string;
+        name: string;
+      })[] = [];
 
       for (const document of documents) {
         const results = await db
@@ -55,7 +58,11 @@ export const deploy = schemaTask({
           .limit(1);
 
         if (results.length) {
-          snapshots.push(results[0]);
+          snapshots.push({
+            ...results[0],
+            folder: document.folder,
+            name: document.name,
+          });
         }
       }
       if (!snapshots.length) {
@@ -67,61 +74,74 @@ export const deploy = schemaTask({
           deployment_id: deployment.id,
           snapshot_id: snapshot.id,
           org_id: deployment.org_id,
+          folder: snapshot.folder,
+          name: snapshot.name,
         })),
       );
 
-      const url = "https://api.upstash.com/v2/vector/index";
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${process.env.UPSTASH_MANAGEMENT_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: deploymentId,
-          region: "us-east-1",
-          similarity_function: "COSINE",
-          dimension_count: 1024,
-          type: "payg",
-          embedding_model: "BGE_M3",
-          index_type: "HYBRID",
-          sparse_embedding_model: "BM25",
-        }),
-      });
+      const [project] = await db
+        .select()
+        .from(schema.Project)
+        .where(eq(schema.Project.id, deployment.project_id))
+        .limit(1);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to create vector index: ${response.status} ${errorText}`,
-        );
+      if (!project) {
+        throw new Error(`Project not found for deployment ${deploymentId}`);
       }
 
-      const vectorIndex = (await response.json()) as {
-        id: string;
-        endpoint: string;
-        token: string;
-      };
+      if (!project.vector_index_id) {
+        const url = "https://api.upstash.com/v2/vector/index";
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${process.env.UPSTASH_MANAGEMENT_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: `prj_${project.id}`,
+            region: "us-east-1",
+            similarity_function: "COSINE",
+            dimension_count: 1024,
+            type: "payg",
+            embedding_model: "BGE_M3",
+            index_type: "HYBRID",
+            sparse_embedding_model: "BM25",
+          }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Failed to create vector index: ${response.status} ${errorText}`,
+          );
+        }
 
-      if (!vectorIndex?.id) {
-        throw new Error(
-          `Failed to create vector index for deployment ${deploymentId}`,
+        const vectorIndex = (await response.json()) as {
+          id: string;
+          endpoint: string;
+          token: string;
+        };
+
+        if (!vectorIndex?.id) {
+          throw new Error(
+            `Failed to create vector index for deployment ${deploymentId}`,
+          );
+        }
+
+        logger.info(`Vector index created: ${vectorIndex.id}`);
+
+        await db
+          .update(schema.Project)
+          .set({
+            vector_index_id: vectorIndex.id,
+            updated_at: new Date().toISOString(),
+          })
+          .where(eq(schema.Project.id, project.id));
+
+        await redis.set(
+          `vectorIndexId:${deployment.project_id}`,
+          vectorIndex.id,
         );
       }
-
-      logger.info(`Vector index created: ${vectorIndex.id}`);
-
-      await db
-        .update(schema.Deployment)
-        .set({
-          vector_index_id: vectorIndex.id,
-          updated_at: new Date().toISOString(),
-        })
-        .where(eq(schema.Deployment.id, deploymentId));
-
-      await redis.set(
-        `vectorIndexId:${deployment.project_id}:${deploymentId}`,
-        vectorIndex.id,
-      );
 
       await wait.for({ seconds: 15 });
 
@@ -200,14 +220,16 @@ export const pushSnapshot = schemaTask({
       const vector = await (async () => {
         try {
           const { getVectorIndex } = await import("@/lib/crypto/vector");
-          return await getVectorIndex(projectId, deploymentId);
+          return await getVectorIndex(projectId);
         } catch (error) {
           logger.error("Failed to get vector index using cache", { error });
           throw error;
         }
       })();
 
-      logger.info(`Vector index retrieved for deployment ${deploymentId}`);
+      const namespace = vector.namespace(deploymentId);
+
+      logger.info(`Vector index retrieved for project ${projectId}`);
 
       const response = await fetch(snapshot.markdown_url);
       if (!response.ok) {
@@ -260,7 +282,7 @@ export const pushSnapshot = schemaTask({
 
       for (let i = 0; i < vectorData.length; i += batchSize) {
         const batch = vectorData.slice(i, i + batchSize);
-        await vector.upsert(batch);
+        await namespace.upsert(batch);
         logger.info(
           `Uploaded batch ${i / batchSize + 1} of ${Math.ceil(vectorData.length / batchSize)}`,
         );
@@ -269,7 +291,7 @@ export const pushSnapshot = schemaTask({
 
       logger.info(`Successfully uploaded ${uploadedCount} vectors`);
 
-      await invalidateVectorCache(projectId, deploymentId);
+      await invalidateVectorCache(projectId);
 
       return { uploadedCount };
     } catch (error) {

@@ -1,5 +1,5 @@
 {
-  "id": "d695fabb-de4f-4e2d-96f5-368bcf2f8aa5",
+  "id": "9e5f4203-6e07-403d-978d-aff797852d16",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -175,6 +175,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "status": {
           "name": "status",
           "type": "deployment_status_enum",
@@ -212,18 +218,24 @@
         }
       },
       "indexes": {
-        "deployment_one_production_per_project": {
-          "name": "deployment_one_production_per_project",
+        "deployment_project_environment_unique": {
+          "name": "deployment_project_environment_unique",
           "columns": [
             {
               "expression": "project_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
+            },
+            {
+              "expression": "environment",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
             }
           ],
           "isUnique": true,
-          "where": "\"deployment\".\"environment\" = 'production' AND \"deployment\".\"status\" = 'ready'",
+          "where": "\"deployment\".\"environment\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -515,6 +527,18 @@
         },
         "deployment_id": {
           "name": "deployment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "folder": {
+          "name": "folder",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true

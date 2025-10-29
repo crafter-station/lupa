@@ -32,8 +32,8 @@ export const Document = pgTable(
     org_id: text("org_id").notNull(),
 
     folder: text("folder").notNull().default("/"),
-
     name: text("name").notNull(),
+
     description: text("description"),
 
     project_id: text("project_id").notNull(),

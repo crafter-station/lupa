@@ -2,7 +2,7 @@
 // display directory tree structure
 // users will hit https://<projectId>.lupa.build/api/tree?folder=/path&depth=2
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { normalizeFolderPath } from "@/lib/folder-utils";
@@ -86,28 +86,25 @@ export async function GET(
 
     const documents = await db
       .select({
-        documentId: schema.Document.id,
-        documentName: schema.Document.name,
-        documentPath: schema.Document.folder,
+        documentId: schema.Snapshot.document_id,
+        documentName: schema.SnapshotDeploymentRel.name,
+        documentPath: schema.SnapshotDeploymentRel.folder,
         snapshotId: schema.Snapshot.id,
         chunksCount: schema.Snapshot.chunks_count,
       })
-      .from(schema.Document)
+      .from(schema.SnapshotDeploymentRel)
       .innerJoin(
         schema.Snapshot,
-        eq(schema.Snapshot.document_id, schema.Document.id),
-      )
-      .innerJoin(
-        schema.SnapshotDeploymentRel,
-        and(
-          eq(schema.SnapshotDeploymentRel.snapshot_id, schema.Snapshot.id),
-          eq(schema.SnapshotDeploymentRel.deployment_id, deploymentId),
-        ),
+        eq(schema.SnapshotDeploymentRel.snapshot_id, schema.Snapshot.id),
       )
       .where(
         and(
-          eq(schema.Document.project_id, projectId),
+          eq(schema.SnapshotDeploymentRel.deployment_id, deploymentId),
+          eq(schema.SnapshotDeploymentRel.org_id, deployment.org_id),
           eq(schema.Snapshot.status, "success"),
+          targetFolder === "/"
+            ? undefined
+            : sql`${schema.SnapshotDeploymentRel.folder} LIKE ${targetFolder + "%"}`,
         ),
       );
 

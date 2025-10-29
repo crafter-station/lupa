@@ -1,0 +1,1 @@
+ALTER TABLE "snapshot_and_deployment_rel" ADD CONSTRAINT "deployment_folder_name_unique" UNIQUE("deployment_id","folder","name");

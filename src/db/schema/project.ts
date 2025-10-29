@@ -11,6 +11,8 @@ export const Project = pgTable(PROJECT_TABLE, {
   name: text("name").notNull(),
   description: text("description"),
 
+  vector_index_id: text("vector_index_id"),
+
   production_deployment_id: text("production_deployment_id"),
   staging_deployment_id: text("staging_deployment_id"),
 

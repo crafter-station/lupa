@@ -12,6 +12,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { GET_DOCUMENT_CONTENTS_PROMPT } from "@/lib/prompts/get-document-contents.prompt";
+import { GET_FILE_TREE_PROMPT } from "@/lib/prompts/get-file-tree.prompt";
 import { SEARCH_KNOWLEDGE_PROMPT } from "@/lib/prompts/search-knowledge.prompt";
 import { SYSTEM_PROMPT } from "@/lib/prompts/system.prompt";
 import { getAPIBaseURL } from "@/lib/utils";
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
 
     const searchKnowledgePrompt = SEARCH_KNOWLEDGE_PROMPT(project);
     const getDocumentContentsPrompt = GET_DOCUMENT_CONTENTS_PROMPT(project);
+    const getFileTreePrompt = GET_FILE_TREE_PROMPT(project);
 
     let systemPrompt = SYSTEM_PROMPT(project);
 
@@ -178,11 +180,44 @@ export async function POST(request: Request) {
 
             const content = await response.text();
 
-            return {
-              path,
-              content,
-              contentLength: content.length,
-            };
+            return content;
+          },
+        }),
+        "get-file-tree": tool({
+          description: getFileTreePrompt,
+          inputSchema: z.object({
+            folder: z
+              .string()
+              .describe(
+                "The path of the document to retrieve the full content for. All folders must start and end with /. No special characters are allowed, just letters, numbers and '-','_'. The path must be absolute. Example: /folder1/folder2/, /, /path-to/folder/ ",
+              ),
+            depth: z
+              .number()
+              .min(0)
+              .describe(
+                "The depth of the file tree to retrieve. 0 will return all files and folders, until the maximum depth is reached. If depth is greater than 0, only files and folders within the specified depth will be returned. For example, if depth 1 will return only the files and folders in the current directory.",
+              ),
+          }),
+          execute: async ({ folder, depth }) => {
+            const snapshotUrl = `${getAPIBaseURL(projectId)}/tree/?folder=${encodeURIComponent(folder)}&depth=${encodeURIComponent(depth)}`;
+
+            const internalToken = generateInternalToken(projectId);
+            const response = await fetch(snapshotUrl, {
+              headers: {
+                "Deployment-Id": deploymentId,
+                "X-Internal-Token": internalToken,
+              },
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch snapshot: ${response.statusText}`,
+              );
+            }
+
+            const content = await response.json();
+
+            return content;
           },
         }),
       },
