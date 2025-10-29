@@ -64,7 +64,7 @@ export default clerkMiddleware(
 
     if (!subdomain && url.pathname.startsWith("/docs")) {
       const redirectUrl = new URL(url.href);
-      redirectUrl.hostname = "docs.lupa.build";
+      redirectUrl.hostname = `docs.${rootDomain}`;
       redirectUrl.pathname = url.pathname.replace(/^\/docs/, "") || "/";
 
       return NextResponse.redirect(redirectUrl, 301);

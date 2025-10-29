@@ -3,6 +3,7 @@ import type { DeploymentEnvironment } from "@/db/schema/deployment";
 import { ApiError, ErrorCode } from "./api-error";
 import { getApiKeyDataFromRequest } from "./crypto/api-key";
 import { verifyInternalToken } from "./crypto/internal-token";
+import { rootDomain } from "./utils";
 
 interface ApiKeyPermissions {
   canRead: boolean;
@@ -91,9 +92,8 @@ function extractProjectIdFromPath(request: Request): string | null {
           return subdomain;
         }
       }
-
-      // Production: {projectId}.lupa.build
-      if (hostname.includes(".lupa.build")) {
+      if (hostname.includes(`.${rootDomain}`)) {
+        // Production: {projectId}.lupa.build
         const subdomain = hostname.split(".")[0];
         if (subdomain && subdomain !== "www" && subdomain !== "docs") {
           return subdomain;
