@@ -10,7 +10,7 @@ export const rootDomain =
 
 export const protocol = rootDomain.includes("localhost") ? "http" : "https";
 
-export const appBaseURL = `${protocol}://${rootDomain}`;
+export const appBaseURL = `${protocol}://${rootDomain.startsWith("localhost") ? rootDomain : `www.${rootDomain}`}`;
 export const docsBaseURL = `${protocol}://docs.${rootDomain}`;
 
 export const getAPIBaseURL = (projectId: string) =>
