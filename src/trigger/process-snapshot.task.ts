@@ -1,6 +1,7 @@
 import { queue, schemaTask } from "@trigger.dev/sdk";
 import { put } from "@vercel/blob";
 import { desc, eq } from "drizzle-orm";
+import { encoding_for_model } from "tiktoken";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -38,7 +39,6 @@ export const processSnapshotTask = schemaTask({
       .where(eq(schema.Snapshot.id, snapshotId));
 
     let markdown: string;
-    let metadata: schema.WebsiteMetadata | schema.UploadMetadata;
 
     if (snapshot.type === "website") {
       const doc = await parseWebsiteTask.triggerAndWait(
@@ -72,12 +72,6 @@ export const processSnapshotTask = schemaTask({
       } else {
         markdown = doc.output.markdown;
       }
-
-      metadata = {
-        title: doc.output.metadata?.title,
-        favicon: doc.output.metadata?.favicon as string | undefined,
-        screenshot: doc.output.screenshot,
-      };
     } else if (snapshot.type === "upload") {
       const filename = snapshot.url.split("/").pop() || "file";
 
@@ -97,12 +91,6 @@ export const processSnapshotTask = schemaTask({
       }
 
       markdown = result.output.markdown;
-      metadata = {
-        file_name: filename,
-        file_size: result.output.metadata?.wordCount
-          ? result.output.metadata.wordCount * 6
-          : undefined,
-      };
     } else {
       throw new Error(`Unknown snapshot type: ${snapshot.type}`);
     }
@@ -127,14 +115,14 @@ export const processSnapshotTask = schemaTask({
       .orderBy(desc(schema.Snapshot.created_at))
       .limit(2);
 
+    let previous: schema.SnapshotSelect | undefined;
+
     let hasChanged = true;
     if (previousSnapshots.length === 2) {
-      const previousSnapshot = previousSnapshots[1];
-      if (previousSnapshot.markdown_url) {
+      previous = previousSnapshots[1];
+      if (previous.markdown_url) {
         try {
-          const previousMarkdownResponse = await fetch(
-            previousSnapshot.markdown_url,
-          );
+          const previousMarkdownResponse = await fetch(previous.markdown_url);
           const previousMarkdown = await previousMarkdownResponse.text();
           hasChanged = previousMarkdown !== markdown;
         } catch (error) {
@@ -143,9 +131,17 @@ export const processSnapshotTask = schemaTask({
       }
     }
 
-    const extractedMetadata = document?.metadata_schema
-      ? await extractMetadata(markdown, document.metadata_schema)
-      : {};
+    let metadata: Record<string, unknown> | undefined;
+    if (previous?.metadata && Object.keys(previous.metadata).length > 0) {
+      metadata = previous.metadata;
+    } else {
+      metadata = await extractMetadata(markdown, document.metadata_schema);
+    }
+
+    const enc = encoding_for_model("gpt-4o");
+    const tokens = enc.encode(markdown);
+    const tokensCount = tokens.length;
+    enc.free();
 
     await db
       .update(schema.Snapshot)
@@ -153,8 +149,8 @@ export const processSnapshotTask = schemaTask({
         status: "success",
         markdown_url: url,
         metadata,
-        extracted_metadata: extractedMetadata,
         changes_detected: hasChanged,
+        tokens_count: tokensCount,
         updated_at: new Date().toISOString(),
       })
       .where(eq(schema.Snapshot.id, snapshotId));

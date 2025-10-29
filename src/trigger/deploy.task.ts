@@ -206,15 +206,18 @@ export const pushSnapshot = schemaTask({
         throw new Error(`Snapshot ${snapshotId} does not have a markdown URL`);
       }
 
-      const documents = await db
+      const [document] = await db
         .select()
-        .from(schema.Document)
-        .where(eq(schema.Document.id, snapshot.document_id))
-        .limit(1);
+        .from(schema.SnapshotDeploymentRel)
+        .where(
+          and(
+            eq(schema.SnapshotDeploymentRel.snapshot_id, snapshotId),
+            eq(schema.SnapshotDeploymentRel.deployment_id, deploymentId),
+          ),
+        );
 
-      const document = documents[0];
       if (!document) {
-        throw new Error(`Document ${snapshot.document_id} not found`);
+        throw new Error(`Document not found for snapshot ${snapshotId}`);
       }
 
       const vector = await (async () => {
@@ -256,10 +259,20 @@ export const pushSnapshot = schemaTask({
           id: chunkId,
           content: chunk,
           metadata: {
-            path: `${document.folder}${document.name}.md`,
-            chunkIndex: Math.floor(i / (chunkSize - chunkOverlap)),
-            updatedAt: new Date().toISOString(),
-            ...(snapshot.extracted_metadata || {}),
+            chunk: {
+              index: Math.floor(i / (chunkSize - chunkOverlap)),
+            },
+            document: {
+              path: `${document.folder}${document.name}.md`,
+              chunks_count: chunks.length,
+              tokens_count: snapshot.tokens_count,
+              metadata: {
+                ...snapshot.metadata,
+                extracted: {
+                  ...(snapshot.extracted_metadata || {}),
+                },
+              },
+            },
           },
         });
       }

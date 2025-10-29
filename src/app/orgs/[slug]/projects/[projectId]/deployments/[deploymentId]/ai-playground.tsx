@@ -92,15 +92,25 @@ function getFileName(file: FileListItem): string {
   return file.documentName;
 }
 
-interface TreeNode {
-  type: "file" | "directory";
+interface TreeFile {
+  type: "file";
   name: string;
   path: string;
-  documentId?: string;
-  snapshotId?: string;
-  chunksCount?: number;
-  children?: TreeNode[];
+  metadata: {
+    chunks_count: number;
+    tokens_count: number;
+    extracted_metadata: object;
+  };
 }
+
+interface TreeDirectory {
+  type: "directory";
+  name: string;
+  path: string;
+  children: TreeNode[];
+}
+
+type TreeNode = TreeFile | TreeDirectory;
 
 function TreeNodeComponent({
   node,
@@ -164,11 +174,9 @@ function TreeNodeComponent({
       >
         <span className="text-muted-foreground">📄</span>
         <span>{node.name}</span>
-        {node.chunksCount !== undefined && (
-          <span className="text-muted-foreground ml-auto text-[10px]">
-            {node.chunksCount} chunks
-          </span>
-        )}
+        <span className="text-muted-foreground ml-auto text-[10px]">
+          {node.metadata.chunks_count} chunks
+        </span>
       </div>
     </div>
   );

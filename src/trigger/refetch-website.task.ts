@@ -63,7 +63,6 @@ export const refetchWebsiteTask = schedules.task({
       status: "queued",
       type: "website",
       metadata: null,
-      extracted_metadata: null,
       changes_detected: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

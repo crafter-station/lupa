@@ -22,6 +22,13 @@
       "when": 1761764273798,
       "tag": "0002_wet_madame_web",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1761768779325,
+      "tag": "0003_powerful_mephisto",
+      "breakpoints": true
     }
   ]
 }

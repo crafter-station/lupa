@@ -15,9 +15,11 @@ interface TreeFile {
   type: "file";
   name: string;
   path: string;
-  documentId: string;
-  snapshotId: string;
-  chunksCount: number;
+  metadata: {
+    chunks_count: number;
+    tokens_count: number;
+    extracted_metadata: object;
+  };
 }
 
 interface TreeDirectory {
@@ -91,6 +93,9 @@ export async function GET(
         documentPath: schema.SnapshotDeploymentRel.folder,
         snapshotId: schema.Snapshot.id,
         chunksCount: schema.Snapshot.chunks_count,
+        tokensCount: schema.Snapshot.tokens_count,
+        metadata: schema.Snapshot.metadata,
+        extractedMetadata: schema.Snapshot.extracted_metadata,
       })
       .from(schema.SnapshotDeploymentRel)
       .innerJoin(
@@ -138,6 +143,9 @@ function buildTree(
     documentPath: string;
     snapshotId: string;
     chunksCount: number | null;
+    tokensCount: number | null;
+    metadata: object | null;
+    extractedMetadata: object | null;
   }>,
   rootPath: string,
   maxDepth: number,
@@ -195,9 +203,11 @@ function buildTree(
       type: "file",
       name: doc.documentName,
       path: `${docPath}${doc.documentName}`,
-      documentId: doc.documentId,
-      snapshotId: doc.snapshotId,
-      chunksCount: doc.chunksCount || 0,
+      metadata: {
+        chunks_count: doc.chunksCount || 0,
+        tokens_count: doc.tokensCount || 0,
+        extracted_metadata: doc.extractedMetadata || {},
+      },
     };
 
     if (docPath === rootPath) {
@@ -231,9 +241,11 @@ function buildTree(
         type: "file",
         name: doc.documentName,
         path: `${docPath}${doc.documentName}`,
-        documentId: doc.documentId,
-        snapshotId: doc.snapshotId,
-        chunksCount: doc.chunksCount || 0,
+        metadata: {
+          chunks_count: doc.chunksCount || 0,
+          tokens_count: doc.tokensCount || 0,
+          extracted_metadata: doc.extractedMetadata || {},
+        },
       };
       rootChildren.push(fileNode);
     }

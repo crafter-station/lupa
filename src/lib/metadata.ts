@@ -1,7 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod/v3";
-import type { MetadataSchemaConfig } from "@/db/schema";
 
 const defaultMetadataSchema = z.object({
   category: z
@@ -89,7 +88,7 @@ function zodSchemaFromJsonSchema(
 
 export async function extractMetadata(
   content: string,
-  config?: MetadataSchemaConfig | null,
+  schema?: Record<string, unknown> | null,
 ): Promise<Record<string, unknown>> {
   if (!process.env.OPENAI_API_KEY) {
     console.warn("OPENAI_API_KEY not set, skipping metadata extraction");
@@ -97,20 +96,19 @@ export async function extractMetadata(
   }
 
   try {
-    const mode = config?.mode || "infer";
     const preview = content.slice(0, 2000);
 
-    let schema: z.ZodType;
+    let generationSchema: z.ZodType;
 
-    if (mode === "custom" && config?.schema) {
-      schema = zodSchemaFromJsonSchema(config.schema);
+    if (schema) {
+      generationSchema = zodSchemaFromJsonSchema(schema);
     } else {
-      schema = defaultMetadataSchema;
+      generationSchema = defaultMetadataSchema;
     }
 
     const { object } = await generateObject({
-      model: openai("gpt-4o-mini"),
-      schema,
+      model: openai("gpt-5-mini"),
+      schema: generationSchema,
       temperature: 0.1,
       messages: [
         {

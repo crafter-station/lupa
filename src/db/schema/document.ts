@@ -8,14 +8,8 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod/v3";
 
 export const DOCUMENT_TABLE = "document";
-
-export type MetadataSchemaConfig = {
-  mode: "infer" | "custom";
-  schema?: Record<string, unknown>;
-};
 
 export const RefreshFrequency = pgEnum("refresh_frequency_enum", [
   "daily",
@@ -38,7 +32,7 @@ export const Document = pgTable(
 
     project_id: text("project_id").notNull(),
 
-    metadata_schema: jsonb("metadata_schema").$type<MetadataSchemaConfig>(),
+    metadata_schema: jsonb("metadata_schema").$type<Record<string, unknown>>(),
 
     refresh_enabled: boolean("refresh_enabled").notNull().default(false),
     refresh_frequency: RefreshFrequency("refresh_frequency"),
@@ -71,8 +65,3 @@ export const DocumentSelectSchema = createSelectSchema(Document);
 
 export type DocumentSelect = typeof Document.$inferSelect;
 export type DocumentInsert = typeof Document.$inferInsert;
-
-export const MetadataSchemaConfigSchema = z.object({
-  mode: z.enum(["infer", "custom"]),
-  schema: z.record(z.string(), z.unknown()).optional(),
-});
