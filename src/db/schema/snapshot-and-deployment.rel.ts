@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -27,6 +28,7 @@ export const SnapshotDeploymentRel = pgTable(
 
     folder: text("folder").notNull(),
     name: text("name").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
 
     created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()

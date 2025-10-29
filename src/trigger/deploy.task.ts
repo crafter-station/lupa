@@ -76,6 +76,7 @@ export const deploy = schemaTask({
           org_id: deployment.org_id,
           folder: snapshot.folder,
           name: snapshot.name,
+          metadata: snapshot.metadata,
         })),
       );
 
@@ -266,12 +267,7 @@ export const pushSnapshot = schemaTask({
               path: `${document.folder}${document.name}.md`,
               chunks_count: chunks.length,
               tokens_count: snapshot.tokens_count,
-              metadata: {
-                ...snapshot.metadata,
-                extracted: {
-                  ...(snapshot.extracted_metadata || {}),
-                },
-              },
+              metadata: snapshot.metadata,
             },
           },
         });
