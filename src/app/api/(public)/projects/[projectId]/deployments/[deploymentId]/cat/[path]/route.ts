@@ -3,13 +3,13 @@
 // users will hit https://<projectId>.lupa.build/api/cat/?path=/path/to/file.md
 
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { DocumentNameSchema, FolderPathSchema } from "@/lib/validation";
 
 export const preferredRegion = "iad1";
-
 export const revalidate = false;
-
 export const dynamic = "force-static";
 
 export async function GET(
@@ -27,12 +27,18 @@ export async function GET(
   try {
     const { projectId, deploymentId, path } = await params;
 
-    const folder = `/${path.split("/").slice(0, -1).join("/")}`;
-    const documentName = path.split("/").pop()?.replace(".md", "");
+    const parts = path.split("/");
+    const rawDocumentName = parts.pop();
+    const rawFolder = `${parts.join(`/`)}/`;
 
-    if (!documentName) {
-      return new Response("Invalid path", { status: 400 });
-    }
+    const { folder, documentName } = z
+      .object({
+        folder: FolderPathSchema,
+        documentName: DocumentNameSchema,
+      })
+      .parse({ folder: rawFolder, documentName: rawDocumentName });
+
+    console.log({ deploymentId, folder, documentName });
 
     const [snapshot] = await db
       .select({

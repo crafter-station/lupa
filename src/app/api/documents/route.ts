@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import z from "zod/v3";
 import { handleApiError } from "@/lib/api-error";
 import {
-  extractSessionOrgId,
+  extractSessionOrg,
   proxyToPublicAPI,
   validateProjectOwnership,
 } from "@/lib/api-proxy";
@@ -10,7 +10,7 @@ import { IdSchema } from "@/lib/generate-id";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const orgId = await extractSessionOrgId();
+    const { orgId, orgSlug } = await extractSessionOrg();
 
     const contentType = req.headers.get("content-type") || "";
     const isFormData = contentType.includes("multipart/form-data");

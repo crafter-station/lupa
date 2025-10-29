@@ -13,28 +13,6 @@ export interface RouteConfig {
 
 export const SUBDOMAIN_ROUTES: RouteConfig[] = [
   {
-    pattern: /^\/api\/deployments\/([^/]+)\/promote$/,
-    rewrite: (ctx) => {
-      const pathParts = ctx.pathname.split("/").filter(Boolean);
-      if (pathParts.length === 4 && pathParts[3] === "promote") {
-        const deploymentId = pathParts[2];
-        return `/api/projects/${ctx.projectId}/deployments/${deploymentId}/promote`;
-      }
-      return null;
-    },
-  },
-  {
-    pattern: /^\/api\/deployments\/([^/]+)\/environment$/,
-    rewrite: (ctx) => {
-      const pathParts = ctx.pathname.split("/").filter(Boolean);
-      if (pathParts.length === 4 && pathParts[3] === "environment") {
-        const deploymentId = pathParts[2];
-        return `/api/projects/${ctx.projectId}/deployments/${deploymentId}/environment`;
-      }
-      return null;
-    },
-  },
-  {
     pattern: /^\/api\/deployments/,
     rewrite: (ctx) => `/api/projects/${ctx.projectId}/deployments`,
   },

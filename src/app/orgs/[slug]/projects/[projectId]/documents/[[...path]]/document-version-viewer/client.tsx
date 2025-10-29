@@ -4,7 +4,7 @@ import { useOrganization } from "@clerk/nextjs";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import React from "react";
 import ReactMarkdown from "react-markdown";
@@ -23,13 +23,15 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import type { DocumentSelect, RefreshFrequency, SnapshotSelect } from "@/db";
-
-import { useCollections } from "@/hooks/use-collections";
+import {
+  DeploymentCollection,
+  DocumentCollection,
+  SnapshotCollection,
+} from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { useMarkdown } from "@/hooks/use-markdown";
-
+import { generateDeploymentName } from "@/lib/deployment-promotion";
 import { generateId } from "@/lib/generate-id";
-
 import { CreateSnapshot } from "../../create-snapshot";
 import type { DocumentVersionViewerLoadingContextProps } from "./index";
 
@@ -37,18 +39,13 @@ export function DocumentVersionViewerLiveQuery({
   documentId,
   preloadedDocument,
   preloadedSnapshots,
+  preloadedAllDocuments,
 }: DocumentVersionViewerLoadingContextProps) {
   const router = useRouter();
   const { slug, projectId } = useParams<{
     slug: string;
     projectId: string;
   }>();
-  const {
-    DocumentCollection,
-    SnapshotCollection,
-    DeploymentCollection,
-    ProjectCollection,
-  } = useCollections();
   const [deploymentId, setDeploymentId] = useQueryState("foo");
   const [toastId, setToastId] = React.useState<string | number | null>(null);
   const [newSnapshot, _setNewSnapshot] = useQueryState(
@@ -57,16 +54,6 @@ export function DocumentVersionViewerLiveQuery({
   );
 
   const { organization } = useOrganization();
-
-  const { data: freshProject } = useLiveQuery((q) =>
-    q
-      .from({ project: ProjectCollection })
-      .select(({ project }) => ({ ...project })),
-  );
-
-  React.useEffect(() => {
-    console.log("freshproject", freshProject);
-  }, [freshProject]);
 
   const { data: freshDocumentData, status: documentStatus } = useLiveQuery(
     (q) =>
@@ -77,7 +64,20 @@ export function DocumentVersionViewerLiveQuery({
   );
 
   const document = React.useMemo(() => {
-    if (documentStatus === "ready" && freshDocumentData.length > 0) {
+    if (documentStatus !== "ready") {
+      return preloadedDocument;
+    }
+    if (!preloadedDocument) {
+      if (!freshDocumentData) {
+        notFound();
+      }
+      return freshDocumentData[0];
+    }
+
+    if (
+      new Date(freshDocumentData[0].updated_at) >
+      new Date(preloadedDocument.updated_at)
+    ) {
       return freshDocumentData[0];
     }
     return preloadedDocument;
@@ -97,7 +97,7 @@ export function DocumentVersionViewerLiveQuery({
     return [...data];
   }, [snapshotsStatus, freshSnapshotsData, preloadedSnapshots]);
 
-  const { data: allDocumentsData } = useLiveQuery((q) =>
+  const { data: freshAllDocuments, status: allDocsStatus } = useLiveQuery((q) =>
     q
       .from({ document: DocumentCollection })
       .select(({ document }) => ({ ...document }))
@@ -105,8 +105,31 @@ export function DocumentVersionViewerLiveQuery({
   );
 
   const allDocuments = React.useMemo(() => {
-    return allDocumentsData || [];
-  }, [allDocumentsData]);
+    if (allDocsStatus !== "ready") {
+      return preloadedAllDocuments;
+    }
+
+    if (freshAllDocuments.length === 0) return [];
+    if (preloadedAllDocuments.length === 0) return [...freshAllDocuments];
+
+    const lastFresh = freshAllDocuments.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[freshAllDocuments.length - 1];
+
+    const lastPreloaded = preloadedAllDocuments.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[preloadedAllDocuments.length - 1];
+
+    if (
+      new Date(lastFresh.updated_at).getTime() >
+      new Date(lastPreloaded.updated_at).getTime()
+    ) {
+      return [...freshAllDocuments];
+    }
+    return [...preloadedAllDocuments];
+  }, [allDocsStatus, freshAllDocuments, preloadedAllDocuments]);
 
   const prevSnapshotsRef = React.useRef(preloadedSnapshots);
 
@@ -190,6 +213,7 @@ export function DocumentVersionViewerLiveQuery({
                     id: deploymentId,
                     project_id: document.project_id,
                     vector_index_id: null,
+                    name: generateDeploymentName(),
                     status: "queued",
                     environment: "staging",
                     logs: [],
@@ -211,7 +235,6 @@ export function DocumentVersionViewerLiveQuery({
     snapshotsStatus,
     freshSnapshotsData,
     document,
-    DeploymentCollection,
     setDeploymentId,
     organization,
   ]);
@@ -234,8 +257,8 @@ export function DocumentVersionViewerLiveQuery({
 }
 
 export function DocumentVersionViewerContent({
-  document: preloadedDocument,
-  snapshots: snapshotsData,
+  document,
+  snapshots: unsortedSnapshots,
   allDocuments,
 }: {
   document: DocumentSelect;
@@ -247,66 +270,59 @@ export function DocumentVersionViewerContent({
     projectId: string;
     slug: string;
   }>();
-  const { DocumentCollection } = useCollections();
 
   const { folder, version } = useFolderDocumentVersion();
   const [isFullscreen, setIsFullscreen] = React.useState(false);
 
-  const handleUpdateDocument = React.useCallback(
-    async (changes: Partial<DocumentSelect>) => {
-      try {
-        DocumentCollection.update(preloadedDocument.id, (doc) => {
-          Object.assign(doc, changes);
-          doc.updated_at = new Date().toISOString();
-        });
-      } catch (error) {
-        console.error("Failed to update document:", error);
-        toast.error("Failed to update document");
-        throw error;
-      }
-    },
-    [DocumentCollection, preloadedDocument.id],
-  );
-
   const handleUpdateName = React.useCallback(
-    async (name: string) => {
-      await handleUpdateDocument({ name });
+    (name: string) => {
+      DocumentCollection.update(document.id, (doc) => {
+        doc.name = name;
+        doc.updated_at = new Date().toISOString();
+      });
     },
-    [handleUpdateDocument],
+    [document],
   );
 
   const handleUpdateDescription = React.useCallback(
-    async (description: string | null) => {
-      await handleUpdateDocument({ description });
+    (description: string | null) => {
+      DocumentCollection.update(document.id, (doc) => {
+        doc.description = description;
+        doc.updated_at = new Date().toISOString();
+      });
     },
-    [handleUpdateDocument],
+    [document],
   );
 
   const handleUpdateFolder = React.useCallback(
-    async (newFolder: string) => {
-      await handleUpdateDocument({ folder: newFolder });
-      const newUrl = `/orgs/${slug}/projects/${projectId}/documents${newFolder}doc:${preloadedDocument.id}`;
+    (newFolder: string) => {
+      DocumentCollection.update(document.id, (doc) => {
+        doc.folder = newFolder;
+        doc.updated_at = new Date().toISOString();
+      });
+      const newUrl = `/orgs/${slug}/projects/${projectId}/documents${newFolder}doc:${document.id}`;
       router.push(newUrl);
     },
-    [handleUpdateDocument, router, projectId, preloadedDocument.id, slug],
+    [router, projectId, document.id, slug],
   );
 
   const handleUpdateRefreshSettings = React.useCallback(
-    async (enabled: boolean, frequency: RefreshFrequency | null) => {
-      await handleUpdateDocument({
-        refresh_enabled: enabled,
-        refresh_frequency: frequency,
+    (enabled: boolean, frequency: RefreshFrequency | null) => {
+      DocumentCollection.update(document.id, (doc) => {
+        doc.refresh_enabled = enabled;
+        doc.refresh_frequency = frequency;
+        doc.updated_at = new Date().toISOString();
       });
     },
-    [handleUpdateDocument],
+    [document],
   );
 
   const validateName = React.useCallback(
     (name: string) => {
       const isDuplicate = allDocuments.some(
         (doc) =>
-          doc.id !== preloadedDocument.id &&
-          doc.folder === preloadedDocument.folder &&
+          doc.id !== document.id &&
+          doc.folder === document.folder &&
           doc.name === name,
       );
       return {
@@ -316,15 +332,15 @@ export function DocumentVersionViewerContent({
           : undefined,
       };
     },
-    [allDocuments, preloadedDocument.id, preloadedDocument.folder],
+    [allDocuments, document.id, document.folder],
   );
 
   const snapshots = React.useMemo(() => {
-    return [...snapshotsData].sort(
+    return [...unsortedSnapshots].sort(
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
-  }, [snapshotsData]);
+  }, [unsortedSnapshots]);
 
   const latestVersionIndex = snapshots.length - 1;
   const currentVersionIndex = version
@@ -338,7 +354,7 @@ export function DocumentVersionViewerContent({
     isError,
   } = useMarkdown(currentSnapshot?.markdown_url);
 
-  const baseUrl = `/orgs/${slug}/projects/${projectId}/documents/${folder}doc:${preloadedDocument.id}`;
+  const baseUrl = `/orgs/${slug}/projects/${projectId}/documents/${folder}doc:${document.id}`;
 
   if (!currentSnapshot) {
     return (
@@ -357,7 +373,7 @@ export function DocumentVersionViewerContent({
               <Label className="text-xs text-muted-foreground">Name</Label>
               <div className="flex items-center gap-2">
                 <InlineEditableField
-                  value={preloadedDocument.name}
+                  value={document.name}
                   onSave={handleUpdateName}
                   onValidate={validateName}
                   className="text-xl font-semibold"
@@ -372,7 +388,7 @@ export function DocumentVersionViewerContent({
                 Description
               </Label>
               <InlineEditableTextarea
-                value={preloadedDocument.description}
+                value={document.description}
                 onSave={handleUpdateDescription}
                 className="text-sm"
               />
@@ -381,7 +397,7 @@ export function DocumentVersionViewerContent({
             <div>
               <Label className="text-xs text-muted-foreground">Folder</Label>
               <InlineEditableFolder
-                value={preloadedDocument.folder}
+                value={document.folder}
                 onSave={handleUpdateFolder}
                 documents={allDocuments}
                 className="text-sm"
@@ -394,8 +410,8 @@ export function DocumentVersionViewerContent({
                   Refresh Schedule
                 </Label>
                 <InlineEditableRefreshSettings
-                  refreshEnabled={preloadedDocument.refresh_enabled}
-                  refreshFrequency={preloadedDocument.refresh_frequency}
+                  refreshEnabled={document.refresh_enabled}
+                  refreshFrequency={document.refresh_frequency}
                   onSave={handleUpdateRefreshSettings}
                   className="text-sm"
                 />
@@ -403,7 +419,7 @@ export function DocumentVersionViewerContent({
             )}
 
             <div className="text-xs text-muted-foreground">
-              Updated: {new Date(preloadedDocument.updated_at).toLocaleString()}
+              Updated: {new Date(document.updated_at).toLocaleString()}
             </div>
           </div>
 
@@ -580,7 +596,7 @@ export function DocumentVersionViewerContent({
       </div>
 
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="w-[95vw] !max-w-[95vw] h-[95vh] p-6">
+        <DialogContent className="w-[95vw] max-w-[95vw]! h-[95vh] p-6">
           <DialogTitle>Document Viewer</DialogTitle>
           <Tabs
             defaultValue="raw"

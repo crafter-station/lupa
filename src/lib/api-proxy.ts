@@ -34,8 +34,6 @@ export async function proxyToPublicAPI<T = unknown>(
       headers["Deployment-Id"] = options.deploymentId;
     }
 
-    console.log({ hello: "freidnsscs" });
-
     const response = await fetch(`${getAPIBaseURL(projectId)}${endpoint}`, {
       method: options.method || "GET",
       headers,
@@ -77,7 +75,7 @@ export async function validateProjectOwnership(
   return project;
 }
 
-export async function extractSessionOrgId() {
+export async function extractSessionOrg() {
   const session = await auth();
   const orgId = session.orgId;
 
@@ -89,5 +87,6 @@ export async function extractSessionOrgId() {
     );
   }
 
-  return orgId;
+  // biome-ignore lint/style/noNonNullAssertion: exists
+  return { orgId, orgSlug: session.orgSlug! };
 }

@@ -6,6 +6,8 @@ import type { NextRequest } from "next/server";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { handleApiError } from "@/lib/api-error";
+import { requireSecretKey } from "@/lib/api-permissions";
 import { generateId, IdSchema } from "@/lib/generate-id";
 import { deleteDocumentSchedule } from "@/lib/schedules";
 import { processSnapshotTask } from "@/trigger/process-snapshot.task";
@@ -265,6 +267,8 @@ export async function POST(
   }
 
   try {
+    await requireSecretKey(request);
+
     const { projectId } = await params;
     const search = request.nextUrl.searchParams;
 
@@ -377,18 +381,6 @@ export async function POST(
       txid: snapshotTxid ? parseInt(snapshotTxid, 10) : undefined,
     });
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof z.ZodError) {
-      return Response.json(
-        { error: "Validation failed", details: error.errors },
-        { status: 400 },
-      );
-    }
-
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

@@ -10,6 +10,7 @@ import type {
 } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
+import { requireSecretKey } from "@/lib/api-permissions";
 import { generateId } from "@/lib/generate-id";
 import { createDocumentSchedule } from "@/lib/schedules";
 import { processWebsiteSnapshotBulkTask } from "@/trigger/process-website-snapshot-bulk.task";
@@ -41,6 +42,8 @@ export async function POST(
   },
 ) {
   try {
+    await requireSecretKey(request);
+
     const { projectId } = await params;
 
     const body = await request.json();

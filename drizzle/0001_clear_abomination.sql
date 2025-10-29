@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "deployment_one_staging_per_project" ON "deployment" USING btree ("project_id") WHERE "deployment"."environment" = 'staging' AND "deployment"."status" = 'ready';

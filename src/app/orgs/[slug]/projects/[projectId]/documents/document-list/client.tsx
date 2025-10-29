@@ -15,7 +15,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Folder, Globe, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
 import { InlineEditableFolder } from "@/components/elements/inline-editable-folder";
@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { DocumentSelect, SnapshotSelect } from "@/db";
-import { useCollections } from "@/hooks/use-collections";
+import { DocumentCollection, SnapshotCollection } from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { fetchMarkdown } from "@/hooks/use-markdown";
 import { cn } from "@/lib/utils";
@@ -117,8 +117,6 @@ export function DocumentListLiveQuery({
     path?: string[];
   }>();
 
-  const { DocumentCollection, SnapshotCollection } = useCollections();
-
   const { data: freshDocuments, status: documentsStatus } = useLiveQuery((q) =>
     q
       .from({ document: DocumentCollection })
@@ -127,9 +125,30 @@ export function DocumentListLiveQuery({
   );
 
   const allDocuments = React.useMemo(() => {
-    const data =
-      documentsStatus === "ready" ? freshDocuments : preloadedDocuments;
-    return [...data];
+    if (documentsStatus !== "ready") {
+      return [...preloadedDocuments];
+    }
+
+    if (freshDocuments.length === 0) return [];
+    if (preloadedDocuments.length === 0) return [...freshDocuments];
+
+    const lastFresh = freshDocuments.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[freshDocuments.length - 1];
+
+    const lastPreloaded = preloadedDocuments.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[preloadedDocuments.length - 1];
+
+    if (
+      new Date(lastFresh.updated_at).getTime() >
+      new Date(lastPreloaded.updated_at).getTime()
+    ) {
+      return [...freshDocuments];
+    }
+    return [...preloadedDocuments];
   }, [documentsStatus, freshDocuments, preloadedDocuments]);
 
   // Load all snapshots for documents in this project (more efficient than filtering)
@@ -154,12 +173,34 @@ export function DocumentListLiveQuery({
   }, [freshSnapshots, documentIds]);
 
   const allSnapshots = React.useMemo(() => {
-    if (snapshotsStatus === "ready") {
+    const filteredPreloaded = preloadedSnapshots.filter((s) =>
+      documentIds.includes(s.document_id),
+    );
+
+    if (snapshotsStatus !== "ready") {
+      return [...filteredPreloaded];
+    }
+
+    if (projectSnapshots.length === 0) return [];
+    if (filteredPreloaded.length === 0) return [...projectSnapshots];
+
+    const lastFresh = projectSnapshots.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[projectSnapshots.length - 1];
+
+    const lastPreloaded = filteredPreloaded.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[filteredPreloaded.length - 1];
+
+    if (
+      new Date(lastFresh.updated_at).getTime() >
+      new Date(lastPreloaded.updated_at).getTime()
+    ) {
       return [...projectSnapshots];
     }
-    // Filter preloaded snapshots too
-    const documentIdSet = new Set(documentIds);
-    return preloadedSnapshots.filter((s) => documentIdSet.has(s.document_id));
+    return [...filteredPreloaded];
   }, [snapshotsStatus, projectSnapshots, preloadedSnapshots, documentIds]);
 
   return (
@@ -178,8 +219,7 @@ export function DocumentListContent({
     projectId: string;
     slug: string;
   }>();
-
-  const { DocumentCollection } = useCollections();
+  const router = useRouter();
 
   const { folder: currentFolder, documentId } = useFolderDocumentVersion();
   const queryClient = useQueryClient();
@@ -227,7 +267,10 @@ export function DocumentListContent({
     try {
       DocumentCollection.update(documentId, (doc) => {
         doc.folder = targetFolder;
+        doc.updated_at = new Date().toISOString();
       });
+      const newUrl = `/orgs/${slug}/projects/${projectId}/documents${targetFolder}doc:${document.id}`;
+      router.push(newUrl);
     } catch (error) {
       toast.error(
         `Failed to move document: ${error instanceof Error ? error.message : "Unknown error"}`,

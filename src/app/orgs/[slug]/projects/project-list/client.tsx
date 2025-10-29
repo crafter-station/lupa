@@ -14,15 +14,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ProjectSelect } from "@/db";
-import { useCollections } from "@/hooks/use-collections";
-
+import { ProjectCollection } from "@/db/collections";
 import type { ProjectListLoadingContextProps } from "./index";
 
 export function ProjectListLiveQuery({
   preloadedProjects,
 }: ProjectListLoadingContextProps) {
-  const { ProjectCollection } = useCollections();
-
   const { data: freshData, status } = useLiveQuery((q) =>
     q
       .from({ project: ProjectCollection })
@@ -30,8 +27,30 @@ export function ProjectListLiveQuery({
   );
 
   const projects = React.useMemo(() => {
-    const data = status === "ready" ? freshData : preloadedProjects;
-    return [...data];
+    if (status !== "ready") {
+      return [...preloadedProjects];
+    }
+
+    if (freshData.length === 0) return [];
+    if (preloadedProjects.length === 0) return [...freshData];
+
+    const lastFresh = freshData.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[freshData.length - 1];
+
+    const lastPreloaded = preloadedProjects.toSorted(
+      (a, b) =>
+        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+    )[preloadedProjects.length - 1];
+
+    if (
+      new Date(lastFresh.updated_at).getTime() >
+      new Date(lastPreloaded.updated_at).getTime()
+    ) {
+      return [...freshData];
+    }
+    return [...preloadedProjects];
   }, [status, freshData, preloadedProjects]);
 
   return <ProjectListContent projects={projects} />;

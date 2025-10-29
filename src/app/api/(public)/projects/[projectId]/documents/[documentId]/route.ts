@@ -1,18 +1,18 @@
 import { Pool } from "@neondatabase/serverless";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { z } from "zod/v3";
+import { db } from "@/db";
 import type { RefreshFrequency } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { DocumentSelectSchema } from "@/db/schema";
 import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
+import { requireSecretKey } from "@/lib/api-permissions";
 import { normalizeFolderPath } from "@/lib/folder-utils";
 import {
   createDocumentSchedule,
   deleteDocumentSchedule,
   updateDocumentSchedule,
 } from "@/lib/schedules";
-import { DocumentNameSchema } from "@/lib/validation";
 
 export const preferredRegion = "iad1";
 
@@ -21,7 +21,7 @@ export async function PATCH(
   {
     params,
   }: {
-    params: Promise<{ projectId: string; id: string }>;
+    params: Promise<{ projectId: string; documentId: string }>;
   },
 ) {
   if (!process.env.DATABASE_URL) {
@@ -31,13 +31,11 @@ export async function PATCH(
     );
   }
 
-  const headers = request.headers;
-
-  console.log({ headers });
-
   let pool: Pool | undefined;
   try {
-    const { projectId, id: documentId } = await params;
+    await requireSecretKey(request);
+
+    const { projectId, documentId } = await params;
     const json = await request.json();
 
     const updates = DocumentSelectSchema.pick({
@@ -166,4 +164,30 @@ export async function PATCH(
     }
     return handleApiError(error);
   }
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ projectId: string; documentId: string }> },
+) {
+  const { projectId, documentId } = await params;
+
+  console.log(projectId, documentId);
+
+  const [document] = await db
+    .select()
+    .from(schema.Document)
+    .where(
+      and(
+        eq(schema.Document.id, documentId),
+        eq(schema.Document.project_id, projectId),
+      ),
+    )
+    .limit(1);
+
+  if (!document) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  return Response.json(document);
 }

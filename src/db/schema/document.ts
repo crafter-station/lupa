@@ -57,13 +57,13 @@ export const Document = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    uniqueProjectFolderName: unique("document_project_folder_name_unique").on(
+  (table) => [
+    unique("document_project_folder_name_unique").on(
       table.project_id,
       table.folder,
       table.name,
     ),
-  }),
+  ],
 );
 
 export const DocumentInsertSchema = createInsertSchema(Document);

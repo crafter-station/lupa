@@ -1,39 +1,44 @@
 "use client";
 
-import { useOrganization } from "@clerk/nextjs";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useCollections } from "@/hooks/use-collections";
-import { generateId } from "@/lib/generate-id";
 
 export const CreateDeployment = () => {
   const { projectId } = useParams<{ projectId: string }>();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const { DeploymentCollection } = useCollections();
+  const handleClick = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/deployments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
 
-  const { organization } = useOrganization();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to create deployment");
+      }
 
-  const handleClick = React.useCallback(() => {
-    DeploymentCollection.insert({
-      id: generateId(),
-
-      project_id: projectId,
-      vector_index_id: null,
-
-      status: "queued",
-      environment: "staging",
-      logs: [],
-
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      org_id: organization?.id ?? "",
-    });
-  }, [projectId, DeploymentCollection, organization]);
+      const deployment = await response.json();
+      toast.success(`Deployment "${deployment.name}" created!`);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create deployment",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId, router]);
 
   return (
-    <Button variant="outline" onClick={handleClick}>
-      Deploy
+    <Button onClick={handleClick} disabled={isLoading}>
+      {isLoading ? "Creating..." : "Create Deployment"}
     </Button>
   );
 };

@@ -1,7 +1,6 @@
 "use client";
 
 import { useOrganization } from "@clerk/nextjs";
-import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { FileText, Globe, Loader2, Upload } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -35,7 +34,7 @@ import type {
   SnapshotSelect,
   SnapshotType,
 } from "@/db";
-import { useCollections } from "@/hooks/use-collections";
+import { DocumentCollection, SnapshotCollection } from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
@@ -62,8 +61,6 @@ export function CreateDocument() {
   const [refreshFrequency, setRefreshFrequency] = React.useState<
     RefreshFrequency | "none"
   >("none");
-
-  const { DocumentCollection, SnapshotCollection } = useCollections();
 
   const { data: allDocuments = [] } = useLiveQuery(
     (q) =>
@@ -204,14 +201,10 @@ export function CreateDocument() {
       };
 
       if (data.documentTxid) {
-        await (DocumentCollection.utils as ElectricCollectionUtils).awaitTxId(
-          data.documentTxid,
-        );
+        await DocumentCollection.utils.awaitTxId(data.documentTxid);
       }
       if (data.snapshotTxid) {
-        await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
-          data.snapshotTxid,
-        );
+        await SnapshotCollection.utils.awaitTxId(data.snapshotTxid);
       }
 
       return {

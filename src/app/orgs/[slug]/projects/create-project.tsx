@@ -11,11 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useCollections } from "@/hooks/use-collections";
+import { ProjectCollection } from "@/db/collections";
 import { generateId } from "@/lib/generate-id";
 
 export function CreateProject() {
-  const { ProjectCollection } = useCollections();
   const [open, setOpen] = React.useState(false);
   const { organization } = useOrganization();
 
@@ -37,7 +36,7 @@ export function CreateProject() {
 
       setOpen(false);
     },
-    [ProjectCollection, organization],
+    [organization],
   );
 
   return (

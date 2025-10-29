@@ -214,3 +214,67 @@ export async function deleteApiKey(keyId: string) {
   const redisKey = `apikey:${key.key_hash}`;
   await redis.del(redisKey);
 }
+
+export async function getApiKeyDataFromRequest(request: Request): Promise<{
+  environment: "live" | "test";
+  key_type: "sk" | "pk";
+  id: string;
+  project_id: string;
+  org_id: string;
+} | null> {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const apiKey = authHeader.replace("Bearer ", "").trim();
+
+  const legacyPattern = /^lupa_sk_[a-zA-Z0-9_-]{32,}$/;
+  const newPattern = /^lupa_(sk|pk)_(live|test)_[a-zA-Z0-9_-]+$/;
+
+  if (!legacyPattern.test(apiKey) && !newPattern.test(apiKey)) {
+    return null;
+  }
+
+  const keyHash = hashApiKey(apiKey);
+  const redisKey = `apikey:${keyHash}`;
+
+  try {
+    const cached = await redis.get<ApiKeyCache | "invalid" | null>(redisKey);
+
+    if (cached === "invalid" || !cached) {
+      return null;
+    }
+
+    if (!cached.is_active) {
+      return null;
+    }
+
+    return {
+      environment: cached.environment,
+      key_type: cached.key_type,
+      id: cached.id,
+      project_id: cached.project_id,
+      org_id: cached.org_id,
+    };
+  } catch (error) {
+    console.error("API key data retrieval error:", error);
+
+    const keyRecord = await db.query.ApiKey.findFirst({
+      where: (keys, { eq, and }) =>
+        and(eq(keys.key_hash, keyHash), eq(keys.is_active, true)),
+    });
+
+    if (!keyRecord) {
+      return null;
+    }
+
+    return {
+      environment: keyRecord.environment,
+      key_type: keyRecord.key_type,
+      id: keyRecord.id,
+      project_id: keyRecord.project_id,
+      org_id: keyRecord.org_id,
+    };
+  }
+}

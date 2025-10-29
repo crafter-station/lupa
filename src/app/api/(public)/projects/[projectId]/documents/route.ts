@@ -7,6 +7,7 @@ import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
+import { requireSecretKey } from "@/lib/api-permissions";
 import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { generateId, IdSchema } from "@/lib/generate-id";
 import { createDocumentSchedule } from "@/lib/schedules";
@@ -204,6 +205,8 @@ export async function POST(
   },
 ) {
   try {
+    await requireSecretKey(request);
+
     const { projectId } = await params;
     const search = request.nextUrl.searchParams;
 

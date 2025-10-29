@@ -11,6 +11,8 @@ const WhereParamsSchema = z.object({
   params: z.record(z.string(), z.string()).optional(),
 });
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
 

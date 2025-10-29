@@ -5,14 +5,14 @@ import {
   handleApiError,
 } from "@/lib/api-error";
 import {
-  extractSessionOrgId,
+  extractSessionOrg,
   proxyToPublicAPI,
   validateProjectOwnership,
 } from "@/lib/api-proxy";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const orgId = await extractSessionOrgId();
+    const { orgId, orgSlug } = await extractSessionOrg();
 
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("query");

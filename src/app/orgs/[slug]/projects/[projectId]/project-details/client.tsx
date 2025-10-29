@@ -3,14 +3,13 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import React from "react";
 import type { ProjectSelect } from "@/db";
-import { useCollections } from "@/hooks/use-collections";
+import { ProjectCollection } from "@/db/collections";
 
 export function ProjectDetails({
   preloadedProject,
 }: {
   preloadedProject: ProjectSelect;
 }) {
-  const { ProjectCollection } = useCollections();
   const { data: freshData, status } = useLiveQuery((q) =>
     q
       .from({ project: ProjectCollection })
@@ -19,7 +18,12 @@ export function ProjectDetails({
   );
 
   const project = React.useMemo(() => {
-    if (status === "ready" && freshData && freshData.length > 0) {
+    if (status !== "ready" || !freshData?.[0]) {
+      return preloadedProject;
+    }
+    if (
+      new Date(freshData[0].updated_at) > new Date(preloadedProject.updated_at)
+    ) {
       return freshData[0];
     }
     return preloadedProject;

@@ -33,6 +33,98 @@ interface DeploymentResolutionResult {
   error?: { code: string; message: string };
 }
 
+export default clerkMiddleware(
+  async (auth, req: NextRequest, event: NextFetchEvent) => {
+    const url = req.nextUrl;
+
+    const subdomain = extractSubdomain(req);
+
+    if (subdomain === "docs") {
+      const rewriteUrl = new URL(`/docs${url.pathname}`, req.url);
+      rewriteUrl.search = url.search;
+
+      return NextResponse.rewrite(rewriteUrl);
+    }
+
+    if (isProtectedRoute(req)) await auth.protect();
+
+    if (url.pathname.startsWith("/app")) {
+      const session = await auth();
+
+      return NextResponse.redirect(
+        new URL(`/orgs/${session.orgSlug}/projects`, url.origin),
+      );
+    }
+
+    if (isPrivateRoute(req)) {
+      const orgSlug = url.pathname.split("/")[2];
+      const session = await auth();
+      await auth.protect(() => orgSlug === session.orgSlug);
+    }
+
+    if (!subdomain && url.pathname.startsWith("/docs")) {
+      const redirectUrl = new URL(url.href);
+      redirectUrl.hostname = "docs.lupa.build";
+      redirectUrl.pathname = url.pathname.replace(/^\/docs/, "") || "/";
+
+      return NextResponse.redirect(redirectUrl, 301);
+    }
+
+    if (subdomain) {
+      return await handleSubdomainRequest(req, event, subdomain, url);
+    }
+
+    return NextResponse.next();
+  },
+  {
+    organizationSyncOptions: {
+      organizationPatterns: ["/orgs/:slug", "/orgs/:slug/(.*)"],
+    },
+  },
+);
+
+export const config = {
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
+};
+
+function extractSubdomain(request: NextRequest): string | null {
+  const url = request.url;
+
+  const host = request.headers.get("host") || "";
+
+  const hostname = host.split(":")[0];
+
+  if (url.includes("localhost") || url.includes("127.0.0.1")) {
+    const fullUrlMatch = url.match(/http:\/\/([^.]+)\.localhost/);
+    if (fullUrlMatch?.[1]) {
+      return fullUrlMatch[1];
+    }
+
+    if (hostname.includes(".localhost")) {
+      return hostname.split(".")[0];
+    }
+
+    return null;
+  }
+
+  const rootDomainFormatted = rootDomain.split(":")[0];
+
+  if (hostname.includes("---") && hostname.endsWith(".vercel.app")) {
+    const parts = hostname.split("---");
+    return parts.length > 0 ? parts[0] : null;
+  }
+
+  const isSubdomain =
+    hostname !== rootDomainFormatted &&
+    hostname !== `www.${rootDomainFormatted}` &&
+    hostname.endsWith(`.${rootDomainFormatted}`);
+
+  return isSubdomain ? hostname.replace(`.${rootDomainFormatted}`, "") : null;
+}
+
 async function resolveAndValidateDeployment(
   projectId: string,
   requestedDeploymentId: string | null,
@@ -206,27 +298,41 @@ async function handleSubdomainRequest(
 ) {
   const projectId = subdomain.toLowerCase();
 
-  console.log({
-    pathname: url.pathname,
-    searchParams: url.searchParams,
-    subdomain,
-  });
-
   const internalToken = req.headers.get("X-Internal-Token");
-  let isAuthenticated = false;
-  let apiKeyData:
-    | { environment: "live" | "test"; key_type: "sk" | "pk" }
-    | undefined;
 
   if (internalToken && verifyInternalToken(internalToken, projectId)) {
-    isAuthenticated = true;
-  } else {
-    const { valid, data } = await validateApiKey(req, event, projectId);
-    isAuthenticated = valid;
-    apiKeyData = data;
+    const ctx: RouteRewriteContext = {
+      projectId,
+      deploymentId: null,
+      searchParams: url.searchParams,
+      pathname: url.pathname,
+    };
+
+    const rewritePath = matchRoute(ctx);
+
+    if (rewritePath === null) {
+      return Response.json(
+        {
+          error: {
+            code: "MISSING_PARAMETER",
+            message: "Missing required parameter",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    if (rewritePath) {
+      const rewriteUrl = new URL(rewritePath, req.url);
+      return NextResponse.rewrite(rewriteUrl);
+    }
+
+    return NextResponse.next();
   }
 
-  if (!isAuthenticated) {
+  const { valid, data } = await validateApiKey(req, event, projectId);
+
+  if (!valid || !data) {
     return Response.json(
       {
         error: { code: "INVALID_API_KEY", message: "API Key is not valid" },
@@ -235,29 +341,11 @@ async function handleSubdomainRequest(
     );
   }
 
-  if (apiKeyData && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
-    if (apiKeyData.key_type === "pk") {
-      return Response.json(
-        {
-          error: {
-            code: "READ_ONLY_KEY",
-            message: `Operation '${req.method}' requires a secret key (lupa_sk_*). Public keys (lupa_pk_*) are read-only.`,
-          },
-        },
-        { status: 403 },
-      );
-    }
-  }
-
   const routeRequiresDeployment = requiresDeployment(url.pathname);
 
   const requestedDeploymentId = req.headers.get("Deployment-Id");
-  let targetEnvironment: "production" | "staging" | null = null;
-
-  if (apiKeyData) {
-    targetEnvironment =
-      apiKeyData.environment === "live" ? "production" : "staging";
-  }
+  const targetEnvironment =
+    data.environment === "live" ? "production" : "staging";
 
   const deploymentResult = await resolveAndValidateDeployment(
     projectId,
@@ -305,110 +393,4 @@ async function handleSubdomainRequest(
   }
 
   return NextResponse.next();
-}
-
-export default clerkMiddleware(
-  async (auth, req: NextRequest, event: NextFetchEvent) => {
-    const url = req.nextUrl;
-
-    const subdomain = extractSubdomain(req);
-
-    // Rewrite docs subdomain requests to /docs route
-    if (subdomain === "docs") {
-      const rewriteUrl = new URL(`/docs${url.pathname}`, req.url);
-      rewriteUrl.search = url.search;
-
-      return NextResponse.rewrite(rewriteUrl);
-    }
-
-    if (isProtectedRoute(req)) await auth.protect();
-
-    if (url.pathname.startsWith("/app")) {
-      const session = await auth();
-
-      return NextResponse.redirect(
-        new URL(`/orgs/${session.orgSlug}/projects`, url.origin),
-      );
-    }
-
-    if (isPrivateRoute(req)) {
-      const orgSlug = url.pathname.split("/")[2];
-      const session = await auth();
-      await auth.protect(() => orgSlug === session.orgSlug);
-    }
-
-    // Redirect www.lupa.build/docs/* to docs.lupa.build/*
-    if (!subdomain && url.pathname.startsWith("/docs")) {
-      const redirectUrl = new URL(url.href);
-      redirectUrl.hostname = "docs.lupa.build";
-      redirectUrl.pathname = url.pathname.replace(/^\/docs/, "") || "/";
-
-      return NextResponse.redirect(redirectUrl, 301);
-    }
-
-    if (subdomain) {
-      return await handleSubdomainRequest(req, event, subdomain, url);
-    }
-
-    // For all other routes, continue normally
-    return NextResponse.next();
-  },
-  {
-    organizationSyncOptions: {
-      organizationPatterns: [
-        "/orgs/:slug", // Match the org slug
-        "/orgs/:slug/(.*)", // Wildcard match for optional trailing path segments
-      ],
-    },
-  },
-);
-
-export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
-};
-
-function extractSubdomain(request: NextRequest): string | null {
-  const url = request.url;
-
-  const host = request.headers.get("host") || "";
-
-  const hostname = host.split(":")[0];
-
-  // Local development environment
-  if (url.includes("localhost") || url.includes("127.0.0.1")) {
-    // Try to extract subdomain from the full URL
-    const fullUrlMatch = url.match(/http:\/\/([^.]+)\.localhost/);
-    if (fullUrlMatch?.[1]) {
-      return fullUrlMatch[1];
-    }
-
-    // Fallback to host header approach
-    if (hostname.includes(".localhost")) {
-      return hostname.split(".")[0];
-    }
-
-    return null;
-  }
-
-  // Production environment
-  const rootDomainFormatted = rootDomain.split(":")[0];
-
-  // Handle preview deployment URLs (tenant---branch-name.vercel.app)
-  if (hostname.includes("---") && hostname.endsWith(".vercel.app")) {
-    const parts = hostname.split("---");
-    return parts.length > 0 ? parts[0] : null;
-  }
-
-  // Regular subdomain detection
-  const isSubdomain =
-    hostname !== rootDomainFormatted &&
-    hostname !== `www.${rootDomainFormatted}` &&
-    hostname.endsWith(`.${rootDomainFormatted}`);
-
-  return isSubdomain ? hostname.replace(`.${rootDomainFormatted}`, "") : null;
 }

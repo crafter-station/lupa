@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import z from "zod/v3";
 import { handleApiError } from "@/lib/api-error";
 import {
-  extractSessionOrgId,
+  extractSessionOrg,
   proxyToPublicAPI,
   validateProjectOwnership,
 } from "@/lib/api-proxy";
@@ -26,7 +26,7 @@ const BulkCreateDocumentsRequestSchema = z.object({
 
 export const POST = async (req: NextRequest) => {
   try {
-    const orgId = await extractSessionOrgId();
+    const { orgId, orgSlug } = await extractSessionOrg();
 
     const body = await req.json();
     const { project_id, documents } =

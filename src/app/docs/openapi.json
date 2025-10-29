@@ -24,17 +24,6 @@
       }
     },
     "schemas": {
-      "200": {},
-      "UpdateEnvironmentBodySchema": {
-        "type": "object",
-        "properties": {
-          "environment": {
-            "type": "string",
-            "enum": ["production", "staging"]
-          }
-        },
-        "required": ["environment"]
-      },
       "SearchResponseSchema": {
         "type": "object",
         "properties": {
@@ -101,37 +90,6 @@
         },
         "required": ["query", "results"]
       },
-      "CreateDeploymentBodySchema": {
-        "type": "object",
-        "properties": {
-          "deploymentId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IdSchema"
-              }
-            ]
-          },
-          "environment": {
-            "type": "string",
-            "enum": ["production", "staging"],
-            "nullable": true
-          }
-        }
-      },
-      "CreateDeploymentSuccessResponseSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [true]
-          },
-          "txid": {
-            "type": "number",
-            "nullable": true
-          }
-        },
-        "required": ["success"]
-      },
       "CreateProjectRequestSchema": {
         "type": "object",
         "properties": {
@@ -166,15 +124,6 @@
         },
         "required": ["success", "txid"]
       },
-      "querySchema": {
-        "type": "object",
-        "properties": {
-          "allSnapshots": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
       "ErrorResponseSchema": {
         "type": "object",
         "properties": {
@@ -184,48 +133,53 @@
         },
         "required": ["error"]
       },
-      "type": {
-        "type": "string",
-        "enum": ["website", "upload"]
-      },
-      "DocumentNameSchema": {
-        "type": "string",
-        "minLength": 1,
-        "pattern": "^[a-zA-Z0-9_-]+$"
-      },
-      "FolderPathSchema": {
-        "type": "string",
-        "pattern": "/"
-      },
-      "BaseDocumentSchema": {
+      "BulkDocumentItemSchema": {
         "type": "object",
         "properties": {
-          "documentId": {
-            "type": "object"
-          },
-          "snapshotId": {
-            "type": "object"
-          },
           "folder": {
-            "type": "object"
+            "type": "string",
+            "default": "/"
           },
           "name": {
-            "type": "object"
+            "type": "string",
+            "minLength": 1
           },
           "description": {
             "type": "string",
             "nullable": true
           },
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "refresh_frequency": {
+            "type": "string",
+            "enum": ["daily", "weekly", "monthly", "none"],
+            "default": "none"
+          },
           "enhance": {
             "type": "boolean",
-            "nullable": true
-          },
-          "metadataSchema": {
-            "type": "string",
-            "nullable": true
+            "default": false
           }
         },
-        "required": ["folder", "folder", "name", "name"]
+        "required": ["folder", "name", "url", "refresh_frequency", "enhance"]
+      },
+      "BulkCreateDocumentsRequestSchema": {
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkDocumentItemSchema"
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["documents"]
+      },
+      "type": {
+        "type": "string",
+        "enum": ["website", "upload"]
       },
       "WebsiteSnapshotSchema": {
         "type": "object",
@@ -320,57 +274,91 @@
         },
         "required": ["projectId", "projectId"]
       },
-      "BulkDocumentItemSchema": {
+      "UpdateDeploymentSchema": {
         "type": "object",
         "properties": {
-          "folder": {
-            "type": "string",
-            "default": "/"
+          "projectId": {
+            "type": "object"
           },
           "name": {
             "type": "string",
-            "minLength": 1
-          },
-          "description": {
-            "type": "string",
             "nullable": true
           },
-          "url": {
+          "environment": {
             "type": "string",
-            "minLength": 1
-          },
-          "refresh_frequency": {
-            "type": "string",
-            "enum": ["daily", "weekly", "monthly", "none"],
-            "default": "none"
-          },
-          "enhance": {
-            "type": "boolean",
-            "default": false
+            "enum": ["production", "staging"],
+            "nullable": true
           }
         },
-        "required": ["folder", "name", "url", "refresh_frequency", "enhance"]
+        "required": ["projectId", "projectId"]
       },
-      "BulkCreateDocumentsRequestSchema": {
+      "CreateDeploymentSchema": {
         "type": "object",
         "properties": {
-          "project_id": {
+          "projectId": {
             "type": "object"
           },
-          "documents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkDocumentItemSchema"
-            },
-            "minItems": 1
+          "name": {
+            "type": "string",
+            "nullable": true
           }
         },
-        "required": ["project_id", "project_id", "documents"]
+        "required": ["projectId", "projectId"]
       },
       "IdSchema": {
         "type": "string",
         "minLength": 10,
         "maxLength": 10
+      },
+      "DocumentNameSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$"
+      },
+      "FolderPathSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^(\\/[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?)*\\/$"
+      },
+      "BaseDocumentSchema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdSchema"
+              }
+            ]
+          },
+          "snapshotId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdSchema"
+              }
+            ]
+          },
+          "folder": {
+            "type": "object"
+          },
+          "name": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "enhance": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "metadataSchema": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["folder", "folder", "name", "name"]
       },
       "WhereParamsSchema": {
         "type": "object",
@@ -862,105 +850,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProjectSuccessResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/projects/{projectId}/deployments": {
-      "post": {
-        "operationId": "post-projects-{projectId}-deployments",
-        "summary": "Create deployment",
-        "description": "Create a new deployment record.",
-        "tags": ["Projects"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDeploymentBodySchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateDeploymentSuccessResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/projects/{projectId}/deployments/{deploymentId}/environment": {
-      "patch": {
-        "operationId": "patch-projects-{projectId}-deployments-{deploymentId}-environment",
-        "summary": "Update deployment environment",
-        "description": "Updates the environment of a deployment",
-        "tags": ["Projects"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateEnvironmentBodySchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/200"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/projects/{projectId}/deployments/{deploymentId}/promote": {
-      "patch": {
-        "operationId": "patch-projects-{projectId}-deployments-{deploymentId}-promote",
-        "summary": "Promote deployment to production",
-        "description": "Promotes a deployment to production environment and demotes the current production deployment",
-        "tags": ["Projects"],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/200"
                 }
               }
             }

@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import React, { useState } from "react";
 import { FilePicker } from "@/components/elements/file-picker";
 import { MetadataFilterInput } from "@/components/elements/metadata-filter-input";
-import { QuickApiKeyButton } from "@/components/elements/quick-api-key-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -126,7 +125,6 @@ export function SearchPlayground() {
               Test your deployment search functionality with filters
             </CardDescription>
           </div>
-          <QuickApiKeyButton projectId={projectId} />
         </div>
       </CardHeader>
       <CardContent className="space-y-3 flex-1 flex flex-col min-h-0 p-4">

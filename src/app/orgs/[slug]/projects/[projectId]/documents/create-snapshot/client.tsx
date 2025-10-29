@@ -34,7 +34,7 @@ import type {
   SnapshotSelect,
   SnapshotType,
 } from "@/db";
-import { useCollections } from "@/hooks/use-collections";
+import { DocumentCollection, SnapshotCollection } from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
@@ -56,8 +56,6 @@ export function CreateSnapshot() {
     RefreshFrequency | "none"
   >("none");
   const [enhance, setEnhance] = React.useState(false);
-
-  const { SnapshotCollection, DocumentCollection } = useCollections();
 
   const { documentId } = useFolderDocumentVersion();
   const { organization } = useOrganization();
@@ -255,7 +253,6 @@ export function CreateSnapshot() {
       refreshFrequency,
       metadataSchema,
       createSnapshot,
-      DocumentCollection,
       setNewSnapshot,
       organization,
       enhance,
@@ -351,7 +348,6 @@ export function CreateSnapshot() {
       selectedFile,
       metadataSchema,
       createSnapshot,
-      DocumentCollection,
       setNewSnapshot,
       organization,
       enhance,

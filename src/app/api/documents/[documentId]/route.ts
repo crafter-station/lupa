@@ -1,8 +1,11 @@
+import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
+import { after } from "next/server";
 import z from "zod/v3";
+import { db } from "@/db";
 import { handleApiError } from "@/lib/api-error";
 import {
-  extractSessionOrgId,
+  extractSessionOrg,
   proxyToPublicAPI,
   validateProjectOwnership,
 } from "@/lib/api-proxy";
@@ -17,11 +20,20 @@ export const PATCH = async (
   },
 ) => {
   try {
-    const orgId = await extractSessionOrgId();
+    const { orgId, orgSlug } = await extractSessionOrg();
 
     const { documentId } = await params;
 
+    const document = await db.query.Document.findFirst({
+      where: (doc, { eq }) => eq(doc.id, documentId),
+    });
+
+    if (!document) {
+      throw new Error("Document not found");
+    }
+
     const body = await req.json();
+
     const { project_id, ...updates } = z
       .object({
         project_id: IdSchema,
@@ -30,6 +42,15 @@ export const PATCH = async (
       .parse(body);
 
     await validateProjectOwnership(project_id, orgId);
+
+    after(async () => {
+      revalidatePath(
+        `/orgs/${orgSlug}/projects/${project_id}/documents${document.folder}`,
+      );
+      revalidatePath(
+        `/orgs/${orgSlug}/projects/${project_id}/documents${document.folder}doc:${documentId}`,
+      );
+    });
 
     return await proxyToPublicAPI(project_id, `/documents/${documentId}`, {
       method: "PATCH",

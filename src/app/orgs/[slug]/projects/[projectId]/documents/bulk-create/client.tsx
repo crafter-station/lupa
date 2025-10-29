@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { RefreshFrequency } from "@/db";
-import { useCollections } from "@/hooks/use-collections";
+import { DocumentCollection, SnapshotCollection } from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 
@@ -61,8 +61,6 @@ export function BulkCreateClient() {
     id: string;
     publicAccessToken: string;
   } | null>(null);
-
-  const { DocumentCollection, SnapshotCollection } = useCollections();
 
   const { data: allDocuments = [] } = useLiveQuery(
     (q) =>

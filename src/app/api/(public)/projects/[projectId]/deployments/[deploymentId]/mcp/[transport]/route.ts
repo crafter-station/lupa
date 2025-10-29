@@ -1,7 +1,7 @@
 // mcp server
 // users will hit https://<projectId>.lupa.build/api/mcp
 
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createMcpHandler } from "mcp-handler";
 import type { NextRequest } from "next/server";
 import { z } from "zod/v3";
@@ -66,12 +66,17 @@ const handler = async (
           let response: Response;
           console.log("calling search api");
 
+          const authHeader = req.headers.get("Authorization");
+          if (!authHeader) {
+            throw new Error("Authorization header is required");
+          }
+
           response = await fetch(
             `${getAPIBaseURL(projectId)}/search/?query=${encodeURIComponent(query)}`,
             {
               headers: {
                 "Deployment-Id": deploymentId,
-                Authorization: req.headers.get("Authorization")!,
+                Authorization: authHeader,
               },
             },
           );
@@ -130,6 +135,11 @@ const handler = async (
             ),
         },
         async ({ path }) => {
+          const authHeader = req.headers.get("Authorization");
+          if (!authHeader) {
+            throw new Error("Authorization header is required");
+          }
+
           let response: Response;
 
           response = await fetch(
@@ -137,7 +147,7 @@ const handler = async (
             {
               headers: {
                 "Deployment-Id": deploymentId,
-                Authorization: req.headers.get("Authorization")!,
+                Authorization: authHeader,
               },
             },
           );

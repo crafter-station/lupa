@@ -1,6 +1,6 @@
 "use client";
 
-import { Rocket } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,91 +13,108 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface PromoteToProductionButtonProps {
+interface DemoteDeploymentButtonProps {
   deploymentId: string;
   projectId: string;
-  currentProductionDeploymentId?: string | null;
+  currentEnvironment: "production" | "staging";
   onSuccess?: () => void;
 }
 
-export function PromoteToProductionButton({
+export function DemoteDeploymentButton({
   deploymentId,
   projectId,
-  currentProductionDeploymentId,
+  currentEnvironment,
   onSuccess,
-}: PromoteToProductionButtonProps) {
+}: DemoteDeploymentButtonProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handlePromote = async () => {
+  const targetEnvironment =
+    currentEnvironment === "production" ? "staging" : null;
+  const targetLabel =
+    currentEnvironment === "production" ? "Staging" : "No Environment";
+
+  const handleDemote = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/deployments/${deploymentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, environment: "production" }),
+        body: JSON.stringify({ projectId, environment: targetEnvironment }),
       });
 
       if (!response.ok) {
         const error = await response.json();
         throw new Error(
-          error.error?.message || "Failed to promote to production",
+          error.error?.message || `Failed to demote from ${currentEnvironment}`,
         );
       }
 
-      toast.success("Successfully promoted to production!");
+      toast.success(`Successfully demoted to ${targetLabel.toLowerCase()}!`);
       onSuccess?.();
       setShowConfirmDialog(false);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to promote to production",
+          : `Failed to demote from ${currentEnvironment}`,
       );
     } finally {
       setIsLoading(false);
     }
   };
 
+  const buttonVariant =
+    currentEnvironment === "production" ? "destructive" : "outline";
+  const buttonLabel = `Demote from ${currentEnvironment === "production" ? "Production" : "Staging"}`;
+
   return (
     <>
       <Button
         onClick={() => setShowConfirmDialog(true)}
-        className="bg-green-600 hover:bg-green-700 text-white"
+        variant={buttonVariant}
         size="sm"
       >
-        <Rocket />
-        Promote to Production
+        <ArrowDown />
+        {buttonLabel}
       </Button>
 
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>🚀 Promote to Production?</DialogTitle>
+            <DialogTitle>Demote from {currentEnvironment}?</DialogTitle>
             <DialogDescription>
-              This deployment will become the active production deployment.
+              This deployment will be moved to {targetLabel.toLowerCase()}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
             <p className="text-sm font-medium">This will:</p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
               <li>
-                Set{" "}
+                Move{" "}
                 <code className="text-xs bg-muted px-1 py-0.5 rounded">
                   {deploymentId}
                 </code>{" "}
-                as the production deployment
+                to {targetLabel.toLowerCase()}
               </li>
-              {currentProductionDeploymentId && (
-                <li>
-                  Demote{" "}
-                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                    {currentProductionDeploymentId}
-                  </code>{" "}
-                  (current production) to staging
-                </li>
+              {currentEnvironment === "production" && (
+                <>
+                  <li>
+                    Live API keys will no longer use this deployment by default
+                  </li>
+                  <li>Test API keys will use this deployment instead</li>
+                </>
               )}
-              <li>All API search requests will use this deployment</li>
+              {currentEnvironment === "staging" && (
+                <>
+                  <li>
+                    Test API keys will no longer use this deployment by default
+                  </li>
+                  <li>
+                    This deployment will be unassigned from any environment
+                  </li>
+                </>
+              )}
               <li>Changes take effect immediately</li>
             </ul>
           </div>
@@ -110,11 +127,11 @@ export function PromoteToProductionButton({
               Cancel
             </Button>
             <Button
-              onClick={handlePromote}
+              onClick={handleDemote}
               disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              variant={buttonVariant}
             >
-              {isLoading ? "Promoting..." : "Promote to Production"}
+              {isLoading ? "Demoting..." : buttonLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

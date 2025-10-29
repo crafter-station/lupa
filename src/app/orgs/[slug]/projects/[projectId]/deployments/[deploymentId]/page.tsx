@@ -10,7 +10,7 @@ export default async function DeploymentPage({
 }: {
   params: Promise<{ projectId: string; deploymentId: string }>;
 }) {
-  const { deploymentId } = await params;
+  const { deploymentId, projectId } = await params;
 
   const [preloadedDeployment] = await db
     .select()
@@ -21,5 +21,19 @@ export default async function DeploymentPage({
     throw new Error("Deployment not found");
   }
 
-  return <DeploymentDetails preloadedDeployment={preloadedDeployment} />;
+  const [preloadedProject] = await db
+    .select()
+    .from(schema.Project)
+    .where(eq(schema.Project.id, projectId));
+
+  if (!preloadedProject) {
+    throw new Error("Project not found");
+  }
+
+  return (
+    <DeploymentDetails
+      preloadedDeployment={preloadedDeployment}
+      preloadedProject={preloadedProject}
+    />
+  );
 }

@@ -59,6 +59,8 @@ export const Deployment = pgTable(
 
     vector_index_id: text("vector_index_id"),
 
+    name: text("name").notNull(),
+
     status: DeploymentStatus("status").notNull(),
     environment: DeploymentEnvironment("environment"),
     logs: jsonb("logs")
@@ -74,11 +76,9 @@ export const Deployment = pgTable(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex("deployment_one_production_per_project")
-      .on(table.project_id)
-      .where(
-        sql`${table.environment} = 'production' AND ${table.status} = 'ready'`,
-      ),
+    uniqueIndex("deployment_project_environment_unique")
+      .on(table.project_id, table.environment)
+      .where(sql`${table.environment} IS NOT NULL`),
   ],
 );
 

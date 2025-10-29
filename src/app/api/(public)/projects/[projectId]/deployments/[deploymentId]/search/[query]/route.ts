@@ -7,9 +7,7 @@ import z from "zod/v3";
 import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const preferredRegion = "iad1";
-
 export const revalidate = false;
-
 export const dynamic = "force-static";
 
 export const SearchResponseSchema = z.object({

@@ -23,17 +23,6 @@
 - **NO Server Actions**: Use API routes for mutations
 - **NO Comments**: Never add code comments unless explicitly requested
 
-## API Routes Guidelines
-
-Lupa uses a **two-tier API architecture**. See `.opencode/docs/` for complete documentation:
-
-### Documentation Structure
-- **[api-routes.md](.opencode/docs/api-routes.md)** - Architecture overview
-- **[authentication.md](.opencode/docs/authentication.md)** - Auth system (API keys, internal tokens, Clerk)
-- **[api-keys.md](.opencode/docs/api-keys.md)** - Key types (sk/pk), environments (live/test)
-- **[deployments.md](.opencode/docs/deployments.md)** - Deployment environments, auto-resolution
-- **[public-api-reference.md](.opencode/docs/public-api-reference.md)** - Complete endpoint reference
-- **[utilities.md](.opencode/docs/utilities.md)** - Error handling, proxy utilities
 
 ### Quick Reference
 
@@ -45,9 +34,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   try {
     const { projectId } = await params;
     const data = Schema.parse(await request.json());
-    
+
     // Business logic here
-    
+
     return Response.json(result, { status: 201 });
   } catch (error) {
     return handleApiError(error);
@@ -57,17 +46,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
 
 **Application Route Pattern** (`src/app/api/...`):
 ```typescript
-import { proxyToPublicAPI, extractSessionOrgId, validateProjectOwnership } from "@/lib/api-proxy";
+import { proxyToPublicAPI, extractSessionOrg, validateProjectOwnership } from "@/lib/api-proxy";
 import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: NextRequest) {
   try {
-    const orgId = await extractSessionOrgId();
+    const { orgId, orgSlug } = await extractSessionOrg();
     const body = await req.json();
     const { projectId, ...payload } = Schema.parse(body);
-    
+
     await validateProjectOwnership(projectId, orgId);
-    
+
     return await proxyToPublicAPI(projectId, "/endpoint", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -107,7 +96,7 @@ export async function POST(req: NextRequest) {
 
 **Add new application endpoint**:
 1. Create route in `src/app/api/...`
-2. Use `extractSessionOrgId()` and `validateProjectOwnership()`
+2. Use `extractSessionOrg()` and `validateProjectOwnership()`
 3. Proxy to public API with `proxyToPublicAPI()`
 4. Handle errors with `handleApiError()`
 

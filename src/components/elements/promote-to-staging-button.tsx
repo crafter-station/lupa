@@ -32,14 +32,11 @@ export function PromoteToStagingButton({
   const handlePromote = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/deployments/${deploymentId}/environment`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId, environment: "staging" }),
-        },
-      );
+      const response = await fetch(`/api/deployments/${deploymentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, environment: "staging" }),
+      });
 
       if (!response.ok) {
         const error = await response.json();
@@ -89,11 +86,11 @@ export function PromoteToStagingButton({
               </li>
               {currentStagingDeploymentId && (
                 <li>
-                  Unset environment for{" "}
+                  Demote{" "}
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">
                     {currentStagingDeploymentId}
                   </code>{" "}
-                  (current staging)
+                  (current staging) to no environment
                 </li>
               )}
               <li>Test API keys will use this deployment</li>
