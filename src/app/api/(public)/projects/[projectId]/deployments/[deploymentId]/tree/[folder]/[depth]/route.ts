@@ -51,7 +51,6 @@ export async function GET(
 ) {
   try {
     const {
-      projectId,
       deploymentId,
       folder: folderParam,
       depth: depthParam,
@@ -65,24 +64,6 @@ export async function GET(
         JSON.stringify({ error: "Invalid depth parameter" }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
-    }
-
-    const [deployment] = await db
-      .select()
-      .from(schema.Deployment)
-      .where(
-        and(
-          eq(schema.Deployment.id, deploymentId),
-          eq(schema.Deployment.project_id, projectId),
-        ),
-      )
-      .limit(1);
-
-    if (!deployment) {
-      return new Response(JSON.stringify({ error: "Deployment not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
     }
 
     const documents = await db
@@ -103,7 +84,6 @@ export async function GET(
       .where(
         and(
           eq(schema.SnapshotDeploymentRel.deployment_id, deploymentId),
-          eq(schema.SnapshotDeploymentRel.org_id, deployment.org_id),
           eq(schema.Snapshot.status, "success"),
           targetFolder === "/"
             ? undefined
