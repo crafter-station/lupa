@@ -5,7 +5,6 @@ import {
   randomBytes,
   scryptSync,
 } from "node:crypto";
-import { cache } from "react";
 import { redis } from "@/db/redis";
 
 const ALGORITHM = "aes-256-gcm";
@@ -73,9 +72,19 @@ interface CachedVectorConfig {
 export async function getVectorIndex(projectId: string) {
   const cacheKey = `vectorConfig:${projectId}`;
 
-  const cachedVectorConfig = await redis.get<CachedVectorConfig>(cacheKey);
+  const res = await fetch(
+    `${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(cacheKey)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+      },
+      cache: "force-cache",
+    },
+  );
 
-  if (cachedVectorConfig) {
+  if (res.ok) {
+    const data = await res.json();
+    const cachedVectorConfig = JSON.parse(data.result) as CachedVectorConfig;
     const { endpoint, encryptedToken } = cachedVectorConfig;
     const token = decrypt(encryptedToken);
 
@@ -126,8 +135,6 @@ export async function getVectorIndex(projectId: string) {
     token: vectorConfig.token,
   };
 }
-
-export const cached_getVectorIndex = cache(getVectorIndex);
 
 export async function invalidateVectorCache(projectId: string): Promise<void> {
   await redis.del(`vectorConfig:${projectId}`);

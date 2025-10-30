@@ -4,10 +4,7 @@
 
 import { Index as VectorIndex } from "@upstash/vector";
 import z from "zod/v3";
-import {
-  cached_getVectorIndex,
-  invalidateVectorCache,
-} from "@/lib/crypto/vector";
+import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const preferredRegion = ["iad1", "gru1"];
 export const revalidate = false;
@@ -57,7 +54,7 @@ export async function GET(
   try {
     const { deploymentId, projectId, query } = await params;
 
-    const indexCredentials = await cached_getVectorIndex(projectId);
+    const indexCredentials = await getVectorIndex(projectId);
     const index = new VectorIndex(indexCredentials);
     const namespace = index.namespace(deploymentId);
 
