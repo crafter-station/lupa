@@ -4,7 +4,14 @@ import { useChat } from "@ai-sdk/react";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useParams } from "next/navigation";
-import { Fragment, useMemo, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Conversation,
   ConversationContent,
@@ -22,7 +29,6 @@ import {
   PromptInputModelSelectTrigger,
   PromptInputModelSelectValue,
   PromptInputSubmit,
-  PromptInputTextarea,
   PromptInputToolbar,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
@@ -39,16 +45,15 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
-import { ChatContextFilters } from "@/components/elements/chat-context-filters";
+import { FileMentionPicker } from "@/components/elements/file-mention-picker";
+import { RichTextarea } from "@/components/elements/rich-textarea";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import type { FileListItem, MetadataFilter } from "@/lib/types/search";
+  type FileTreeResponse,
+  flattenTree,
+  type TreeNode,
+} from "@/lib/file-tree-utils";
 import { cn } from "@/lib/utils";
 
 const models = [
@@ -69,48 +74,6 @@ const models = [
     value: "gpt-5-codex	",
   },
 ];
-
-async function fetchFiles(
-  projectId: string,
-  deploymentId: string,
-): Promise<FileListItem[]> {
-  const response = await fetch(`/api/files/${projectId}/${deploymentId}`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch files");
-  }
-
-  const data = await response.json();
-  return data.files;
-}
-
-function getFileName(file: FileListItem): string {
-  if (file.snapshotType === "upload" && file.metadata) {
-    const uploadMetadata = file.metadata as { file_name?: string };
-    return uploadMetadata.file_name || file.documentName;
-  }
-  return file.documentName;
-}
-
-interface TreeFile {
-  type: "file";
-  name: string;
-  path: string;
-  metadata: {
-    chunks_count: number;
-    tokens_count: number;
-    extracted_metadata: object;
-  };
-}
-
-interface TreeDirectory {
-  type: "directory";
-  name: string;
-  path: string;
-  children: TreeNode[];
-}
-
-type TreeNode = TreeFile | TreeDirectory;
 
 function TreeNodeComponent({
   node,
@@ -217,6 +180,36 @@ function SnapshotPreview({ content }: { content: string }) {
   );
 }
 
+function highlightFileMentions(text: string): React.ReactNode {
+  const pattern = /@(\/[\w\-/.]+)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match = pattern.exec(text);
+
+  while (match !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    parts.push(
+      <span
+        key={match.index}
+        className="inline-flex items-center gap-1 text-primary font-mono bg-primary/10 px-1 rounded"
+      >
+        <span className="text-[10px]">📄</span>
+        <span>@{match[1]}</span>
+      </span>,
+    );
+    lastIndex = match.index + match[0].length;
+    match = pattern.exec(text);
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+}
+
 function renderMessagePart(
   messageId: string,
   messageRole: UIMessage["role"],
@@ -236,7 +229,20 @@ function renderMessagePart(
           <ReasoningContent>{part.text}</ReasoningContent>
         </Reasoning>
       );
-    case "text":
+    case "text": {
+      if (messageRole === "user") {
+        const content = highlightFileMentions(part.text);
+        return (
+          <Fragment key={`${messageId}-${index}`}>
+            <Message from={messageRole}>
+              <MessageContent variant="flat">
+                <div className="whitespace-pre-wrap">{content}</div>
+              </MessageContent>
+            </Message>
+          </Fragment>
+        );
+      }
+
       return (
         <Fragment key={`${messageId}-${index}`}>
           <Message from={messageRole}>
@@ -246,6 +252,7 @@ function renderMessagePart(
           </Message>
         </Fragment>
       );
+    }
     case "tool-search-knowledge":
       return (
         <Tool key={`${messageId}-${index}`}>
@@ -334,28 +341,47 @@ export function AIPlayground() {
   }>();
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
-  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-  const [metadataFilters, setMetadataFilters] = useState<MetadataFilter[]>([]);
+  const [showFilePicker, setShowFilePicker] = useState(false);
+  const [filePickerQuery, setFilePickerQuery] = useState("");
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
+  const textareaRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
-  const { data: files } = useQuery({
-    queryKey: ["files", projectId, deploymentId],
-    queryFn: () => fetchFiles(projectId, deploymentId),
-    staleTime: 5 * 60 * 1000,
+  useEffect(() => {
+    console.log("🎯 showFilePicker state changed:", showFilePicker);
+  }, [showFilePicker]);
+
+  const { data: allFiles } = useQuery({
+    queryKey: ["file-tree", projectId, deploymentId],
+    queryFn: async () => {
+      console.log("🌲 Prefetching file tree on mount");
+      const response = await fetch(
+        `/api/tree?projectId=${projectId}&deploymentId=${deploymentId}&path=/&depth=0`,
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch file tree");
+      }
+      const data: FileTreeResponse = await response.json();
+      console.log("✅ File tree fetched (raw):", data);
+      const flattenedFiles = flattenTree(data.tree);
+      console.log("✅ File tree flattened:", flattenedFiles);
+      return flattenedFiles;
+    },
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
-  const contextInfo = useMemo(() => {
-    if (selectedDocumentIds.length === 0 || !files) {
-      return undefined;
-    }
+  const filteredFiles = useMemo(() => {
+    if (!allFiles) return [];
 
-    const selectedFiles = files.filter((file) =>
-      selectedDocumentIds.includes(file.documentId),
-    );
+    const query = filePickerQuery.toLowerCase();
+    const filtered = allFiles.filter((file) => {
+      const path = file.path.toLowerCase();
+      return path.includes(query);
+    });
 
-    const fileNames = selectedFiles.map((file) => getFileName(file));
-
-    return fileNames.length > 0 ? fileNames : undefined;
-  }, [selectedDocumentIds, files]);
+    return filtered.sort((a, b) => a.path.localeCompare(b.path));
+  }, [allFiles, filePickerQuery]);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -369,6 +395,124 @@ export function AIPlayground() {
       console.error("Chat error:", error);
     },
   });
+
+  const handleInputChangeCallback = useCallback((value: string) => {
+    setInput(value);
+
+    const lastAtIndex = value.lastIndexOf("@");
+
+    if (lastAtIndex !== -1) {
+      const textAfterAt = value.substring(lastAtIndex + 1);
+      const hasSpaceAfterAt = /\s/.test(textAfterAt);
+
+      if (!hasSpaceAfterAt) {
+        setMentionStartPos(lastAtIndex);
+        setFilePickerQuery(textAfterAt);
+        setSelectedFileIndex(0);
+        setShowFilePicker(true);
+        return;
+      }
+    }
+
+    setShowFilePicker(false);
+    setMentionStartPos(null);
+  }, []);
+
+  const handleFileSelect = useCallback(
+    (filePath: string) => {
+      if (mentionStartPos === null) return;
+
+      const selection = window.getSelection();
+      const cursorPosition = selection?.rangeCount
+        ? selection.getRangeAt(0).startOffset
+        : input.length;
+
+      const beforeMention = input.substring(0, mentionStartPos);
+      const afterMention = input.substring(cursorPosition);
+      const newValue = `${beforeMention}@${filePath} ${afterMention}`;
+
+      setInput(newValue);
+      setShowFilePicker(false);
+      setMentionStartPos(null);
+
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const badges =
+            textareaRef.current.querySelectorAll("[data-file-tag]");
+          const lastBadge = badges[badges.length - 1];
+
+          if (lastBadge) {
+            const range = document.createRange();
+            const selection = window.getSelection();
+
+            range.setStartAfter(lastBadge);
+            range.collapse(true);
+
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+
+          textareaRef.current.focus();
+        }
+      }, 10);
+    },
+    [input, mentionStartPos],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!showFilePicker) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedFileIndex((prev) => prev + 1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedFileIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const safeIndex = Math.min(selectedFileIndex, filteredFiles.length - 1);
+        if (filteredFiles[safeIndex]) {
+          console.log(
+            "🔑 Enter pressed - selecting file:",
+            filteredFiles[safeIndex].path,
+          );
+          handleFileSelect(filteredFiles[safeIndex].path);
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setShowFilePicker(false);
+        setMentionStartPos(null);
+      }
+    },
+    [showFilePicker, selectedFileIndex, filteredFiles, handleFileSelect],
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!showFilePicker) return;
+
+      const clickedInsideTextarea = textareaRef.current?.contains(
+        e.target as Node,
+      );
+      const clickedInsidePicker = pickerRef.current?.contains(e.target as Node);
+
+      console.log("👆 Click detected:", {
+        showFilePicker,
+        clickedInsideTextarea,
+        clickedInsidePicker,
+      });
+
+      if (!clickedInsideTextarea && !clickedInsidePicker) {
+        console.log("🚪 Closing picker (clicked outside)");
+        setShowFilePicker(false);
+        setMentionStartPos(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showFilePicker]);
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -384,33 +528,17 @@ export function AIPlayground() {
       {
         body: {
           model,
-          documentIds: selectedDocumentIds,
-          metadataFilters,
-          contextFileNames: contextInfo,
         },
       },
     );
     setInput("");
+    setShowFilePicker(false);
+    setMentionStartPos(null);
   };
 
   return (
     <Card className="flex flex-col h-[calc(100vh-16rem)]">
-      <CardHeader className="pb-3">
-        <CardTitle>AI Playground</CardTitle>
-        <CardDescription>
-          Chat with AI that has access to your deployment knowledge base
-        </CardDescription>
-      </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 p-0">
-        <ChatContextFilters
-          projectId={projectId}
-          deploymentId={deploymentId}
-          selectedDocumentIds={selectedDocumentIds}
-          onDocumentIdsChange={setSelectedDocumentIds}
-          metadataFilters={metadataFilters}
-          onMetadataFiltersChange={setMetadataFilters}
-        />
-
         <Conversation className="flex-1">
           <ConversationContent>
             {messages.length === 0 && (
@@ -418,23 +546,13 @@ export function AIPlayground() {
                 <div className="text-muted-foreground">
                   No messages yet. Start a conversation!
                 </div>
-                {selectedDocumentIds.length > 0 && files && (
-                  <div className="text-xs text-muted-foreground max-w-md p-3 bg-muted/30 rounded-md">
-                    <div className="font-medium mb-1">Selected files:</div>
-                    <div>
-                      {files
-                        .filter((f) =>
-                          selectedDocumentIds.includes(f.documentId),
-                        )
-                        .map((f) => getFileName(f))
-                        .join(", ")}
-                    </div>
-                    <div className="mt-2 text-muted-foreground/80">
-                      You can ask questions like "What is this document about?"
-                      and the AI will focus on your selected files.
-                    </div>
+                <div className="text-xs text-muted-foreground max-w-md p-3 bg-muted/30 rounded-md">
+                  <div className="font-medium mb-1">Tip: Tag files with @</div>
+                  <div className="mt-2 text-muted-foreground/80">
+                    Type @ to mention files in your messages. Example: "Please
+                    summarize @/docs/readme.md"
                   </div>
-                )}
+                </div>
               </div>
             )}
             {messages.map((message) => (
@@ -450,17 +568,29 @@ export function AIPlayground() {
         </Conversation>
 
         <div className="p-4 border-t">
-          <div className="mx-auto w-full max-w-3xl">
+          <div className="mx-auto w-full max-w-3xl relative">
+            {showFilePicker && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
+                <FileMentionPicker
+                  projectId={projectId}
+                  deploymentId={deploymentId}
+                  searchQuery={filePickerQuery}
+                  onSelect={handleFileSelect}
+                  selectedIndex={selectedFileIndex}
+                  onSelectedIndexChange={setSelectedFileIndex}
+                  pickerRef={pickerRef}
+                />
+              </div>
+            )}
             <PromptInput onSubmit={handleSubmit}>
               <PromptInputBody>
-                <PromptInputTextarea
-                  onChange={(e) => setInput(e.target.value)}
+                <RichTextarea
+                  ref={textareaRef}
+                  onChange={handleInputChangeCallback}
+                  onKeyDown={handleKeyDown}
                   value={input}
-                  placeholder={
-                    selectedDocumentIds.length > 0
-                      ? "Ask about the selected files..."
-                      : "Ask something about your documents..."
-                  }
+                  placeholder="Ask something about your documents... (use @ to mention files)"
+                  className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 field-sizing-content bg-transparent dark:bg-transparent max-h-48 min-h-16 focus-visible:ring-0"
                 />
               </PromptInputBody>
               <PromptInputToolbar>

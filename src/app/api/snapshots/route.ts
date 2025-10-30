@@ -10,7 +10,7 @@ import { IdSchema } from "@/lib/generate-id";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const { orgId, orgSlug } = await extractSessionOrg();
+    const { orgId } = await extractSessionOrg();
 
     const contentType = req.headers.get("content-type") || "";
     const isFormData = contentType.includes("multipart/form-data");

@@ -29,6 +29,7 @@ export function CreateProject() {
         description: formData.get("description") as string,
         production_deployment_id: null,
         staging_deployment_id: null,
+        vector_index_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         org_id: organization?.id ?? "",

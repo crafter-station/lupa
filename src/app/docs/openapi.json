@@ -184,62 +184,45 @@
       "WebsiteSnapshotSchema": {
         "type": "object",
         "properties": {
-          "snapshotId": {
+          "snapshot_id": {
             "type": "object"
           },
-          "documentId": {
+          "document_id": {
             "type": "object"
           },
           "enhance": {
             "type": "boolean",
-            "nullable": true
-          },
-          "metadataSchema": {
-            "type": "string",
             "nullable": true
           },
           "url": {
             "type": "string",
             "format": "uri"
-          },
-          "refreshEnabled": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "refreshFrequency": {
-            "type": "string",
-            "enum": ["daily", "weekly", "monthly"],
-            "nullable": true
           }
         },
-        "required": ["documentId", "documentId", "url"]
+        "required": ["document_id", "document_id", "url"]
       },
       "UploadSnapshotSchema": {
         "type": "object",
         "properties": {
-          "snapshotId": {
+          "snapshot_id": {
             "type": "object"
           },
-          "documentId": {
+          "document_id": {
             "type": "object"
           },
           "enhance": {
             "type": "boolean",
             "nullable": true
           },
-          "metadataSchema": {
-            "type": "string",
-            "nullable": true
-          },
           "file": {
             "type": "string"
           },
-          "parsingInstructions": {
+          "parsing_instructions": {
             "type": "string",
             "nullable": true
           }
         },
-        "required": ["documentId", "documentId", "file"]
+        "required": ["document_id", "document_id", "file"]
       },
       "CreateApiKeyRequestSchema": {
         "type": "object",
@@ -325,14 +308,14 @@
       "BaseDocumentSchema": {
         "type": "object",
         "properties": {
-          "documentId": {
+          "document_id": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/IdSchema"
               }
             ]
           },
-          "snapshotId": {
+          "snapshot_id": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/IdSchema"
@@ -353,8 +336,7 @@
             "type": "boolean",
             "nullable": true
           },
-          "metadataSchema": {
-            "type": "string",
+          "metadata_schema": {
             "nullable": true
           }
         },

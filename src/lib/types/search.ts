@@ -1,9 +1,3 @@
-import type {
-  ExtractedMetadata,
-  UploadMetadata,
-  WebsiteMetadata,
-} from "@/db/schema";
-
 export interface FileListItem {
   documentId: string;
   documentName: string;
@@ -11,8 +5,7 @@ export interface FileListItem {
   snapshotId: string;
   snapshotUrl: string;
   snapshotType: "website" | "upload";
-  metadata: UploadMetadata | WebsiteMetadata | null;
-  extractedMetadata: ExtractedMetadata | null;
+  metadata: Record<string, unknown> | null;
   chunksCount: number;
   createdAt: string;
 }

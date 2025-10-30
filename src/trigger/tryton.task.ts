@@ -8,7 +8,7 @@ export const trytonTask = task({
     const result = await python.runScript("./src/python/count_tokens.py", [
       "Hello world!!",
     ]);
-    const tokensCount = Number.parseInt(result.stdout.trim());
+    const tokensCount = Number.parseInt(result.stdout.trim(), 10);
 
     return tokensCount;
   },

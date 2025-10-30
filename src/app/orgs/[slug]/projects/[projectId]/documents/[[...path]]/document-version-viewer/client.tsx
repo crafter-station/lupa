@@ -306,7 +306,7 @@ export function DocumentVersionViewerContent({
   );
 
   const handleUpdateRefreshSettings = React.useCallback(
-    (enabled: boolean, frequency: RefreshFrequency | null) => {
+    (_enabled: boolean, frequency: RefreshFrequency | null) => {
       DocumentCollection.update(document.id, (doc) => {
         doc.refresh_frequency = frequency;
         doc.updated_at = new Date().toISOString();

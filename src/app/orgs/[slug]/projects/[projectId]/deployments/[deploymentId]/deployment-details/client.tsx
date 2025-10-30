@@ -30,6 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DeploymentSelect } from "@/db";
 import { DeploymentCollection, ProjectCollection } from "@/db/collections";
 import { getAPIBaseURL } from "@/lib/utils";
@@ -431,10 +432,18 @@ Header: Deployment-Id = ${deployment.id}`;
       </div>
 
       {deployment.status === "ready" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SearchPlayground />
-          <AIPlayground />
-        </div>
+        <Tabs defaultValue="ai" className="w-full">
+          <TabsList>
+            <TabsTrigger value="ai">AI</TabsTrigger>
+            <TabsTrigger value="search">Search</TabsTrigger>
+          </TabsList>
+          <TabsContent value="ai">
+            <AIPlayground />
+          </TabsContent>
+          <TabsContent value="search">
+            <SearchPlayground />
+          </TabsContent>
+        </Tabs>
       ) : (
         <Card>
           <CardHeader>

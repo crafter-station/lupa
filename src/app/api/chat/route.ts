@@ -19,6 +19,28 @@ import { getAPIBaseURL } from "@/lib/utils";
 
 export const maxDuration = 120;
 
+async function fetchFileContent(
+  projectId: string,
+  deploymentId: string,
+  filePath: string,
+): Promise<string> {
+  const internalToken = generateInternalToken(projectId);
+  const catUrl = `${getAPIBaseURL(projectId)}/cat/?path=${encodeURIComponent(filePath)}`;
+
+  const response = await fetch(catUrl, {
+    headers: {
+      "Deployment-Id": deploymentId,
+      "X-Internal-Token": internalToken,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file ${filePath}: ${response.statusText}`);
+  }
+
+  return await response.text();
+}
+
 export async function POST(request: Request) {
   try {
     const {
@@ -26,22 +48,57 @@ export async function POST(request: Request) {
       deploymentId,
       messages,
       model,
-      documentIds,
-      metadataFilters,
-      contextFileNames,
     }: {
       projectId: string;
       deploymentId: string;
       messages: UIMessage[];
       model: string;
-      documentIds?: string[];
-      metadataFilters?: Array<{
-        key: string;
-        operator: string;
-        value: string | number | boolean;
-      }>;
-      contextFileNames?: string[];
     } = await request.json();
+
+    const fileMentionRegex = /@(\/[\w\-/.]+)/g;
+    const processedMessages = await Promise.all(
+      messages.map(async (message) => {
+        if (message.role !== "user") {
+          return message;
+        }
+
+        const textPart = message.parts.find((part) => part.type === "text");
+        if (!textPart || textPart.type !== "text") {
+          return message;
+        }
+
+        const mentions = [...textPart.text.matchAll(fileMentionRegex)];
+        if (mentions.length === 0) {
+          return message;
+        }
+
+        const fileContents = await Promise.all(
+          mentions.map(async (match) => {
+            const filePath = match[1];
+            try {
+              const content = await fetchFileContent(
+                projectId,
+                deploymentId,
+                filePath,
+              );
+              return `\n\n[File: ${filePath}]\n${content}`;
+            } catch (error) {
+              console.error(`Error fetching file ${filePath}:`, error);
+              return `\n\n[File: ${filePath}]\n[Error: Could not fetch file content]`;
+            }
+          }),
+        );
+
+        return {
+          ...message,
+          parts: message.parts.map((part) =>
+            part.type === "text"
+              ? { ...part, text: part.text + fileContents.join("") }
+              : part,
+          ),
+        };
+      }),
+    );
 
     const [project] = await db
       .select({
@@ -59,29 +116,18 @@ export async function POST(request: Request) {
     const getDocumentContentsPrompt = GET_DOCUMENT_CONTENTS_PROMPT(project);
     const getFileTreePrompt = GET_FILE_TREE_PROMPT(project);
 
-    let systemPrompt = SYSTEM_PROMPT(project);
-
-    if (contextFileNames && contextFileNames.length > 0) {
-      systemPrompt += `\n\n[CONTEXT]: The user has selected specific files: ${contextFileNames.join(", ")}. When they ask about "this document", "these files", or use similar references, they are referring to these specific files. Always use the search-knowledge tool to find information from these documents when answering questions about them.`;
-    }
-
-    if (metadataFilters && metadataFilters.length > 0) {
-      const filterDesc = metadataFilters
-        .map((f) => `${f.key} ${f.operator} ${f.value}`)
-        .join(", ");
-      systemPrompt += `\n\n[FILTERS]: Apply these metadata filters when searching: ${filterDesc}`;
-    }
+    const systemPrompt = SYSTEM_PROMPT(project);
 
     const result = streamText({
       model: openai.responses(model || "gpt-5"),
       providerOptions: {
         openai: {
-          reasoningEffort: "low",
+          reasoningEffort: "medium",
           reasoningSummary: "detailed",
           include: ["reasoning.encrypted_content"],
         } satisfies OpenAIResponsesProviderOptions,
       },
-      messages: convertToModelMessages(messages),
+      messages: convertToModelMessages(processedMessages),
       system: systemPrompt,
       tools: {
         "search-knowledge": tool({
@@ -95,17 +141,6 @@ export async function POST(request: Request) {
             const params = new URLSearchParams({
               query: encodeURIComponent(query),
             });
-
-            if (documentIds && documentIds.length > 0) {
-              params.set("documentIds", documentIds.join(","));
-            }
-
-            if (metadataFilters && metadataFilters.length > 0) {
-              for (const filter of metadataFilters) {
-                const value = `${filter.operator}${filter.value}`;
-                params.set(`metadata.${filter.key}`, value);
-              }
-            }
 
             const searchUrl = `${getAPIBaseURL(projectId)}/search/?${params.toString()}`;
 
@@ -133,8 +168,6 @@ export async function POST(request: Request) {
                   score: number;
                   data: string;
                   metadata: {
-                    snapshotId: string;
-                    documentId: string;
                     documentName?: string;
                     documentPath?: string;
                     fileName?: string;

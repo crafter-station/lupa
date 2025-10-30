@@ -482,10 +482,13 @@ export const PromptInputBody = ({
   <div className={cn(className, "flex flex-col")} {...props} />
 );
 
-export type PromptInputTextareaProps = ComponentProps<typeof Textarea>;
+export type PromptInputTextareaProps = ComponentProps<typeof Textarea> & {
+  onKeyDown?: KeyboardEventHandler<HTMLTextAreaElement>;
+};
 
 export const PromptInputTextarea = ({
   onChange,
+  onKeyDown: externalOnKeyDown,
   className,
   placeholder = "What would you like to know?",
   ...props
@@ -493,18 +496,21 @@ export const PromptInputTextarea = ({
   const attachments = usePromptInputAttachments();
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+    externalOnKeyDown?.(e);
+
+    if (e.defaultPrevented) {
+      return;
+    }
+
     if (e.key === "Enter") {
-      // Don't submit if IME composition is in progress
       if (e.nativeEvent.isComposing) {
         return;
       }
 
       if (e.shiftKey) {
-        // Allow newline
         return;
       }
 
-      // Submit on Enter (without Shift)
       e.preventDefault();
       const form = e.currentTarget.form;
       if (form) {

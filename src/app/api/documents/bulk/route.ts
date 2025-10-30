@@ -26,7 +26,7 @@ const BulkCreateDocumentsRequestSchema = z.object({
 
 export const POST = async (req: NextRequest) => {
   try {
-    const { orgId, orgSlug } = await extractSessionOrg();
+    const { orgId } = await extractSessionOrg();
 
     const body = await req.json();
     const { project_id, documents } =

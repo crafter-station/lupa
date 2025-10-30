@@ -29,7 +29,7 @@ const examples = {
 
 function parsePath(path: string): { folder: string; file: string } {
   const parts = path.split("/");
-  const file = parts.pop()!;
+  const file = parts.pop() || "";
   const folder = `${parts.join("/")}/`;
   return { folder, file };
 }

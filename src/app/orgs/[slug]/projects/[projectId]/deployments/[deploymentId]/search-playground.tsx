@@ -8,13 +8,7 @@ import { FilePicker } from "@/components/elements/file-picker";
 import { MetadataFilterInput } from "@/components/elements/metadata-filter-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
@@ -105,16 +99,6 @@ export function SearchPlayground() {
 
   return (
     <Card className="flex flex-col h-[calc(100vh-16rem)]">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle>Search Playground</CardTitle>
-            <CardDescription>
-              Test your deployment search functionality with filters
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
       <CardContent className="space-y-3 flex-1 flex flex-col min-h-0 p-4">
         <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
           <div className="flex items-center justify-between mb-2">
@@ -286,7 +270,7 @@ export function SearchPlayground() {
                       <Separator />
 
                       <ScrollArea className="max-h-32">
-                        <pre className="text-sm whitespace-pre-wrap break-words font-sans">
+                        <pre className="text-sm whitespace-pre-wrap wrap-break-word font-sans">
                           {result.data}
                         </pre>
                       </ScrollArea>

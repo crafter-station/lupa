@@ -107,7 +107,7 @@ export async function GET(
           eq(schema.Snapshot.status, "success"),
           targetFolder === "/"
             ? undefined
-            : sql`${schema.SnapshotDeploymentRel.folder} LIKE ${targetFolder + "%"}`,
+            : sql`${schema.SnapshotDeploymentRel.folder} LIKE ${`${targetFolder}%`}`,
         ),
       );
 
