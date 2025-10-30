@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  index,
   jsonb,
   pgEnum,
   pgTable,
@@ -77,6 +78,11 @@ export const Deployment = pgTable(
     uniqueIndex("deployment_project_environment_unique")
       .on(table.project_id, table.environment)
       .where(sql`${table.environment} IS NOT NULL`),
+    index("deployment_project_env_status_idx").on(
+      table.project_id,
+      table.environment,
+      table.status,
+    ),
   ],
 );
 

@@ -74,7 +74,7 @@ export async function validateApiKey(
         return { valid: false };
       }
 
-      updateLastUsed(keyData.id).catch(console.error);
+      event.waitUntil(updateLastUsed(keyData.id).catch(console.error));
 
       return {
         valid: true,

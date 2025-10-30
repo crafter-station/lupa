@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  index,
   pgEnum,
   pgTable,
   text,
@@ -68,6 +69,7 @@ export const ApiKey = pgTable(
     uniqueIndex("api_key_project_env_type_name_unique")
       .on(table.project_id, table.environment, table.key_type, table.name)
       .where(sql`${table.is_active} = true`),
+    index("api_key_hash_active_idx").on(table.key_hash, table.is_active),
   ],
 );
 

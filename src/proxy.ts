@@ -1,22 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
 import {
   type NextFetchEvent,
   type NextRequest,
   NextResponse,
 } from "next/server";
-import { db } from "./db";
 import {
   cacheDeploymentInfo,
-  getProductionDeploymentId,
-  getProjectInfo,
-  getStagingDeploymentId,
+  getProjectAndDeploymentCache,
+  getProjectWithDeployment,
   setProductionDeploymentId,
   setProjectInfo,
   setStagingDeploymentId,
-  validateDeploymentOwnership,
 } from "./db/redis";
-import * as schema from "./db/schema";
 import { validateApiKey } from "./lib/crypto/api-key";
 import { verifyInternalToken } from "./lib/crypto/internal-token";
 import type { RouteRewriteContext } from "./lib/proxy-routes";
@@ -131,145 +126,63 @@ async function resolveAndValidateDeployment(
   requiresDeployment: boolean,
   targetEnvironment?: "production" | "staging" | null,
 ): Promise<DeploymentResolutionResult> {
-  const projectInfo = await getProjectInfo(projectId);
-  if (!projectInfo) {
-    const project = await db.query.Project.findFirst({
-      where: eq(schema.Project.id, projectId),
-      columns: { id: true, org_id: true, name: true },
-    });
+  const cacheResult = await getProjectAndDeploymentCache(
+    projectId,
+    requestedDeploymentId,
+    targetEnvironment || "production",
+  );
 
-    if (!project) {
+  let projectInfo = cacheResult.projectInfo;
+  let deploymentId = cacheResult.deploymentId;
+
+  if (!projectInfo || (requiresDeployment && !deploymentId)) {
+    const dbResult = await getProjectWithDeployment(
+      projectId,
+      requestedDeploymentId,
+      requiresDeployment ? targetEnvironment || "production" : undefined,
+    );
+
+    if (!dbResult) {
       return {
         valid: false,
         error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
       };
     }
 
+    projectInfo = dbResult.project;
     await setProjectInfo(projectId, {
-      org_id: project.org_id,
-      name: project.name,
+      org_id: projectInfo.org_id,
+      name: projectInfo.name,
     });
-  }
 
-  if (!requiresDeployment) {
-    if (requestedDeploymentId) {
-      const isValid = await validateDeploymentOwnership(
-        projectId,
-        requestedDeploymentId,
-      );
-
-      if (!isValid) {
-        const deployment = await db.query.Deployment.findFirst({
-          where: and(
-            eq(schema.Deployment.id, requestedDeploymentId),
-            eq(schema.Deployment.project_id, projectId),
-          ),
-          columns: {
-            id: true,
-            project_id: true,
-            environment: true,
-            status: true,
-          },
-        });
-
-        if (!deployment) {
-          return {
-            valid: false,
-            error: {
-              code: "DEPLOYMENT_NOT_FOUND",
-              message:
-                "Deployment not found or does not belong to this project",
-            },
-          };
-        }
-
-        await cacheDeploymentInfo(requestedDeploymentId, {
-          projectId: deployment.project_id,
-          environment: deployment.environment,
-          status: deployment.status,
-        });
+    if (requiresDeployment) {
+      if (!dbResult.deployment) {
+        const errorCode =
+          targetEnvironment === "staging"
+            ? "NO_STAGING_DEPLOYMENT"
+            : "NO_PRODUCTION_DEPLOYMENT";
+        const errorMessage = `No ${targetEnvironment || "production"} deployment found. Please specify Deployment-Id header.`;
+        return {
+          valid: false,
+          error: { code: errorCode, message: errorMessage },
+        };
       }
-    }
 
-    return { valid: true, deploymentId: requestedDeploymentId };
-  }
+      deploymentId = dbResult.deployment.id;
 
-  let deploymentId = requestedDeploymentId;
-
-  if (!deploymentId) {
-    if (targetEnvironment === "staging") {
-      deploymentId = await getStagingDeploymentId(projectId);
-
-      if (!deploymentId) {
-        const stagingDeployment = await db.query.Deployment.findFirst({
-          where: and(
-            eq(schema.Deployment.project_id, projectId),
-            eq(schema.Deployment.environment, "staging"),
-            eq(schema.Deployment.status, "ready"),
-          ),
-          columns: { id: true },
-        });
-
-        if (!stagingDeployment) {
-          return {
-            valid: false,
-            error: {
-              code: "NO_STAGING_DEPLOYMENT",
-              message:
-                "No staging deployment found. Please specify Deployment-Id header.",
-            },
-          };
-        }
-
-        deploymentId = stagingDeployment.id;
+      if (targetEnvironment === "staging") {
         await setStagingDeploymentId(projectId, deploymentId);
-      }
-    } else {
-      deploymentId = await getProductionDeploymentId(projectId);
-
-      if (!deploymentId) {
-        const prodDeployment = await db.query.Deployment.findFirst({
-          where: and(
-            eq(schema.Deployment.project_id, projectId),
-            eq(schema.Deployment.environment, "production"),
-            eq(schema.Deployment.status, "ready"),
-          ),
-          columns: { id: true },
-        });
-
-        if (!prodDeployment) {
-          return {
-            valid: false,
-            error: {
-              code: "NO_PRODUCTION_DEPLOYMENT",
-              message:
-                "No production deployment found. Please specify Deployment-Id header.",
-            },
-          };
-        }
-
-        deploymentId = prodDeployment.id;
+      } else {
         await setProductionDeploymentId(projectId, deploymentId);
       }
-    }
-  } else {
-    const isValid = await validateDeploymentOwnership(projectId, deploymentId);
 
-    if (!isValid) {
-      const deployment = await db.query.Deployment.findFirst({
-        where: and(
-          eq(schema.Deployment.id, deploymentId),
-          eq(schema.Deployment.project_id, projectId),
-        ),
-        columns: {
-          id: true,
-          project_id: true,
-          environment: true,
-          status: true,
-        },
+      await cacheDeploymentInfo(deploymentId, {
+        projectId: dbResult.deployment.project_id,
+        environment: dbResult.deployment.environment,
+        status: dbResult.deployment.status || "ready",
       });
-
-      if (!deployment) {
+    } else if (requestedDeploymentId) {
+      if (!dbResult.deployment) {
         return {
           valid: false,
           error: {
@@ -279,12 +192,40 @@ async function resolveAndValidateDeployment(
         };
       }
 
-      await cacheDeploymentInfo(deploymentId, {
-        projectId: deployment.project_id,
-        environment: deployment.environment,
-        status: deployment.status,
+      if (dbResult.deployment.project_id !== projectId) {
+        return {
+          valid: false,
+          error: {
+            code: "DEPLOYMENT_NOT_FOUND",
+            message: "Deployment not found or does not belong to this project",
+          },
+        };
+      }
+
+      await cacheDeploymentInfo(requestedDeploymentId, {
+        projectId: dbResult.deployment.project_id,
+        environment: dbResult.deployment.environment,
+        status: dbResult.deployment.status || "ready",
       });
     }
+  }
+
+  if (
+    requestedDeploymentId &&
+    cacheResult.deploymentProjectId &&
+    cacheResult.deploymentProjectId !== projectId
+  ) {
+    return {
+      valid: false,
+      error: {
+        code: "DEPLOYMENT_NOT_FOUND",
+        message: "Deployment not found or does not belong to this project",
+      },
+    };
+  }
+
+  if (!requiresDeployment) {
+    return { valid: true, deploymentId: requestedDeploymentId };
   }
 
   return { valid: true, deploymentId };
