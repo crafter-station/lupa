@@ -34,8 +34,6 @@ export const POST = async (req: NextRequest) => {
 
     await validateProjectOwnership(project_id, orgId);
 
-    console.log({ hello: "amigo" });
-
     return await proxyToPublicAPI(project_id, "/documents/bulk", {
       method: "POST",
       body: JSON.stringify({ documents }),

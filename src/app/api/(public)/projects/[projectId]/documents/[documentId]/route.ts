@@ -167,8 +167,6 @@ export async function GET(
 ) {
   const { projectId, documentId } = await params;
 
-  console.log(projectId, documentId);
-
   const [document] = await db
     .select()
     .from(schema.Document)

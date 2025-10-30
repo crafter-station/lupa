@@ -43,8 +43,6 @@ const handler = async (
 
   return createMcpHandler(
     (server) => {
-      console.log("Server initialized");
-
       server.tool(
         "search-knowledge",
         searchKnowledgePrompt,
@@ -55,7 +53,6 @@ const handler = async (
         },
         async ({ query }) => {
           let response: Response;
-          console.log("calling search api");
 
           const authHeader = req.headers.get("Authorization");
           if (!authHeader) {
