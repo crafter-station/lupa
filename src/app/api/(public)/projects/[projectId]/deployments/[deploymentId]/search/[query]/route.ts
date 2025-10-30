@@ -2,9 +2,12 @@
 // list files and directories in current location
 // users will hit https://<projectId>.lupa.build/api/search/?query=<query>
 
+import { Index as VectorIndex } from "@upstash/vector";
 import z from "zod/v3";
-
-import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
+import {
+  cached_getVectorIndex,
+  invalidateVectorCache,
+} from "@/lib/crypto/vector";
 
 export const preferredRegion = ["iad1", "gru1"];
 export const revalidate = false;
@@ -56,8 +59,9 @@ export async function GET(
 
     const decodedQuery = decodeURIComponent(query);
 
-    const vector = await getVectorIndex(projectId);
-    const namespace = vector.namespace(deploymentId);
+    const indexCredentials = await cached_getVectorIndex(projectId);
+    const index = new VectorIndex(indexCredentials);
+    const namespace = index.namespace(deploymentId);
 
     const results = await namespace.query({
       data: decodedQuery,

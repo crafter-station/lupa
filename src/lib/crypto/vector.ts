@@ -6,6 +6,7 @@ import {
   scryptSync,
 } from "node:crypto";
 import { Index as VectorIndex } from "@upstash/vector";
+import { cache } from "react";
 import { redis } from "@/db/redis";
 
 const ALGORITHM = "aes-256-gcm";
@@ -70,24 +71,19 @@ interface CachedVectorConfig {
   encryptedToken: string;
 }
 
-export async function getVectorIndex(
-  projectId: string,
-  options?: { skipCache?: boolean },
-): Promise<VectorIndex> {
+export async function getVectorIndex(projectId: string) {
   const cacheKey = `vectorConfig:${projectId}`;
 
-  if (!options?.skipCache) {
-    const cachedVectorConfig = await redis.get<CachedVectorConfig>(cacheKey);
+  const cachedVectorConfig = await redis.get<CachedVectorConfig>(cacheKey);
 
-    if (cachedVectorConfig) {
-      const { endpoint, encryptedToken } = cachedVectorConfig;
-      const token = decrypt(encryptedToken);
+  if (cachedVectorConfig) {
+    const { endpoint, encryptedToken } = cachedVectorConfig;
+    const token = decrypt(encryptedToken);
 
-      return new VectorIndex({
-        url: `https://${endpoint}`,
-        token,
-      });
-    }
+    return {
+      url: `https://${endpoint}`,
+      token,
+    };
   }
 
   const vectorIndexId = await redis.get<string>(`vectorIndexId:${projectId}`);
@@ -126,11 +122,13 @@ export async function getVectorIndex(
     },
   );
 
-  return new VectorIndex({
+  return {
     url: `https://${vectorConfig.endpoint}`,
     token: vectorConfig.token,
-  });
+  };
 }
+
+export const cached_getVectorIndex = cache(getVectorIndex);
 
 export async function invalidateVectorCache(projectId: string): Promise<void> {
   await redis.del(`vectorConfig:${projectId}`);

@@ -228,7 +228,7 @@ export async function updateDeploymentEnvironmentWithValidation(
     }
 
     const { getVectorIndex } = await import("./crypto/vector");
-    getVectorIndex(projectId, { skipCache: true }).catch((error) => {
+    getVectorIndex(projectId).catch((error) => {
       console.error("Failed to preload vector config:", error);
     });
 
@@ -306,7 +306,7 @@ export async function promoteDeploymentToProduction(
   ]);
 
   const { getVectorIndex } = await import("./crypto/vector");
-  getVectorIndex(projectId, { skipCache: true }).catch((error) => {
+  getVectorIndex(projectId).catch((error) => {
     console.error("Failed to preload vector config:", error);
   });
 }
@@ -379,7 +379,7 @@ export async function promoteDeploymentToStaging(
   ]);
 
   const { getVectorIndex } = await import("./crypto/vector");
-  getVectorIndex(projectId, { skipCache: true }).catch((error) => {
+  getVectorIndex(projectId).catch((error) => {
     console.error("Failed to preload vector config:", error);
   });
 }
@@ -559,7 +559,7 @@ export async function setDeploymentEnvironment(
   }
 
   const { getVectorIndex } = await import("./crypto/vector");
-  getVectorIndex(projectId, { skipCache: true }).catch((error) => {
+  getVectorIndex(projectId).catch((error) => {
     console.error("Failed to preload vector config:", error);
   });
 }

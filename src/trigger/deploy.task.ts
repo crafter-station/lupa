@@ -1,10 +1,11 @@
 import { batch, logger, schemaTask, wait } from "@trigger.dev/sdk";
+import { Index as VectorIndex } from "@upstash/vector";
 import { and, desc, eq, lte } from "drizzle-orm";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";
-import { invalidateVectorCache } from "@/lib/crypto/vector";
+import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const deploy = schemaTask({
   id: "deploy",
@@ -221,17 +222,9 @@ export const pushSnapshot = schemaTask({
         throw new Error(`Document not found for snapshot ${snapshotId}`);
       }
 
-      const vector = await (async () => {
-        try {
-          const { getVectorIndex } = await import("@/lib/crypto/vector");
-          return await getVectorIndex(projectId);
-        } catch (error) {
-          logger.error("Failed to get vector index using cache", { error });
-          throw error;
-        }
-      })();
-
-      const namespace = vector.namespace(deploymentId);
+      const indexCredentials = await getVectorIndex(projectId);
+      const index = new VectorIndex(indexCredentials);
+      const namespace = index.namespace(deploymentId);
 
       logger.info(`Vector index retrieved for project ${projectId}`);
 
