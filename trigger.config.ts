@@ -16,12 +16,12 @@ export default defineConfig({
       randomize: true,
     },
   },
-  dirs: ["./src/trigger"],
+  dirs: ["./src/trigger", "./src/python"],
   build: {
     extensions: [
       pythonExtension({
         scripts: ["./src/python/**/*.py"],
-        requirementsFile: "./src/python/requirements.txt",
+        requirementsFile: "requirements.txt",
         devPythonBinaryPath: "./src/python/.venv/bin/python",
       }),
     ],
