@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const preferredRegion = ["iad1"];
+export const preferredRegion = ["iad1", "gru1"];
 
 export const metadata: Metadata = {
   title: "Lupa - The Knowledge Platform for AI Agents",

@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod/v3";
 import * as schema from "@/db/schema";
 
+export const preferredRegion = ["iad1", "gru1"];
+
 export const CreateProjectRequestSchema = z.object({
   id: z
     .string()

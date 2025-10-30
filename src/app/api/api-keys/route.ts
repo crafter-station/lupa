@@ -8,7 +8,7 @@ import * as schema from "@/db/schema";
 import { hashApiKey } from "@/lib/crypto/api-key";
 import { generateId, IdSchema } from "@/lib/generate-id";
 
-export const preferredRegion = "iad1";
+export const preferredRegion = ["iad1", "gru1"];
 
 const CreateApiKeyRequestSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),

@@ -12,6 +12,8 @@ import {
 } from "@/lib/deployment-promotion";
 import { IdSchema } from "@/lib/generate-id";
 
+export const preferredRegion = ["iad1", "gru1"];
+
 const UpdateDeploymentSchema = z.object({
   projectId: IdSchema,
   name: z.string().optional(),

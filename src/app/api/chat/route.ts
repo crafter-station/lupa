@@ -17,6 +17,7 @@ import { SEARCH_KNOWLEDGE_PROMPT } from "@/lib/prompts/search-knowledge.prompt";
 import { SYSTEM_PROMPT } from "@/lib/prompts/system.prompt";
 import { getAPIBaseURL } from "@/lib/utils";
 
+export const preferredRegion = ["iad1", "gru1"];
 export const maxDuration = 120;
 
 async function fetchFileContent(

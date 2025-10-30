@@ -11,6 +11,8 @@ import { generateDeploymentName } from "@/lib/deployment-promotion";
 import { generateId, IdSchema } from "@/lib/generate-id";
 import { deploy } from "@/trigger/deploy.task";
 
+export const preferredRegion = ["iad1", "gru1"];
+
 const CreateDeploymentSchema = z.object({
   projectId: IdSchema,
   name: z.string().optional(),

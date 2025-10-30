@@ -11,6 +11,8 @@ import { GET_DOCUMENT_CONTENTS_PROMPT } from "@/lib/prompts/get-document-content
 import { SEARCH_KNOWLEDGE_PROMPT } from "@/lib/prompts/search-knowledge.prompt";
 import { getAPIBaseURL } from "@/lib/utils";
 
+export const preferredRegion = ["iad1", "gru1"];
+
 const handler = async (
   req: NextRequest,
   {

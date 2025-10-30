@@ -12,7 +12,7 @@ import { generateId, IdSchema } from "@/lib/generate-id";
 import { deleteDocumentSchedule } from "@/lib/schedules";
 import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 
-export const preferredRegion = "iad1";
+export const preferredRegion = ["iad1", "gru1"];
 
 const WebsiteSnapshotSchema = z.object({
   snapshot_id: IdSchema.optional(),

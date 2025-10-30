@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { handleApiError } from "@/lib/api-error";
 import { extractSessionOrg, proxyToPublicAPI } from "@/lib/api-proxy";
 
+export const preferredRegion = ["iad1", "gru1"];
+
 export async function GET(req: NextRequest) {
   try {
     await extractSessionOrg();

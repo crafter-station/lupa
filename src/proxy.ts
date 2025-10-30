@@ -16,7 +16,7 @@ const redis = Redis.fromEnv();
 const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
 const isPrivateRoute = createRouteMatcher(["/orgs/(.*)"]);
 
-export const preferredRegion = "iad1";
+export const preferredRegion = ["iad1", "gru1"];
 
 export const config = {
   matcher: [
