@@ -41,8 +41,6 @@ export async function GET(
         documentName: rawDocumentName?.split(".")[0],
       });
 
-    console.log({ deploymentId, folder, documentName });
-
     const [deployment] = await db
       .select()
       .from(schema.Deployment)

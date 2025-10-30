@@ -30,7 +30,7 @@ import {
 } from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { useMarkdown } from "@/hooks/use-markdown";
-import { generateDeploymentName } from "@/lib/deployment-promotion";
+import { generateDeploymentName } from "@/lib/deployment-name";
 import { generateId } from "@/lib/generate-id";
 import { CreateSnapshot } from "../../create-snapshot";
 import type { DocumentVersionViewerLoadingContextProps } from "./index";

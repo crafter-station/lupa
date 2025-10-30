@@ -4,46 +4,14 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import {
   invalidateDeploymentInfo,
   invalidateProductionDeployment,
+  invalidateProjectContext,
   invalidateStagingDeployment,
   setProductionDeploymentId,
   setStagingDeploymentId,
 } from "@/db/redis";
 import * as schema from "@/db/schema";
 
-export function generateDeploymentName(): string {
-  const adjectives = [
-    "Swift",
-    "Bright",
-    "Noble",
-    "Calm",
-    "Bold",
-    "Clear",
-    "Wise",
-    "Prime",
-    "Vast",
-    "Pure",
-    "Quick",
-    "Grand",
-  ];
-  const nouns = [
-    "Falcon",
-    "Phoenix",
-    "Tiger",
-    "Dragon",
-    "Eagle",
-    "Wolf",
-    "Bear",
-    "Lion",
-    "Hawk",
-    "Panther",
-    "Raven",
-    "Cobra",
-  ];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const num = Math.floor(Math.random() * 100);
-  return `${adj} ${noun} ${num}`;
-}
+export { generateDeploymentName } from "./deployment-name";
 
 export function validateEnvironmentTransition(
   currentEnv: "production" | "staging" | null,
@@ -250,6 +218,7 @@ export async function updateDeploymentEnvironmentWithValidation(
       invalidateProductionDeployment(projectId),
       invalidateStagingDeployment(projectId),
       invalidateDeploymentInfo(deploymentId),
+      invalidateProjectContext(projectId),
     ]);
 
     if (targetEnvironment === "production") {
@@ -333,6 +302,7 @@ export async function promoteDeploymentToProduction(
   await Promise.all([
     invalidateProductionDeployment(projectId),
     setProductionDeploymentId(projectId, deploymentId),
+    invalidateProjectContext(projectId),
   ]);
 
   const { getVectorIndex } = await import("./crypto/vector");
@@ -405,6 +375,7 @@ export async function promoteDeploymentToStaging(
   await Promise.all([
     invalidateStagingDeployment(projectId),
     setStagingDeploymentId(projectId, deploymentId),
+    invalidateProjectContext(projectId),
   ]);
 
   const { getVectorIndex } = await import("./crypto/vector");
@@ -578,6 +549,7 @@ export async function setDeploymentEnvironment(
     invalidateProductionDeployment(projectId),
     invalidateStagingDeployment(projectId),
     invalidateDeploymentInfo(deploymentId),
+    invalidateProjectContext(projectId),
   ]);
 
   if (targetEnvironment === "production") {

@@ -106,6 +106,103 @@ export async function invalidateStagingDeployment(
   await redis.del(`project:${projectId}:staging_deployment`);
 }
 
+export interface ProjectContext {
+  project: {
+    id: string;
+    org_id: string;
+    name: string;
+  };
+  deployments: {
+    production: {
+      id: string;
+      status: string;
+      environment: "production";
+    } | null;
+    staging: {
+      id: string;
+      status: string;
+      environment: "staging";
+    } | null;
+  };
+}
+
+export async function getProjectContext(
+  projectId: string,
+): Promise<ProjectContext | null> {
+  const cacheKey = `project:${projectId}:context`;
+
+  const cached = await redis.get<ProjectContext>(cacheKey);
+  if (cached) return cached;
+
+  const { Project, Deployment } = await import("./schema");
+
+  const result = await db
+    .select({
+      project_id: Project.id,
+      project_org_id: Project.org_id,
+      project_name: Project.name,
+    })
+    .from(Project)
+    .where(eq(Project.id, projectId))
+    .limit(1);
+
+  if (!result[0]) return null;
+
+  const deployments = await db
+    .select({
+      id: Deployment.id,
+      environment: Deployment.environment,
+      status: Deployment.status,
+    })
+    .from(Deployment)
+    .where(
+      and(eq(Deployment.project_id, projectId), eq(Deployment.status, "ready")),
+    )
+    .limit(2);
+
+  const context: ProjectContext = {
+    project: {
+      id: result[0].project_id,
+      org_id: result[0].project_org_id,
+      name: result[0].project_name,
+    },
+    deployments: {
+      production: (() => {
+        const dep = deployments.find((d) => d.environment === "production");
+        return dep
+          ? {
+              id: dep.id,
+              status: "ready",
+              environment: "production" as const,
+            }
+          : null;
+      })(),
+      staging: (() => {
+        const dep = deployments.find((d) => d.environment === "staging");
+        return dep
+          ? {
+              id: dep.id,
+              status: "ready",
+              environment: "staging" as const,
+            }
+          : null;
+      })(),
+    },
+  };
+
+  await redis.set(cacheKey, context, {
+    ex: 60 * 60 * 24,
+  });
+
+  return context;
+}
+
+export async function invalidateProjectContext(
+  projectId: string,
+): Promise<void> {
+  await redis.del(`project:${projectId}:context`);
+}
+
 export interface ProjectAndDeploymentCache {
   projectInfo: ProjectInfo | null;
   deploymentId: string | null;

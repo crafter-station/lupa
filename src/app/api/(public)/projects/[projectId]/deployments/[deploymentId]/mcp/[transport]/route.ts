@@ -23,7 +23,7 @@ const handler = async (
     }>;
   },
 ) => {
-  const { projectId, deploymentId, transport } = await params;
+  const { projectId, deploymentId } = await params;
 
   const [project] = await db
     .select({
@@ -34,21 +34,12 @@ const handler = async (
     .where(eq(schema.Project.id, projectId))
     .limit(1);
 
-  console.log(project);
-
   if (!project) {
     throw new Error(`Project not found for id ${projectId}`);
   }
 
   const searchKnowledgePrompt = SEARCH_KNOWLEDGE_PROMPT(project);
   const getDocumentContentsPrompt = GET_DOCUMENT_CONTENTS_PROMPT(project);
-
-  console.log({
-    projectId,
-    deploymentId,
-    transport,
-    redis: process.env.REDIS_URL,
-  });
 
   return createMcpHandler(
     (server) => {

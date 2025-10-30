@@ -4,14 +4,7 @@ import {
   type NextRequest,
   NextResponse,
 } from "next/server";
-import {
-  cacheDeploymentInfo,
-  getProjectAndDeploymentCache,
-  getProjectWithDeployment,
-  setProductionDeploymentId,
-  setProjectInfo,
-  setStagingDeploymentId,
-} from "./db/redis";
+import { getProjectContext } from "./db/redis";
 import { validateApiKey } from "./lib/crypto/api-key";
 import { verifyInternalToken } from "./lib/crypto/internal-token";
 import type { RouteRewriteContext } from "./lib/proxy-routes";
@@ -126,109 +119,56 @@ async function resolveAndValidateDeployment(
   requiresDeployment: boolean,
   targetEnvironment?: "production" | "staging" | null,
 ): Promise<DeploymentResolutionResult> {
-  const cacheResult = await getProjectAndDeploymentCache(
-    projectId,
-    requestedDeploymentId,
-    targetEnvironment || "production",
-  );
+  const context = await getProjectContext(projectId);
 
-  let projectInfo = cacheResult.projectInfo;
-  let deploymentId = cacheResult.deploymentId;
-
-  if (!projectInfo || (requiresDeployment && !deploymentId)) {
-    const dbResult = await getProjectWithDeployment(
-      projectId,
-      requestedDeploymentId,
-      requiresDeployment ? targetEnvironment || "production" : undefined,
-    );
-
-    if (!dbResult) {
-      return {
-        valid: false,
-        error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
-      };
-    }
-
-    projectInfo = dbResult.project;
-    await setProjectInfo(projectId, {
-      org_id: projectInfo.org_id,
-      name: projectInfo.name,
-    });
-
-    if (requiresDeployment) {
-      if (!dbResult.deployment) {
-        const errorCode =
-          targetEnvironment === "staging"
-            ? "NO_STAGING_DEPLOYMENT"
-            : "NO_PRODUCTION_DEPLOYMENT";
-        const errorMessage = `No ${targetEnvironment || "production"} deployment found. Please specify Deployment-Id header.`;
-        return {
-          valid: false,
-          error: { code: errorCode, message: errorMessage },
-        };
-      }
-
-      deploymentId = dbResult.deployment.id;
-
-      if (targetEnvironment === "staging") {
-        await setStagingDeploymentId(projectId, deploymentId);
-      } else {
-        await setProductionDeploymentId(projectId, deploymentId);
-      }
-
-      await cacheDeploymentInfo(deploymentId, {
-        projectId: dbResult.deployment.project_id,
-        environment: dbResult.deployment.environment,
-        status: dbResult.deployment.status || "ready",
-      });
-    } else if (requestedDeploymentId) {
-      if (!dbResult.deployment) {
-        return {
-          valid: false,
-          error: {
-            code: "DEPLOYMENT_NOT_FOUND",
-            message: "Deployment not found or does not belong to this project",
-          },
-        };
-      }
-
-      if (dbResult.deployment.project_id !== projectId) {
-        return {
-          valid: false,
-          error: {
-            code: "DEPLOYMENT_NOT_FOUND",
-            message: "Deployment not found or does not belong to this project",
-          },
-        };
-      }
-
-      await cacheDeploymentInfo(requestedDeploymentId, {
-        projectId: dbResult.deployment.project_id,
-        environment: dbResult.deployment.environment,
-        status: dbResult.deployment.status || "ready",
-      });
-    }
-  }
-
-  if (
-    requestedDeploymentId &&
-    cacheResult.deploymentProjectId &&
-    cacheResult.deploymentProjectId !== projectId
-  ) {
+  if (!context) {
     return {
       valid: false,
-      error: {
-        code: "DEPLOYMENT_NOT_FOUND",
-        message: "Deployment not found or does not belong to this project",
-      },
+      error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
     };
   }
 
-  if (!requiresDeployment) {
+  const env = targetEnvironment || "production";
+
+  if (requestedDeploymentId) {
+    const prodMatch =
+      context.deployments.production?.id === requestedDeploymentId;
+    const stagingMatch =
+      context.deployments.staging?.id === requestedDeploymentId;
+
+    if (!prodMatch && !stagingMatch) {
+      return {
+        valid: false,
+        error: {
+          code: "DEPLOYMENT_NOT_FOUND",
+          message: "Deployment not found or does not belong to this project",
+        },
+      };
+    }
+
     return { valid: true, deploymentId: requestedDeploymentId };
   }
 
-  return { valid: true, deploymentId };
+  if (requiresDeployment) {
+    const deployment = context.deployments[env];
+
+    if (!deployment) {
+      return {
+        valid: false,
+        error: {
+          code:
+            env === "staging"
+              ? "NO_STAGING_DEPLOYMENT"
+              : "NO_PRODUCTION_DEPLOYMENT",
+          message: `No ${env} deployment found. Please specify Deployment-Id header.`,
+        },
+      };
+    }
+
+    return { valid: true, deploymentId: deployment.id };
+  }
+
+  return { valid: true, deploymentId: null };
 }
 
 async function handleSubdomainRequest(
