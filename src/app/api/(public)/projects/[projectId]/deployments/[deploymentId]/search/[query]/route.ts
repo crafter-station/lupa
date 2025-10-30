@@ -12,6 +12,7 @@ import {
 export const preferredRegion = ["iad1", "gru1"];
 export const revalidate = false;
 export const dynamic = "force-static";
+export const fetchCache = "default-no-store";
 
 export const SearchResponseSchema = z.object({
   query: z.string(),
@@ -56,12 +57,11 @@ export async function GET(
   try {
     const { deploymentId, projectId, query } = await params;
 
-    const decodedQuery = decodeURIComponent(query);
-
     const indexCredentials = await cached_getVectorIndex(projectId);
     const index = new VectorIndex(indexCredentials);
     const namespace = index.namespace(deploymentId);
 
+    const decodedQuery = decodeURIComponent(query);
     const results = await namespace.query({
       data: decodedQuery,
       topK: 5,

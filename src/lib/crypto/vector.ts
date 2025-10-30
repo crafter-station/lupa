@@ -5,7 +5,6 @@ import {
   randomBytes,
   scryptSync,
 } from "node:crypto";
-import { Index as VectorIndex } from "@upstash/vector";
 import { cache } from "react";
 import { redis } from "@/db/redis";
 
