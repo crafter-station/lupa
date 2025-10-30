@@ -335,14 +335,25 @@ export default clerkMiddleware(
       const deploymentKey = requestedDeploymentId || `auto:${environment}`;
       const cacheKey = `auth:${keyHash}:${projectId}:${deploymentKey}`;
 
-      const cached = await redis.get<{
+      const res = await fetch(
+        `${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(cacheKey)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+          },
+          cache: "force-cache",
+          next: { revalidate: 86400 }, // Cache for 24 hours
+        },
+      );
+      const d = await res.json();
+      const cached = JSON.parse(d.result) as {
         valid: boolean;
         projectId?: string;
         deploymentId?: string | null;
         readOnly?: boolean;
         orgId?: string;
         error?: string;
-      }>(cacheKey);
+      } | null;
 
       let authResult = cached;
 
@@ -424,7 +435,7 @@ export default clerkMiddleware(
             readOnly: result[0].key_type === "pk",
             orgId: result[0].org_id,
           };
-          await redis.set(cacheKey, authResult, { ex: 60 * 60 * 24 });
+          await redis.set(cacheKey, authResult, { ex: 60 * 60 * 24 * 7 }); // Cache for 7 days
 
           event.waitUntil(
             db
