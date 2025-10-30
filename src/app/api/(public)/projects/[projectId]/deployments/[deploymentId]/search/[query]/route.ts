@@ -12,7 +12,6 @@ import {
 export const preferredRegion = ["iad1", "gru1"];
 export const revalidate = false;
 export const dynamic = "force-static";
-export const fetchCache = "force-cache";
 
 export const SearchResponseSchema = z.object({
   query: z.string(),
