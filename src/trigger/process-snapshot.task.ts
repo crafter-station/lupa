@@ -1,7 +1,7 @@
+import { python } from "@trigger.dev/python";
 import { queue, schemaTask } from "@trigger.dev/sdk";
 import { put } from "@vercel/blob";
 import { desc, eq } from "drizzle-orm";
-import { encoding_for_model } from "tiktoken";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -138,10 +138,10 @@ export const processSnapshotTask = schemaTask({
       metadata = await extractMetadata(markdown, document.metadata_schema);
     }
 
-    const enc = encoding_for_model("gpt-4o");
-    const tokens = enc.encode(markdown);
-    const tokensCount = tokens.length;
-    enc.free();
+    const result = await python.runScript("./src/python/count_tokens.py", [
+      markdown,
+    ]);
+    const tokensCount = Number.parseInt(result.stdout.trim(), 10);
 
     await db
       .update(schema.Snapshot)
@@ -150,6 +150,7 @@ export const processSnapshotTask = schemaTask({
         markdown_url: url,
         metadata,
         changes_detected: hasChanged,
+        chunks_count: Math.ceil(markdown.length / 1000),
         tokens_count: tokensCount,
         updated_at: new Date().toISOString(),
       })

@@ -1,5 +1,4 @@
 import {
-  boolean,
   jsonb,
   pgEnum,
   pgTable,
@@ -34,7 +33,6 @@ export const Document = pgTable(
 
     metadata_schema: jsonb("metadata_schema").$type<Record<string, unknown>>(),
 
-    refresh_enabled: boolean("refresh_enabled").notNull().default(false),
     refresh_frequency: RefreshFrequency("refresh_frequency"),
     refresh_schedule_id: text("refresh_schedule_id"),
 

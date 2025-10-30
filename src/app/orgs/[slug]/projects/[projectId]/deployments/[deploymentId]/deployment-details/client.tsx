@@ -67,7 +67,7 @@ export function DeploymentDetailsLiveQuery({
       return preloadedDeployment;
     }
     if (
-      new Date(freshData[0].updated_at) >
+      new Date(freshData[0]?.updated_at) >
       new Date(preloadedDeployment.updated_at)
     ) {
       return freshData[0];

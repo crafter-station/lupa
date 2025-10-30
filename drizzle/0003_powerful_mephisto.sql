@@ -1,1 +1,0 @@
-ALTER TABLE "snapshot" ADD COLUMN "tokens_count" integer;

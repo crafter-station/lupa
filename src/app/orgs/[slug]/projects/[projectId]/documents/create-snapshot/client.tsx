@@ -28,12 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type {
-  MetadataSchemaConfig,
-  RefreshFrequency,
-  SnapshotSelect,
-  SnapshotType,
-} from "@/db";
+import type { RefreshFrequency, SnapshotType } from "@/db";
 import { DocumentCollection, SnapshotCollection } from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
@@ -50,8 +45,10 @@ export function CreateSnapshot() {
     React.useState<SnapshotType>("website");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
-  const [metadataSchema, setMetadataSchema] =
-    React.useState<MetadataSchemaConfig | null>(null);
+  const [metadataSchema, setMetadataSchema] = React.useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [refreshFrequency, setRefreshFrequency] = React.useState<
     RefreshFrequency | "none"
   >("none");
@@ -77,11 +74,6 @@ export function CreateSnapshot() {
 
   React.useEffect(() => {
     if (open && currentDocument) {
-      setRefreshFrequency(
-        currentDocument.refresh_enabled && currentDocument.refresh_frequency
-          ? currentDocument.refresh_frequency
-          : "none",
-      );
       setMetadataSchema(currentDocument.metadata_schema);
       setSnapshotType("website");
       setSelectedFile(null);
@@ -91,78 +83,80 @@ export function CreateSnapshot() {
   }, [open, currentDocument]);
 
   const createSnapshot = createOptimisticAction<
-    SnapshotSelect & {
-      file?: File;
-      parsingInstruction?: string;
+    {
+      snapshot_id: string;
+      description?: string | null;
+
       enhance?: boolean;
-    }
+    } & (
+      | { type: "website"; url: string }
+      | {
+          type: "upload";
+          file: File;
+          parsing_instructions?: string | null;
+        }
+    )
   >({
-    onMutate: (snapshot) => {
+    onMutate: (data) => {
       SnapshotCollection.insert({
-        id: snapshot.id,
-        document_id: snapshot.document_id,
-        type: snapshot.type,
-        status: snapshot.status,
-        url: snapshot.url,
-        metadata: snapshot.metadata,
-        extracted_metadata: snapshot.extracted_metadata,
-        markdown_url: snapshot.markdown_url,
-        chunks_count: snapshot.chunks_count,
-        changes_detected: snapshot.changes_detected,
-        created_at: snapshot.created_at,
-        updated_at: snapshot.updated_at,
+        id: data.snapshot_id,
+        document_id: documentId ?? "",
         org_id: organization?.id ?? "",
-        enhance: snapshot.enhance ?? false,
+
+        status: "queued",
+        metadata: null,
+        markdown_url: null,
+
+        type: data.type,
+        url: data.type === "website" ? data.url : "",
+
+        enhance: data.enhance ?? false,
+
+        chunks_count: null,
+        tokens_count: null,
+        changes_detected: null,
+
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
     },
-    mutationFn: async (snapshot) => {
+    mutationFn: async (data) => {
       let response: Response;
 
-      if (snapshot.type === "website") {
-        const enabled = refreshFrequency !== "none";
-        const body = {
-          projectId,
-          type: "website" as const,
-          snapshotId: snapshot.id,
-          documentId: snapshot.document_id,
-          url: snapshot.url || "",
-          enhance: snapshot.enhance || undefined,
-          metadataSchema: metadataSchema
-            ? JSON.stringify(metadataSchema)
-            : undefined,
-          refreshEnabled: enabled,
-          refreshFrequency: enabled ? refreshFrequency : undefined,
-        };
-
+      if (data.type === "website") {
         response = await fetch("/api/snapshots", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            ...data,
+            project_id: projectId,
+            document_id: documentId,
+          }),
         });
       } else {
         const formData = new FormData();
 
-        formData.append("projectId", projectId);
+        if (!data.file) {
+          throw new Error("File is required");
+        }
+        if (!documentId) {
+          throw new Error("Document ID is required");
+        }
+        formData.append("file", data.file);
+        formData.append("project_id", projectId);
+        formData.append("snapshot_id", data.snapshot_id);
+        formData.append("document_id", documentId);
+
         formData.append("type", "upload");
-        formData.append("snapshotId", snapshot.id);
-        formData.append("documentId", snapshot.document_id);
 
-        if (snapshot.file) {
-          formData.append("file", snapshot.file);
+        if (data.enhance) {
+          formData.append("enhance", "true");
         }
 
-        if (snapshot.enhance) {
-          formData.append("enhance", snapshot.enhance.toString());
-        }
-
-        if (metadataSchema) {
-          formData.append("metadataSchema", JSON.stringify(metadataSchema));
-        }
-
-        if (snapshot.parsingInstruction) {
-          formData.append("parsingInstructions", snapshot.parsingInstruction);
+        if (data.parsing_instructions) {
+          formData.append("parsing_instructions", data.parsing_instructions);
         }
 
         response = await fetch("/api/snapshots", {
@@ -175,20 +169,16 @@ export function CreateSnapshot() {
         throw new Error(`Failed to create snapshot: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as {
-        snapshotId: string;
+      const json = (await response.json()) as {
+        snapshot_id: string;
         txid?: number;
       };
 
-      if (data.txid) {
+      if (json.txid) {
         await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
-          data.txid,
+          json.txid,
         );
       }
-
-      return {
-        snapshotId: data.snapshotId,
-      };
     },
   });
 
@@ -206,20 +196,12 @@ export function CreateSnapshot() {
         const url = formData.get("url") as string;
 
         createSnapshot({
-          id: snapshotId,
-          document_id: documentId,
-          markdown_url: null,
-          chunks_count: null,
-          type: "website",
-          status: "queued",
-          url,
-          metadata: null,
-          extracted_metadata: null,
-          changes_detected: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          org_id: organization?.id ?? "",
+          snapshot_id: snapshotId,
+
           enhance,
+
+          type: "website",
+          url,
         });
 
         if (currentDocument) {
@@ -229,7 +211,6 @@ export function CreateSnapshot() {
             : null;
 
           DocumentCollection.update(currentDocument.id, (doc) => {
-            doc.refresh_enabled = enabled;
             doc.refresh_frequency = frequency;
             doc.metadata_schema = metadataSchema;
             doc.updated_at = new Date().toISOString();
@@ -254,7 +235,6 @@ export function CreateSnapshot() {
       metadataSchema,
       createSnapshot,
       setNewSnapshot,
-      organization,
       enhance,
     ],
   );
@@ -296,28 +276,16 @@ export function CreateSnapshot() {
         }
 
         createSnapshot({
-          id: snapshotId,
-          document_id: documentId,
-          markdown_url: null,
-          chunks_count: null,
+          snapshot_id: snapshotId,
           type: "upload",
-          status: "queued",
-          url: "",
-          metadata: snapshotMetadata,
-          extracted_metadata: null,
-          changes_detected: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
           file: selectedFile,
-          parsingInstruction: parsingInstruction || undefined,
-          org_id: organization?.id ?? "",
+          parsing_instructions: parsingInstruction || null,
           enhance,
         });
 
         if (currentDocument) {
           if (currentDocument.refresh_schedule_id) {
             DocumentCollection.update(currentDocument.id, (doc) => {
-              doc.refresh_enabled = false;
               doc.refresh_frequency = null;
               doc.refresh_schedule_id = null;
               doc.metadata_schema = metadataSchema;
@@ -349,7 +317,6 @@ export function CreateSnapshot() {
       metadataSchema,
       createSnapshot,
       setNewSnapshot,
-      organization,
       enhance,
     ],
   );

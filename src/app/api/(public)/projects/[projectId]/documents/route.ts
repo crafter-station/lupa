@@ -17,26 +17,25 @@ import { DocumentNameSchema, FolderPathSchema } from "@/lib/validation";
 export const preferredRegion = "iad1";
 
 const BaseDocumentSchema = z.object({
-  documentId: IdSchema.optional(),
-  snapshotId: IdSchema.optional(),
+  document_id: IdSchema.optional(),
+  snapshot_id: IdSchema.optional(),
 
   folder: FolderPathSchema,
   name: DocumentNameSchema,
   description: z.string().optional(),
 
   enhance: z.boolean().optional(),
-  metadataSchema: z.string().optional(),
+  metadata_schema: z.any().optional(),
 });
 
 const WebsiteDocumentSchema = BaseDocumentSchema.extend({
   url: z.string().url(),
-  refreshEnabled: z.boolean().optional(),
-  refreshFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+  refresh_frequency: z.enum(["daily", "weekly", "monthly"]).nullable(),
 });
 
 const UploadDocumentSchema = BaseDocumentSchema.extend({
   file: z.instanceof(File),
-  parsingInstructions: z.string().optional(),
+  parsing_instructions: z.string().optional(),
 });
 
 async function parseRequestData(request: Request, type: "website" | "upload") {
@@ -65,18 +64,23 @@ async function validateProject(projectId: string) {
   return project;
 }
 
-async function createDocumentWithTxid(
-  documentId: string,
-  projectId: string,
-  orgId: string,
+async function createDocumentWithTxid({
+  document_id,
+  project_id,
+  org_id,
+  data,
+}: {
+  document_id: string;
+  project_id: string;
+  org_id: string;
   data: {
     folder: string;
     name: string;
     description?: string;
-    refreshEnabled?: boolean;
-    refreshFrequency?: "daily" | "weekly" | "monthly";
-  },
-): Promise<string> {
+    refresh_frequency?: "daily" | "weekly" | "monthly" | null;
+    metadata_schema?: Record<string, unknown>;
+  };
+}): Promise<string> {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL not configured");
   }
@@ -90,14 +94,14 @@ async function createDocumentWithTxid(
 
     const result = await dbPool.transaction(async (tx) => {
       await tx.insert(schema.Document).values({
-        id: documentId,
-        project_id: projectId,
-        org_id: orgId,
+        id: document_id,
+        project_id: project_id,
+        org_id: org_id,
         folder: data.folder,
         name: data.name,
         description: data.description,
-        refresh_enabled: data.refreshEnabled,
-        refresh_frequency: data.refreshFrequency,
+        refresh_frequency: data.refresh_frequency,
+        metadata_schema: data.metadata_schema,
       });
 
       const txidResult = await tx.execute(
@@ -118,46 +122,44 @@ async function createDocumentWithTxid(
 }
 
 async function createDocumentSimple(
-  documentId: string,
-  projectId: string,
-  orgId: string,
+  document_id: string,
+  project_id: string,
+  org_id: string,
   data: {
     folder: string;
     name: string;
     description?: string;
-    refreshEnabled?: boolean;
-    refreshFrequency?: "daily" | "weekly" | "monthly";
+    refresh_frequency?: "daily" | "weekly" | "monthly" | null;
   },
 ): Promise<void> {
   await db.insert(schema.Document).values({
-    id: documentId,
-    project_id: projectId,
-    org_id: orgId,
+    id: document_id,
+    project_id: project_id,
+    org_id: org_id,
     folder: data.folder,
     name: data.name,
     description: data.description,
-    refresh_enabled: data.refreshEnabled,
-    refresh_frequency: data.refreshFrequency,
+    refresh_frequency: data.refresh_frequency,
   });
 }
 
 async function createSnapshot(
-  projectId: string,
+  project_id: string,
   type: "website" | "upload",
   data: {
-    snapshotId?: string;
-    documentId: string;
+    snapshot_id?: string;
+    document_id: string;
     url?: string;
     file?: File;
     enhance?: boolean;
-    metadataSchema?: string;
-    parsingInstructions?: string;
+    metadata_schema?: string;
+    parsing_instructions?: string;
   },
 ): Promise<{ snapshotId: string; txid: string }> {
-  const apiUrl = `${getAPIBaseURL(projectId)}/snapshots?type=${type}`;
+  const apiUrl = `${getAPIBaseURL(project_id)}/snapshots?type=${type}`;
 
   let body: BodyInit;
-  const internalToken = generateInternalToken(projectId);
+  const internalToken = generateInternalToken(project_id);
 
   const headers: HeadersInit = {
     "X-Internal-Token": internalToken,
@@ -166,23 +168,25 @@ async function createSnapshot(
   if (type === "website") {
     headers["Content-Type"] = "application/json";
     body = JSON.stringify({
-      snapshotId: data.snapshotId,
-      documentId: data.documentId,
-      url: data.url,
+      document_id: data.document_id,
+      snapshot_id: data.snapshot_id,
+
       enhance: data.enhance,
-      metadataSchema: data.metadataSchema,
+
+      url: data.url,
     });
   } else {
     const formData = new FormData();
-    if (data.snapshotId) formData.append("snapshotId", data.snapshotId);
-    formData.append("documentId", data.documentId);
-    if (data.file) formData.append("file", data.file);
+
+    formData.append("document_id", data.document_id);
+    if (data.snapshot_id) formData.append("snapshot_id", data.snapshot_id);
+
     if (data.enhance !== undefined)
       formData.append("enhance", String(data.enhance));
-    if (data.metadataSchema)
-      formData.append("metadataSchema", data.metadataSchema);
-    if (data.parsingInstructions)
-      formData.append("parsingInstructions", data.parsingInstructions);
+
+    if (data.file) formData.append("file", data.file);
+    if (data.parsing_instructions)
+      formData.append("parsing_instructions", data.parsing_instructions);
     body = formData;
   }
 
@@ -216,47 +220,40 @@ export async function POST(
 
     const { data } = await parseRequestData(request, type);
 
-    const documentId = data.documentId || generateId();
-    let documentTxid: string | undefined;
+    const document_id = data.document_id || generateId();
+    let document_txid: string | undefined;
 
-    if (data.documentId) {
-      documentTxid = await createDocumentWithTxid(
-        documentId,
-        project.id,
-        project.org_id,
-        {
+    if (data.document_id) {
+      document_txid = await createDocumentWithTxid({
+        document_id,
+        project_id: project.id,
+        org_id: project.org_id,
+        data: {
           folder: data.folder,
           name: data.name,
           description: data.description,
-          refreshEnabled:
+          refresh_frequency:
             type === "website"
-              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled
-              : undefined,
-          refreshFrequency:
-            type === "website"
-              ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
-              : undefined,
+              ? (data as z.infer<typeof WebsiteDocumentSchema>)
+                  .refresh_frequency
+              : null,
         },
-      );
+      });
     } else {
-      await createDocumentSimple(documentId, project.id, project.org_id, {
+      await createDocumentSimple(document_id, project.id, project.org_id, {
         folder: data.folder,
         name: data.name,
         description: data.description,
-        refreshEnabled:
+        refresh_frequency:
           type === "website"
-            ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled
-            : undefined,
-        refreshFrequency:
-          type === "website"
-            ? (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
-            : undefined,
+            ? (data as z.infer<typeof WebsiteDocumentSchema>).refresh_frequency
+            : null,
       });
     }
 
-    const snapshotData = await createSnapshot(projectId, type, {
-      snapshotId: data.snapshotId,
-      documentId,
+    const snapshotData = await createSnapshot(project.id, type, {
+      snapshot_id: data.snapshot_id,
+      document_id: document_id,
       url:
         type === "website"
           ? (data as z.infer<typeof WebsiteDocumentSchema>).url
@@ -266,31 +263,29 @@ export async function POST(
           ? (data as z.infer<typeof UploadDocumentSchema>).file
           : undefined,
       enhance: data.enhance,
-      metadataSchema: data.metadataSchema,
-      parsingInstructions:
+      parsing_instructions:
         type === "upload"
-          ? (data as z.infer<typeof UploadDocumentSchema>).parsingInstructions
+          ? (data as z.infer<typeof UploadDocumentSchema>).parsing_instructions
           : undefined,
     });
 
     if (
       type === "website" &&
-      (data as z.infer<typeof WebsiteDocumentSchema>).refreshEnabled &&
-      (data as z.infer<typeof WebsiteDocumentSchema>).refreshFrequency
+      (data as z.infer<typeof WebsiteDocumentSchema>).refresh_frequency
     ) {
-      const refreshFrequency = (data as z.infer<typeof WebsiteDocumentSchema>)
-        .refreshFrequency;
-      if (refreshFrequency) {
+      const refresh_frequency = (data as z.infer<typeof WebsiteDocumentSchema>)
+        .refresh_frequency;
+      if (refresh_frequency) {
         try {
           const schedule = await createDocumentSchedule(
-            documentId,
-            refreshFrequency,
+            document_id,
+            refresh_frequency,
           );
 
           await db
             .update(schema.Document)
             .set({ refresh_schedule_id: schedule.id })
-            .where(eq(schema.Document.id, documentId));
+            .where(eq(schema.Document.id, document_id));
         } catch (error) {
           console.error("Failed to create schedule:", error);
         }
@@ -298,10 +293,10 @@ export async function POST(
     }
 
     return Response.json({
-      documentTxid: documentTxid ? parseInt(documentTxid, 10) : undefined,
-      snapshotTxid: snapshotData.txid,
-      documentId,
-      snapshotId: snapshotData.snapshotId,
+      document_txid: document_txid ? parseInt(document_txid, 10) : undefined,
+      snapshot_txid: snapshotData.txid,
+      document_id,
+      snapshot_id: snapshotData.snapshotId,
     });
   } catch (error) {
     return handleApiError(error);

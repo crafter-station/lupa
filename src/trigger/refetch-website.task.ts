@@ -35,7 +35,7 @@ export const refetchWebsiteTask = schedules.task({
 
     const document = documents[0];
 
-    if (!document.refresh_enabled) {
+    if (!document.refresh_frequency) {
       logger.warn("Document refresh is disabled, skipping", { documentId });
       return { skipped: true, reason: "refresh_disabled" };
     }

@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1761758407277,
-      "tag": "0000_aromatic_the_twelve",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1761758647069,
-      "tag": "0001_bored_madame_masque",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1761764273798,
-      "tag": "0002_wet_madame_web",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1761768779325,
-      "tag": "0003_powerful_mephisto",
+      "when": 1761774804463,
+      "tag": "0000_lonely_arachne",
       "breakpoints": true
     }
   ]

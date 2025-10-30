@@ -82,7 +82,6 @@ export async function POST(
         description: doc.description,
         project_id: projectId,
         metadata_schema: null,
-        refresh_enabled: doc.refresh_frequency !== "none",
         refresh_frequency:
           doc.refresh_frequency !== "none" ? doc.refresh_frequency : null,
         refresh_schedule_id: null,
@@ -98,7 +97,6 @@ export async function POST(
         markdown_url: null,
         chunks_count: null,
         metadata: null,
-        extracted_metadata: null,
         changes_detected: false,
         enhance: doc.enhance,
       });

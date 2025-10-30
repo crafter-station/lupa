@@ -43,7 +43,6 @@ export async function PATCH(
       name: true,
       description: true,
       metadata_schema: true,
-      refresh_enabled: true,
       refresh_frequency: true,
     })
       .partial()
@@ -88,19 +87,16 @@ export async function PATCH(
 
     const scheduleChanges: {
       refresh_schedule_id?: string | null;
-      refresh_enabled?: boolean;
       refresh_frequency?: RefreshFrequency | null;
     } = {};
 
-    const hasRefreshChanges =
-      "refresh_enabled" in updates || "refresh_frequency" in updates;
+    const hasRefreshChanges = "refresh_frequency" in updates;
 
     if (hasRefreshChanges) {
-      const newEnabled = updates.refresh_enabled ?? document.refresh_enabled;
       const newFrequency =
         updates.refresh_frequency ?? document.refresh_frequency;
 
-      if (newEnabled && newFrequency) {
+      if (newFrequency) {
         if (document.refresh_schedule_id) {
           try {
             await updateDocumentSchedule(
@@ -127,7 +123,6 @@ export async function PATCH(
           try {
             await deleteDocumentSchedule(document.refresh_schedule_id);
             scheduleChanges.refresh_schedule_id = null;
-            scheduleChanges.refresh_enabled = false;
             scheduleChanges.refresh_frequency = null;
           } catch (error) {
             console.error("Failed to delete schedule:", error);

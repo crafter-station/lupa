@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Code2, Info, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, Sparkles } from "lucide-react";
 import React from "react";
 import {
   Collapsible,
@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { MetadataSchemaConfig } from "@/db/schema";
 import { cn } from "@/lib/utils";
 
 const SCHEMA_TEMPLATES = {
@@ -114,8 +113,8 @@ const SCHEMA_TEMPLATES = {
 };
 
 interface MetadataSchemaEditorProps {
-  value?: MetadataSchemaConfig | null;
-  onChange: (value: MetadataSchemaConfig | null) => void;
+  value?: Record<string, unknown> | null;
+  onChange: (value: Record<string, unknown> | null) => void;
   disabled?: boolean;
 }
 
@@ -125,41 +124,25 @@ export function MetadataSchemaEditor({
   disabled = false,
 }: MetadataSchemaEditorProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [mode, setMode] = React.useState<"infer" | "custom">(
-    value?.mode || "infer",
-  );
+
   const [schemaText, setSchemaText] = React.useState(
-    value?.schema ? JSON.stringify(value.schema, null, 2) : "",
+    value ? JSON.stringify(value, null, 2) : "",
   );
   const [schemaError, setSchemaError] = React.useState<string | null>(null);
-
-  const handleModeChange = React.useCallback(
-    (newMode: "infer" | "custom") => {
-      setMode(newMode);
-      if (newMode === "infer") {
-        onChange({ mode: "infer" });
-        setSchemaText("");
-        setSchemaError(null);
-      } else {
-        onChange({ mode: "custom", schema: undefined });
-      }
-    },
-    [onChange],
-  );
 
   const handleSchemaChange = React.useCallback(
     (text: string) => {
       setSchemaText(text);
 
       if (!text.trim()) {
-        onChange({ mode: "custom", schema: undefined });
+        onChange(null);
         setSchemaError(null);
         return;
       }
 
       try {
         const parsed = JSON.parse(text);
-        onChange({ mode: "custom", schema: parsed });
+        onChange(parsed);
         setSchemaError(null);
       } catch (error) {
         setSchemaError(error instanceof Error ? error.message : "Invalid JSON");
@@ -172,7 +155,7 @@ export function MetadataSchemaEditor({
     (templateKey: string) => {
       if (templateKey === "none") {
         setSchemaText("");
-        onChange({ mode: "custom", schema: undefined });
+        onChange(null);
         return;
       }
 
@@ -181,7 +164,7 @@ export function MetadataSchemaEditor({
       if (template) {
         const schemaJson = JSON.stringify(template.schema, null, 2);
         setSchemaText(schemaJson);
-        onChange({ mode: "custom", schema: template.schema });
+        onChange(template.schema);
         setSchemaError(null);
       }
     },
@@ -212,11 +195,9 @@ export function MetadataSchemaEditor({
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Metadata Extraction</span>
-              {value?.mode && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  {value.mode === "infer" ? "Auto" : "Custom"}
-                </span>
-              )}
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {value ? "Custom" : "Auto"}
+              </span>
             </div>
             {isOpen ? (
               <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -231,73 +212,13 @@ export function MetadataSchemaEditor({
             <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3 w-3 flex-shrink-0" />
               <p>
-                Extract structured metadata from your documents using AI. Choose
-                automatic inference or define a custom schema.
+                Extract structured metadata from your documents using AI. By
+                default, metadata is automatically inferred. Expand to define a
+                custom schema for specific fields.
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="metadata-mode">Extraction Mode</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleModeChange("infer")}
-                  disabled={disabled}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all",
-                    mode === "infer"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50 hover:bg-accent/50",
-                    disabled && "pointer-events-none opacity-50",
-                  )}
-                >
-                  <Sparkles
-                    className={cn(
-                      "h-4 w-4",
-                      mode === "infer"
-                        ? "text-primary"
-                        : "text-muted-foreground",
-                    )}
-                  />
-                  <div>
-                    <div className="text-sm font-medium">Auto Infer</div>
-                    <div className="text-xs text-muted-foreground">
-                      Extract basic metadata automatically
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleModeChange("custom")}
-                  disabled={disabled}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all",
-                    mode === "custom"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50 hover:bg-accent/50",
-                    disabled && "pointer-events-none opacity-50",
-                  )}
-                >
-                  <Code2
-                    className={cn(
-                      "h-4 w-4",
-                      mode === "custom"
-                        ? "text-primary"
-                        : "text-muted-foreground",
-                    )}
-                  />
-                  <div>
-                    <div className="text-sm font-medium">Custom Schema</div>
-                    <div className="text-xs text-muted-foreground">
-                      Define specific fields to extract
-                    </div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {mode === "infer" && (
+            {!value && (
               <div className="rounded-md border bg-muted/30 p-3 text-xs">
                 <div className="mb-2 font-medium">Auto-extracted fields:</div>
                 <div className="space-y-1 text-muted-foreground">
@@ -310,79 +231,80 @@ export function MetadataSchemaEditor({
               </div>
             )}
 
-            {mode === "custom" && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="schema-template">Template (Optional)</Label>
-                  <Select
-                    onValueChange={handleTemplateSelect}
-                    disabled={disabled}
-                  >
-                    <SelectTrigger id="schema-template">
-                      <SelectValue placeholder="Choose a template to start..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No template</SelectItem>
-                      {Object.entries(SCHEMA_TEMPLATES).map(
-                        ([key, template]) => (
-                          <SelectItem key={key} value={key}>
-                            <div>
-                              <div className="font-medium">{template.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {template.description}
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="schema-template">Template (Optional)</Label>
+                <Select
+                  onValueChange={handleTemplateSelect}
+                  disabled={disabled}
+                >
+                  <SelectTrigger id="schema-template">
+                    <SelectValue placeholder="Choose a template to start..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      No template (Auto mode)
+                    </SelectItem>
+                    {Object.entries(SCHEMA_TEMPLATES).map(([key, template]) => (
+                      <SelectItem key={key} value={key}>
+                        <div>
+                          <div className="font-medium">{template.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {template.description}
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="schema-json">JSON Schema</Label>
-                  <Textarea
-                    id="schema-json"
-                    value={schemaText}
-                    onChange={(e) => handleSchemaChange(e.target.value)}
-                    placeholder={`{\n  "properties": {\n    "fieldName": {\n      "type": "string",\n      "description": "Field description"\n    }\n  }\n}`}
-                    disabled={disabled}
-                    className={cn(
-                      "min-h-[200px] font-mono text-xs",
-                      schemaError && "border-destructive",
-                    )}
-                  />
-                  {schemaError && (
-                    <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive">
-                      <Info className="mt-0.5 h-3 w-3 flex-shrink-0" />
-                      <span>{schemaError}</span>
-                    </div>
+              <div className="space-y-2">
+                <Label htmlFor="schema-json">
+                  Custom JSON Schema (Optional)
+                </Label>
+                <Textarea
+                  id="schema-json"
+                  value={schemaText}
+                  onChange={(e) => handleSchemaChange(e.target.value)}
+                  placeholder={`{\n  "properties": {\n    "fieldName": {\n      "type": "string",\n      "description": "Field description"\n    }\n  }\n}`}
+                  disabled={disabled}
+                  className={cn(
+                    "min-h-[200px] font-mono text-xs",
+                    schemaError && "border-destructive",
                   )}
-                </div>
+                />
+                {schemaError && (
+                  <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+                    <Info className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                    <span>{schemaError}</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Leave empty to use automatic metadata extraction
+                </p>
+              </div>
 
-                <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground">
-                  <div className="mb-2 font-medium">Supported types:</div>
-                  <div className="space-y-1">
-                    <div>
-                      • <code className="text-primary">string</code> - Text
-                      fields
-                    </div>
-                    <div>
-                      • <code className="text-primary">number</code> - Numeric
-                      values
-                    </div>
-                    <div>
-                      • <code className="text-primary">boolean</code> -
-                      True/false
-                    </div>
-                    <div>
-                      • <code className="text-primary">array</code> - Lists of
-                      items
-                    </div>
+              <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground">
+                <div className="mb-2 font-medium">Supported types:</div>
+                <div className="space-y-1">
+                  <div>
+                    • <code className="text-primary">string</code> - Text fields
+                  </div>
+                  <div>
+                    • <code className="text-primary">number</code> - Numeric
+                    values
+                  </div>
+                  <div>
+                    • <code className="text-primary">boolean</code> - True/false
+                  </div>
+                  <div>
+                    • <code className="text-primary">array</code> - Lists of
+                    items
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </CollapsibleContent>
       </div>

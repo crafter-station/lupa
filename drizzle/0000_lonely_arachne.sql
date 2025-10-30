@@ -26,7 +26,6 @@ CREATE TABLE "deployment" (
 	"id" text PRIMARY KEY NOT NULL,
 	"org_id" text NOT NULL,
 	"project_id" text NOT NULL,
-	"vector_index_id" text,
 	"name" text NOT NULL,
 	"status" "deployment_status_enum" NOT NULL,
 	"environment" "deployment_environment_enum",
@@ -56,6 +55,7 @@ CREATE TABLE "project" (
 	"org_id" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
+	"vector_index_id" text,
 	"production_deployment_id" text,
 	"staging_deployment_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -71,9 +71,9 @@ CREATE TABLE "snapshot" (
 	"type" "snapshot_type_enum" NOT NULL,
 	"markdown_url" text,
 	"chunks_count" integer,
+	"tokens_count" integer,
 	"enhance" boolean DEFAULT false NOT NULL,
 	"metadata" jsonb,
-	"extracted_metadata" jsonb,
 	"changes_detected" boolean,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -85,9 +85,11 @@ CREATE TABLE "snapshot_and_deployment_rel" (
 	"deployment_id" text NOT NULL,
 	"folder" text NOT NULL,
 	"name" text NOT NULL,
+	"metadata" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "snapshot_and_deployment_rel_snapshot_id_deployment_id_pk" PRIMARY KEY("snapshot_id","deployment_id")
+	CONSTRAINT "snapshot_and_deployment_rel_snapshot_id_deployment_id_pk" PRIMARY KEY("snapshot_id","deployment_id"),
+	CONSTRAINT "deployment_folder_name_unique" UNIQUE("deployment_id","folder","name")
 );
 --> statement-breakpoint
 ALTER TABLE "api_key" ADD CONSTRAINT "api_key_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

@@ -21,19 +21,19 @@ export const POST = async (req: NextRequest) => {
 
     if (isFormData) {
       const formData = await req.formData();
-      projectId = z.string().parse(formData.get("projectId"));
+      projectId = IdSchema.parse(formData.get("project_id"));
       type = z.enum(["website", "upload"]).parse(formData.get("type"));
 
       const newFormData = new FormData();
       for (const [key, value] of formData.entries()) {
-        if (key !== "projectId" && key !== "type") {
+        if (key !== "project_id" && key !== "type") {
           newFormData.append(key, value);
         }
       }
       body = newFormData;
     } else {
       const json = await req.json();
-      projectId = IdSchema.parse(json.projectId);
+      projectId = IdSchema.parse(json.project_id);
       type = z.enum(["website", "upload"]).parse(json.type);
 
       const { projectId: _projectId, type: _type, ...cleanJson } = json;

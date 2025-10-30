@@ -18,8 +18,7 @@ interface TreeFile {
   metadata: {
     chunks_count: number;
     tokens_count: number;
-    extracted_metadata: object;
-  };
+  } & {};
 }
 
 interface TreeDirectory {
@@ -95,7 +94,6 @@ export async function GET(
         chunksCount: schema.Snapshot.chunks_count,
         tokensCount: schema.Snapshot.tokens_count,
         metadata: schema.Snapshot.metadata,
-        extractedMetadata: schema.Snapshot.extracted_metadata,
       })
       .from(schema.SnapshotDeploymentRel)
       .innerJoin(
@@ -145,7 +143,6 @@ function buildTree(
     chunksCount: number | null;
     tokensCount: number | null;
     metadata: object | null;
-    extractedMetadata: object | null;
   }>,
   rootPath: string,
   maxDepth: number,
@@ -206,7 +203,7 @@ function buildTree(
       metadata: {
         chunks_count: doc.chunksCount || 0,
         tokens_count: doc.tokensCount || 0,
-        extracted_metadata: doc.extractedMetadata || {},
+        ...(doc.metadata || {}),
       },
     };
 
@@ -244,7 +241,7 @@ function buildTree(
         metadata: {
           chunks_count: doc.chunksCount || 0,
           tokens_count: doc.tokensCount || 0,
-          extracted_metadata: doc.extractedMetadata || {},
+          ...(doc.metadata || {}),
         },
       };
       rootChildren.push(fileNode);

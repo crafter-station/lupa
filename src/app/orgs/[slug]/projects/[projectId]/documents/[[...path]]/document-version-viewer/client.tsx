@@ -212,7 +212,6 @@ export function DocumentVersionViewerLiveQuery({
                   DeploymentCollection.insert({
                     id: deploymentId,
                     project_id: document.project_id,
-                    vector_index_id: null,
                     name: generateDeploymentName(),
                     status: "queued",
                     environment: "staging",
@@ -309,7 +308,6 @@ export function DocumentVersionViewerContent({
   const handleUpdateRefreshSettings = React.useCallback(
     (enabled: boolean, frequency: RefreshFrequency | null) => {
       DocumentCollection.update(document.id, (doc) => {
-        doc.refresh_enabled = enabled;
         doc.refresh_frequency = frequency;
         doc.updated_at = new Date().toISOString();
       });
@@ -410,7 +408,6 @@ export function DocumentVersionViewerContent({
                   Refresh Schedule
                 </Label>
                 <InlineEditableRefreshSettings
-                  refreshEnabled={document.refresh_enabled}
                   refreshFrequency={document.refresh_frequency}
                   onSave={handleUpdateRefreshSettings}
                   className="text-sm"
@@ -498,6 +495,12 @@ export function DocumentVersionViewerContent({
                 <span>{currentSnapshot.chunks_count} chunks</span>
               </>
             )}
+            {currentSnapshot.tokens_count && (
+              <>
+                <span>•</span>
+                <span>{currentSnapshot.tokens_count} tokens</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -575,20 +578,6 @@ export function DocumentVersionViewerContent({
                     {JSON.stringify(currentSnapshot.metadata, null, 2)}
                   </pre>
                 </div>
-                {currentSnapshot.extracted_metadata && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">
-                      Extracted Metadata
-                    </h3>
-                    <pre className="text-xs whitespace-pre font-mono overflow-x-auto">
-                      {JSON.stringify(
-                        currentSnapshot.extracted_metadata,
-                        null,
-                        2,
-                      )}
-                    </pre>
-                  </div>
-                )}
               </div>
             </div>
           </TabsContent>
@@ -676,20 +665,6 @@ export function DocumentVersionViewerContent({
                       {JSON.stringify(currentSnapshot.metadata, null, 2)}
                     </pre>
                   </div>
-                  {currentSnapshot.extracted_metadata && (
-                    <div>
-                      <h3 className="text-sm font-semibold mb-2">
-                        Extracted Metadata
-                      </h3>
-                      <pre className="text-xs whitespace-break-spaces font-mono overflow-x-auto">
-                        {JSON.stringify(
-                          currentSnapshot.extracted_metadata,
-                          null,
-                          2,
-                        )}
-                      </pre>
-                    </div>
-                  )}
                 </div>
               </div>
             </TabsContent>

@@ -1,5 +1,5 @@
 {
-  "id": "9e5f4203-6e07-403d-978d-aff797852d16",
+  "id": "64ddedd3-e86f-439a-8b80-59a31a5de92a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -168,12 +168,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "vector_index_id": {
-          "name": "vector_index_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "name": {
           "name": "name",
@@ -372,6 +366,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "vector_index_id": {
+          "name": "vector_index_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "production_deployment_id": {
           "name": "production_deployment_id",
           "type": "text",
@@ -461,6 +461,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "tokens_count": {
+          "name": "tokens_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "enhance": {
           "name": "enhance",
           "type": "boolean",
@@ -470,12 +476,6 @@
         },
         "metadata": {
           "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "extracted_metadata": {
-          "name": "extracted_metadata",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
@@ -543,6 +543,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -585,7 +591,13 @@
           "columns": ["snapshot_id", "deployment_id"]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "deployment_folder_name_unique": {
+          "name": "deployment_folder_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["deployment_id", "folder", "name"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

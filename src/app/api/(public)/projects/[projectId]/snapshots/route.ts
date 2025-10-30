@@ -15,26 +15,22 @@ import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 export const preferredRegion = "iad1";
 
 const WebsiteSnapshotSchema = z.object({
-  snapshotId: IdSchema.optional(),
-  documentId: IdSchema,
+  snapshot_id: IdSchema.optional(),
+  document_id: IdSchema,
 
   enhance: z.boolean().optional(),
-  metadataSchema: z.string().optional(),
 
   url: z.string().url(),
-  refreshEnabled: z.boolean().optional(),
-  refreshFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
 });
 
 const UploadSnapshotSchema = z.object({
-  snapshotId: IdSchema.optional(),
-  documentId: IdSchema,
+  snapshot_id: IdSchema.optional(),
+  document_id: IdSchema,
 
   enhance: z.boolean().optional(),
-  metadataSchema: z.string().optional(),
 
   file: z.instanceof(File),
-  parsingInstructions: z.string().optional(),
+  parsing_instructions: z.string().optional(),
 });
 
 async function parseRequestData(request: Request, type: "website" | "upload") {
@@ -58,12 +54,11 @@ async function parseRequestData(request: Request, type: "website" | "upload") {
 
   const formData = await request.formData();
   const parsed = UploadSnapshotSchema.parse({
-    snapshotId: formData.get("snapshotId") || undefined,
-    documentId: formData.get("documentId"),
+    snapshot_id: formData.get("snapshot_id") || undefined,
+    document_id: formData.get("document_id"),
     file: formData.get("file"),
     enhance: formData.get("enhance") === "true",
-    metadataSchema: formData.get("metadataSchema") || undefined,
-    parsingInstructions: formData.get("parsingInstructions") || undefined,
+    parsing_instructions: formData.get("parsing_instructions") || undefined,
   });
 
   return { data: parsed, file: parsed.file };
@@ -97,41 +92,14 @@ async function validateDocument(documentId: string, projectId: string) {
   return document;
 }
 
-async function processMetadataSchema(metadataSchema?: string) {
-  const metadata: Record<string, unknown> = {};
-
-  if (metadataSchema) {
-    try {
-      metadata.metadata_schema = JSON.parse(metadataSchema);
-    } catch {
-      throw new Error("Invalid metadataSchema JSON");
-    }
-  }
-
-  return metadata;
-}
-
-async function uploadFile(
-  file: File,
-  orgId: string,
-  parsingInstructions?: string,
-) {
+async function uploadFile(file: File, orgId: string) {
   try {
     const blob = await put(`documents/${orgId}/${file.name}`, file, {
       access: "public",
       addRandomSuffix: true,
     });
 
-    const metadata: Record<string, unknown> = {
-      file_name: file.name,
-      file_size: file.size,
-    };
-
-    if (parsingInstructions?.trim()) {
-      metadata.parsing_instruction = parsingInstructions.trim();
-    }
-
-    return { url: blob.url, metadata };
+    return { url: blob.url };
   } catch {
     throw new Error("Failed to upload file");
   }
@@ -148,7 +116,6 @@ async function handleTypeChange(
     await db
       .update(schema.Document)
       .set({
-        refresh_enabled: false,
         refresh_frequency: null,
         refresh_schedule_id: null,
         updated_at: sql`NOW()`,
@@ -159,53 +126,30 @@ async function handleTypeChange(
   }
 }
 
-async function createSnapshotWithTxid(
-  pool: Pool,
-  snapshotId: string,
-  documentId: string,
-  orgId: string,
-  type: "website" | "upload",
-  url: string,
-  metadata: Record<string, unknown>,
-  enhance: boolean,
-  refreshScheduleId: string | null,
-  isTypeChange: boolean,
-): Promise<string> {
+async function createSnapshotWithTxid({
+  pool,
+  snapshot_id,
+  document_id,
+  org_id,
+  type,
+  url,
+  enhance,
+  refresh_schedule_id,
+  is_type_change,
+}: {
+  pool: Pool;
+  url: string;
+  snapshot_id: string;
+  document_id: string;
+  org_id: string;
+  type: "website" | "upload";
+  enhance: boolean;
+  refresh_schedule_id: string | null;
+  is_type_change: boolean;
+}): Promise<string> {
   const dbPool = drizzle({ client: pool, schema });
 
   const result = await dbPool.transaction(async (tx) => {
-    await tx.insert(schema.Snapshot).values({
-      id: snapshotId,
-      org_id: orgId,
-      document_id: documentId,
-      type,
-      status: "queued",
-      url,
-      metadata,
-      markdown_url: null,
-      chunks_count: null,
-      extracted_metadata: null,
-      changes_detected: false,
-      enhance,
-    });
-
-    if (isTypeChange && refreshScheduleId) {
-      try {
-        await deleteDocumentSchedule(refreshScheduleId);
-        await tx
-          .update(schema.Document)
-          .set({
-            refresh_enabled: false,
-            refresh_frequency: null,
-            refresh_schedule_id: null,
-            updated_at: sql`NOW()`,
-          })
-          .where(eq(schema.Document.id, documentId));
-      } catch (error) {
-        console.error("Failed to delete schedule:", error);
-      }
-    }
-
     const txidResult = await tx.execute(
       sql`SELECT pg_current_xact_id()::xid::text as txid`,
     );
@@ -214,40 +158,73 @@ async function createSnapshotWithTxid(
       throw new Error("Failed to get transaction ID");
     }
 
+    await tx.insert(schema.Snapshot).values({
+      id: snapshot_id,
+      org_id: org_id,
+      document_id: document_id,
+      type,
+      status: "queued",
+      url,
+      enhance,
+    });
+
+    if (is_type_change && refresh_schedule_id) {
+      try {
+        await deleteDocumentSchedule(refresh_schedule_id);
+        await tx
+          .update(schema.Document)
+          .set({
+            refresh_frequency: null,
+            refresh_schedule_id: null,
+            updated_at: sql`NOW()`,
+          })
+          .where(eq(schema.Document.id, document_id));
+      } catch (error) {
+        console.error("Failed to delete schedule:", error);
+      }
+    }
+
     return { txid: txidResult.rows[0].txid as string };
   });
 
   return result.txid;
 }
 
-async function createSnapshotSimple(
-  snapshotId: string,
-  documentId: string,
-  orgId: string,
-  type: "website" | "upload",
-  url: string,
-  metadata: Record<string, unknown>,
-  enhance: boolean,
-  refreshScheduleId: string | null,
-  isTypeChange: boolean,
-): Promise<void> {
+async function createSnapshotSimple({
+  snapshot_id,
+  document_id,
+  org_id,
+  type,
+  url,
+  enhance,
+  refresh_schedule_id,
+  is_type_change,
+}: {
+  snapshot_id: string;
+  document_id: string;
+  org_id: string;
+  type: "website" | "upload";
+  url: string;
+  enhance: boolean;
+  refresh_schedule_id: string | null;
+  is_type_change: boolean;
+}): Promise<void> {
   await db.insert(schema.Snapshot).values({
-    id: snapshotId,
-    org_id: orgId,
-    document_id: documentId,
+    id: snapshot_id,
+    org_id: org_id,
+    document_id: document_id,
     type,
     status: "queued",
     url,
-    metadata,
+    metadata: null,
     markdown_url: null,
     chunks_count: null,
-    extracted_metadata: null,
     changes_detected: false,
     enhance,
   });
 
-  if (isTypeChange) {
-    await handleTypeChange(documentId, refreshScheduleId);
+  if (is_type_change) {
+    await handleTypeChange(document_id, refresh_schedule_id);
   }
 }
 
@@ -276,47 +253,24 @@ export async function POST(
 
     const { data, file } = await parseRequestData(request, type);
 
-    const document = await validateDocument(data.documentId, projectId);
+    const document = await validateDocument(data.document_id, projectId);
 
-    const snapshotId = data.snapshotId || generateId();
-    const snapshotMetadata = await processMetadataSchema(data.metadataSchema);
+    const snapshotId = data.snapshot_id || generateId();
 
     let snapshotUrl = "";
 
     if (type === "website") {
       const websiteData = data as z.infer<typeof WebsiteSnapshotSchema>;
       snapshotUrl = websiteData.url;
-
-      if (websiteData.refreshEnabled !== undefined) {
-        const updateData: Record<string, unknown> = {
-          refresh_enabled: websiteData.refreshEnabled,
-          refresh_frequency: websiteData.refreshFrequency || null,
-          updated_at: sql`NOW()`,
-        };
-
-        if (snapshotMetadata.metadata_schema) {
-          updateData.metadata_schema = snapshotMetadata.metadata_schema;
-        }
-
-        await db
-          .update(schema.Document)
-          .set(updateData)
-          .where(eq(schema.Document.id, data.documentId));
-      }
     } else if (file) {
-      const uploadResult = await uploadFile(
-        file,
-        document.org_id,
-        (data as z.infer<typeof UploadSnapshotSchema>).parsingInstructions,
-      );
+      const uploadResult = await uploadFile(file, document.org_id);
       snapshotUrl = uploadResult.url;
-      Object.assign(snapshotMetadata, uploadResult.metadata);
     }
 
     const [previousSnapshot] = await db
       .select()
       .from(schema.Snapshot)
-      .where(eq(schema.Snapshot.document_id, data.documentId))
+      .where(eq(schema.Snapshot.document_id, data.document_id))
       .orderBy(desc(schema.Snapshot.created_at))
       .limit(1);
 
@@ -325,7 +279,7 @@ export async function POST(
 
     let snapshotTxid: string | undefined;
 
-    if (data.snapshotId) {
+    if (data.snapshot_id) {
       if (!process.env.DATABASE_URL) {
         throw new Error("DATABASE_URL not configured");
       }
@@ -335,33 +289,31 @@ export async function POST(
       });
 
       try {
-        snapshotTxid = await createSnapshotWithTxid(
+        snapshotTxid = await createSnapshotWithTxid({
           pool,
-          snapshotId,
-          data.documentId,
-          document.org_id,
+          snapshot_id: data.snapshot_id,
+          document_id: data.document_id,
+          org_id: document.org_id,
           type,
-          snapshotUrl,
-          snapshotMetadata,
-          data.enhance || false,
-          document.refresh_schedule_id,
-          isTypeChange,
-        );
+          enhance: data.enhance || false,
+          refresh_schedule_id: document.refresh_schedule_id,
+          is_type_change: isTypeChange,
+          url: snapshotUrl,
+        });
       } finally {
         await pool.end();
       }
     } else {
-      await createSnapshotSimple(
-        snapshotId,
-        data.documentId,
-        document.org_id,
+      await createSnapshotSimple({
+        snapshot_id: snapshotId,
+        document_id: data.document_id,
+        org_id: document.org_id,
         type,
-        snapshotUrl,
-        snapshotMetadata,
-        data.enhance || false,
-        document.refresh_schedule_id,
-        isTypeChange,
-      );
+        url: snapshotUrl,
+        enhance: data.enhance || false,
+        refresh_schedule_id: document.refresh_schedule_id,
+        is_type_change: isTypeChange,
+      });
     }
 
     try {
@@ -369,7 +321,8 @@ export async function POST(
         snapshotId,
         parsingInstruction:
           type === "upload"
-            ? (data as z.infer<typeof UploadSnapshotSchema>).parsingInstructions
+            ? (data as z.infer<typeof UploadSnapshotSchema>)
+                .parsing_instructions
             : undefined,
       });
     } catch (error) {
@@ -377,7 +330,7 @@ export async function POST(
     }
 
     return Response.json({
-      snapshotId,
+      snapshot_id: snapshotId,
       txid: snapshotTxid ? parseInt(snapshotTxid, 10) : undefined,
     });
   } catch (error) {
