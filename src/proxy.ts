@@ -17,7 +17,7 @@ const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
 const isPrivateRoute = createRouteMatcher(["/orgs/(.*)"]);
 
 export const preferredRegion = ["iad1", "gru1"];
-export const fetchCache = "default-cache";
+export const fetchCache = "default-no-store";
 
 export const config = {
   matcher: [
