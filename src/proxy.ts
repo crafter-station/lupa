@@ -17,6 +17,7 @@ const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
 const isPrivateRoute = createRouteMatcher(["/orgs/(.*)"]);
 
 export const preferredRegion = ["iad1", "gru1"];
+export const fetchCache = "default-cache";
 
 export const config = {
   matcher: [
@@ -437,16 +438,16 @@ export default clerkMiddleware(
           };
           await redis.set(cacheKey, authResult, { ex: 60 * 60 * 24 * 7 }); // Cache for 7 days
 
-          event.waitUntil(
-            db
-              .update(schema.ApiKey)
-              .set({
-                last_used_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
-              .where(eq(schema.ApiKey.id, result[0].key_id))
-              .catch(console.error),
-          );
+          // event.waitUntil(
+          //   db
+          //     .update(schema.ApiKey)
+          //     .set({
+          //       last_used_at: new Date().toISOString(),
+          //       updated_at: new Date().toISOString(),
+          //     })
+          //     .where(eq(schema.ApiKey.id, result[0].key_id))
+          //     .catch(console.error),
+          // );
         }
       }
 
