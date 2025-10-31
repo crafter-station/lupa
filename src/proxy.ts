@@ -190,7 +190,7 @@ function matchRoute(
 }
 
 export default clerkMiddleware(
-  async (auth, req: NextRequest, event: NextFetchEvent) => {
+  async (auth, req: NextRequest, _event: NextFetchEvent) => {
     const url = req.nextUrl;
 
     let subdomain: string | null = null;

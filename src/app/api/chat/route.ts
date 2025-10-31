@@ -49,11 +49,15 @@ export async function POST(request: Request) {
       deploymentId,
       messages,
       model,
+      reasoningEffort,
+      reasoningSummary,
     }: {
       projectId: string;
       deploymentId: string;
       messages: UIMessage[];
       model: string;
+      reasoningEffort?: "minimal" | "low" | "medium" | "high";
+      reasoningSummary?: "auto" | "detailed";
     } = await request.json();
 
     const fileMentionRegex = /@(\/[\w\-/.]+)/g;
@@ -123,8 +127,8 @@ export async function POST(request: Request) {
       model: openai.responses(model || "gpt-5"),
       providerOptions: {
         openai: {
-          reasoningEffort: "medium",
-          reasoningSummary: "detailed",
+          reasoningEffort: reasoningEffort || "medium",
+          reasoningSummary: reasoningSummary || "detailed",
           include: ["reasoning.encrypted_content"],
         } satisfies OpenAIResponsesProviderOptions,
       },

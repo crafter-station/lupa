@@ -1,26 +1,46 @@
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
-import Link from "next/link";
-import { LupaFullIcon } from "@/components/icons/lupa-full";
+"use client";
+
+import { useEffect, useState } from "react";
+import { AppSidebar } from "@/components/elements/app-sidebar";
+
+const STORAGE_KEY = "lupa-sidebar-collapsed";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="px-2 py-0 items-center">
-            <LupaFullIcon className="size-16" />
-          </Link>
-          <nav className="flex gap-2">
-            <OrganizationSwitcher
-              afterCreateOrganizationUrl="/orgs/:slug/projects"
-              afterSelectOrganizationUrl="/orgs/:slug/projects"
-            />
-            <UserButton />
-          </nav>
-        </div>
-      </header>
+  const [collapsed, setCollapsed] = useState(false);
 
-      <main className="flex-grow">{children}</main>
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) {
+      setCollapsed(stored === "true");
+    }
+
+    const handleStorage = () => {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored !== null) {
+        setCollapsed(stored === "true");
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    const interval = setInterval(handleStorage, 100);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <AppSidebar />
+      <main
+        className="flex-1 overflow-y-auto transition-all duration-300"
+        style={{
+          marginLeft: collapsed ? "3.5rem" : "14rem",
+        }}
+      >
+        <div className="h-full px-4">{children}</div>
+      </main>
     </div>
   );
 }

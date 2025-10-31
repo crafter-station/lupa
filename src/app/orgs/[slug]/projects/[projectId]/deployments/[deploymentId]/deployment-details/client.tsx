@@ -10,12 +10,6 @@ import { InlineEditableField } from "@/components/elements/inline-editable-field
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -30,12 +24,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DeploymentSelect } from "@/db";
 import { DeploymentCollection, ProjectCollection } from "@/db/collections";
 import { getAPIBaseURL } from "@/lib/utils";
-import { AIPlayground } from "../ai-playground";
-import { SearchPlayground } from "../search-playground";
 import type { DeploymentDetailsLoadingContextProps } from "./index";
 
 export function DeploymentDetailsLiveQuery({
@@ -430,44 +421,6 @@ Header: Deployment-Id = ${deployment.id}`;
           </Button>
         </div>
       </div>
-
-      {deployment.status === "ready" ? (
-        <Tabs defaultValue="ai" className="w-full">
-          <TabsList>
-            <TabsTrigger value="ai">AI</TabsTrigger>
-            <TabsTrigger value="search">Search</TabsTrigger>
-          </TabsList>
-          <TabsContent value="ai">
-            <AIPlayground />
-          </TabsContent>
-          <TabsContent value="search">
-            <SearchPlayground />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {deployment.status === "building"
-                ? "Building Deployment"
-                : deployment.status === "queued"
-                  ? "Deployment Queued"
-                  : deployment.status === "error"
-                    ? "Deployment Failed"
-                    : "Deployment Status Unknown"}
-            </CardTitle>
-            <CardDescription>
-              {deployment.status === "building"
-                ? "Your deployment is being built. Playgrounds will be available once ready."
-                : deployment.status === "queued"
-                  ? "Your deployment is in the queue. It will start building shortly."
-                  : deployment.status === "error"
-                    ? "The deployment failed. Please check the logs for more information."
-                    : "This deployment has an unknown status."}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
     </div>
   );
 }
