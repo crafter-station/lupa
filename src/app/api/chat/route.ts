@@ -46,19 +46,42 @@ export async function POST(request: Request) {
   try {
     const {
       projectId,
-      deploymentId,
+      deploymentId: requestDeploymentId,
       messages,
       model,
       reasoningEffort,
       reasoningSummary,
     }: {
       projectId: string;
-      deploymentId: string;
+      deploymentId?: string | null;
       messages: UIMessage[];
       model: string;
       reasoningEffort?: "minimal" | "low" | "medium" | "high";
       reasoningSummary?: "auto" | "detailed";
     } = await request.json();
+
+    const [project] = await db
+      .select({
+        name: schema.Project.name,
+        description: schema.Project.description,
+        productionDeploymentId: schema.Project.production_deployment_id,
+      })
+      .from(schema.Project)
+      .where(eq(schema.Project.id, projectId));
+
+    if (!project) {
+      throw new Error(`Project not found for id ${projectId}`);
+    }
+
+    let deploymentId = requestDeploymentId;
+
+    if (project.productionDeploymentId) {
+      deploymentId = project.productionDeploymentId;
+    } else {
+      throw new Error(
+        "Project doesnt have a production deployment. You must specify a deployment id.",
+      );
+    }
 
     const fileMentionRegex = /@(\/[\w\-/.]+)/g;
     const processedMessages = await Promise.all(
@@ -104,18 +127,6 @@ export async function POST(request: Request) {
         };
       }),
     );
-
-    const [project] = await db
-      .select({
-        name: schema.Project.name,
-        description: schema.Project.description,
-      })
-      .from(schema.Project)
-      .where(eq(schema.Project.id, projectId));
-
-    if (!project) {
-      throw new Error(`Project not found for id ${projectId}`);
-    }
 
     const searchKnowledgePrompt = SEARCH_KNOWLEDGE_PROMPT(project);
     const getDocumentContentsPrompt = GET_DOCUMENT_CONTENTS_PROMPT(project);

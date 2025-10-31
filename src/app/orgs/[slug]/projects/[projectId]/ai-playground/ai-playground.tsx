@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
+import { BrainIcon, ListMinusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useParams } from "next/navigation";
 import {
@@ -24,12 +25,8 @@ import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputBody,
+  PromptInputDropdownSelect,
   type PromptInputMessage,
-  PromptInputModelSelect,
-  PromptInputModelSelectContent,
-  PromptInputModelSelectItem,
-  PromptInputModelSelectTrigger,
-  PromptInputModelSelectValue,
   PromptInputSubmit,
   PromptInputToolbar,
   PromptInputTools,
@@ -50,7 +47,9 @@ import {
 import { FileMentionPicker } from "@/components/elements/file-mention-picker";
 import { RichTextarea } from "@/components/elements/rich-textarea";
 import { LupaIcon } from "@/components/icons/lupa";
+import { OpenAIIcon } from "@/components/icons/openai";
 import { Button } from "@/components/ui/button";
+import { useDeploymentId } from "@/hooks/use-deployment-id";
 import {
   type FileTreeResponse,
   flattenTree,
@@ -451,17 +450,12 @@ function renderMessagePart(
   }
 }
 
-export function AIPlayground({
-  overrideDeploymentId,
-}: {
-  overrideDeploymentId?: string;
-} = {}) {
+export function AIPlayground() {
   const params = useParams<{
     projectId: string;
-    deploymentId?: string;
   }>();
+  const [deploymentId] = useDeploymentId();
   const projectId = params.projectId;
-  const deploymentId = overrideDeploymentId || params.deploymentId;
   const { user } = useUser();
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
@@ -719,7 +713,6 @@ export function AIPlayground({
                 <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
                   <FileMentionPicker
                     projectId={projectId}
-                    deploymentId={deploymentId}
                     searchQuery={filePickerQuery}
                     onSelect={handleFileSelect}
                     selectedIndex={selectedFileIndex}
@@ -753,77 +746,49 @@ export function AIPlayground({
                 >
                   <PromptInputToolbar>
                     <PromptInputTools>
-                      <PromptInputModelSelect
-                        onValueChange={(value) => {
-                          setModel(value);
-                        }}
+                      <PromptInputDropdownSelect
                         value={model}
-                      >
-                        <PromptInputModelSelectTrigger>
-                          <PromptInputModelSelectValue placeholder="Select model" />
-                        </PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectContent>
-                          {models.map((model) => (
-                            <PromptInputModelSelectItem
-                              key={model.value}
-                              value={model.value}
-                            >
-                              {model.name}
-                            </PromptInputModelSelectItem>
-                          ))}
-                        </PromptInputModelSelectContent>
-                      </PromptInputModelSelect>
-                      <PromptInputModelSelect
-                        onValueChange={(value) => {
+                        onValueChange={setModel}
+                        options={models.map((m) => ({
+                          value: m.value,
+                          label: m.name,
+                        }))}
+                        label="Model"
+                        icon={<OpenAIIcon className="size-5" />}
+                      />
+                      <PromptInputDropdownSelect
+                        value={reasoningEffort}
+                        onValueChange={(value) =>
                           setReasoningEffort(
                             value as "minimal" | "low" | "medium" | "high",
-                          );
-                        }}
-                        value={reasoningEffort}
-                      >
-                        <PromptInputModelSelectTrigger>
-                          <PromptInputModelSelectValue placeholder="Effort" />
-                        </PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectContent>
-                          <PromptInputModelSelectItem value="minimal">
-                            Minimal
-                          </PromptInputModelSelectItem>
-                          <PromptInputModelSelectItem value="low">
-                            Low
-                          </PromptInputModelSelectItem>
-                          <PromptInputModelSelectItem value="medium">
-                            Medium
-                          </PromptInputModelSelectItem>
-                          <PromptInputModelSelectItem value="high">
-                            High
-                          </PromptInputModelSelectItem>
-                        </PromptInputModelSelectContent>
-                      </PromptInputModelSelect>
-                      <PromptInputModelSelect
-                        onValueChange={(value) => {
+                          )
+                        }
+                        options={[
+                          { value: "minimal", label: "Minimal" },
+                          { value: "low", label: "Low" },
+                          { value: "medium", label: "Medium" },
+                          { value: "high", label: "High" },
+                        ]}
+                        label="Reasoning Effort"
+                        icon={<BrainIcon className="size-3.5" />}
+                      />
+                      <PromptInputDropdownSelect
+                        value={reasoningSummary || "none"}
+                        onValueChange={(value) =>
                           setReasoningSummary(
                             value === "none"
                               ? undefined
                               : (value as "auto" | "detailed"),
-                          );
-                        }}
-                        value={reasoningSummary || "none"}
-                      >
-                        <PromptInputModelSelectTrigger>
-                          <PromptInputModelSelectValue placeholder="Summary" />
-                        </PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectContent>
-                          <PromptInputModelSelectItem value="none">
-                            None
-                          </PromptInputModelSelectItem>
-                          <PromptInputModelSelectItem value="auto">
-                            Auto
-                          </PromptInputModelSelectItem>
-                          <PromptInputModelSelectItem value="detailed">
-                            Detailed
-                          </PromptInputModelSelectItem>
-                        </PromptInputModelSelectContent>
-                      </PromptInputModelSelect>
+                          )
+                        }
+                        options={[
+                          { value: "none", label: "None" },
+                          { value: "auto", label: "Auto" },
+                          { value: "detailed", label: "Detailed" },
+                        ]}
+                        label="Reasoning Summary"
+                        icon={<ListMinusIcon className="size-3.5" />}
+                      />
                     </PromptInputTools>
                     <PromptInputSubmit disabled={!input} status={status} />
                   </PromptInputToolbar>
@@ -856,7 +821,6 @@ export function AIPlayground({
                 <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
                   <FileMentionPicker
                     projectId={projectId}
-                    deploymentId={deploymentId}
                     searchQuery={filePickerQuery}
                     onSelect={handleFileSelect}
                     selectedIndex={selectedFileIndex}
@@ -873,82 +837,54 @@ export function AIPlayground({
                     onKeyDown={handleKeyDown}
                     value={input}
                     placeholder="Ask something about your documents... (use @ to mention files)"
-                    className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 field-sizing-content bg-transparent dark:bg-transparent max-h-48 min-h-16 focus-visible:ring-0"
+                    className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 field-sizing-content bg-transparent dark:bg-transparent max-h-48 min-h-16 text-sm focus-visible:ring-0"
                   />
                 </PromptInputBody>
                 <PromptInputToolbar>
                   <PromptInputTools>
-                    <PromptInputModelSelect
-                      onValueChange={(value) => {
-                        setModel(value);
-                      }}
+                    <PromptInputDropdownSelect
                       value={model}
-                    >
-                      <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue placeholder="Select model" />
-                      </PromptInputModelSelectTrigger>
-                      <PromptInputModelSelectContent>
-                        {models.map((model) => (
-                          <PromptInputModelSelectItem
-                            key={model.value}
-                            value={model.value}
-                          >
-                            {model.name}
-                          </PromptInputModelSelectItem>
-                        ))}
-                      </PromptInputModelSelectContent>
-                    </PromptInputModelSelect>
-                    <PromptInputModelSelect
-                      onValueChange={(value) => {
+                      onValueChange={setModel}
+                      options={models.map((m) => ({
+                        value: m.value,
+                        label: m.name,
+                      }))}
+                      label="Model"
+                      icon={<OpenAIIcon className="size-5" />}
+                    />
+                    <PromptInputDropdownSelect
+                      value={reasoningEffort}
+                      onValueChange={(value) =>
                         setReasoningEffort(
                           value as "minimal" | "low" | "medium" | "high",
-                        );
-                      }}
-                      value={reasoningEffort}
-                    >
-                      <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue placeholder="Effort" />
-                      </PromptInputModelSelectTrigger>
-                      <PromptInputModelSelectContent>
-                        <PromptInputModelSelectItem value="minimal">
-                          Minimal
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="low">
-                          Low
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="medium">
-                          Medium
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="high">
-                          High
-                        </PromptInputModelSelectItem>
-                      </PromptInputModelSelectContent>
-                    </PromptInputModelSelect>
-                    <PromptInputModelSelect
-                      onValueChange={(value) => {
+                        )
+                      }
+                      options={[
+                        { value: "minimal", label: "Minimal" },
+                        { value: "low", label: "Low" },
+                        { value: "medium", label: "Medium" },
+                        { value: "high", label: "High" },
+                      ]}
+                      label="Reasoning Effort"
+                      icon={<BrainIcon className="size-3.5" />}
+                    />
+                    <PromptInputDropdownSelect
+                      value={reasoningSummary || "none"}
+                      onValueChange={(value) =>
                         setReasoningSummary(
                           value === "none"
                             ? undefined
                             : (value as "auto" | "detailed"),
-                        );
-                      }}
-                      value={reasoningSummary || "none"}
-                    >
-                      <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue placeholder="Summary" />
-                      </PromptInputModelSelectTrigger>
-                      <PromptInputModelSelectContent>
-                        <PromptInputModelSelectItem value="none">
-                          None
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="auto">
-                          Auto
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="detailed">
-                          Detailed
-                        </PromptInputModelSelectItem>
-                      </PromptInputModelSelectContent>
-                    </PromptInputModelSelect>
+                        )
+                      }
+                      options={[
+                        { value: "none", label: "None" },
+                        { value: "auto", label: "Auto" },
+                        { value: "detailed", label: "Detailed" },
+                      ]}
+                      label="Reasoning Summary"
+                      icon={<ListMinusIcon className="size-3.5" />}
+                    />
                   </PromptInputTools>
                   <PromptInputSubmit disabled={!input} status={status} />
                 </PromptInputToolbar>

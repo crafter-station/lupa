@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
+import { useDeploymentId } from "@/hooks/use-deployment-id";
 import {
   type FileTreeResponse,
   flattenTree,
@@ -11,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 interface FileMentionPickerProps {
   projectId: string;
-  deploymentId: string;
   searchQuery: string;
   onSelect: (filePath: string) => void;
   selectedIndex: number;
@@ -21,11 +21,19 @@ interface FileMentionPickerProps {
 
 async function fetchFileTree(
   projectId: string,
-  deploymentId: string,
+  deploymentId?: string | null,
 ): Promise<TreeFile[]> {
-  const response = await fetch(
-    `/api/tree?projectId=${projectId}&deploymentId=${deploymentId}&path=/&depth=0`,
-  );
+  const search = new URLSearchParams({
+    projectId,
+    path: "/",
+    depth: "0",
+  });
+
+  if (deploymentId) {
+    search.append("deploymentId", deploymentId);
+  }
+
+  const response = await fetch(`/api/tree?${search}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch file tree");
@@ -37,7 +45,6 @@ async function fetchFileTree(
 
 export function FileMentionPicker({
   projectId,
-  deploymentId,
   searchQuery,
   onSelect,
   selectedIndex,
@@ -46,6 +53,8 @@ export function FileMentionPicker({
 }: FileMentionPickerProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLButtonElement>(null);
+
+  const [deploymentId] = useDeploymentId();
 
   const { data: files, isLoading } = useQuery({
     queryKey: ["file-tree", projectId, deploymentId],
@@ -150,7 +159,7 @@ export function FileMentionPicker({
               <span className="text-muted-foreground">📄</span>
               <span className="truncate font-mono">{file.path}</span>
             </div>
-            <div className="text-muted-foreground text-[10px] ml-2 flex-shrink-0">
+            <div className="text-muted-foreground text-[10px] ml-2 shrink-0">
               {file.metadata.tokens_count.toLocaleString()} tokens
             </div>
           </button>

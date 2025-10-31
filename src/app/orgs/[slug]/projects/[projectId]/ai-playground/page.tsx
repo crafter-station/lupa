@@ -12,8 +12,7 @@ export default async function AIPlaygroundPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between py-3 shrink-0">
-        <h1 className="text-xl font-bold">AI Playground</h1>
+      <div className="flex items-center justify-end py-3 shrink-0">
         <Suspense
           fallback={<DeploymentSelectorClient preloadedDeployments={[]} />}
         >

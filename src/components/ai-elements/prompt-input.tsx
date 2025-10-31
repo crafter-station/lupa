@@ -7,6 +7,7 @@ import {
   PaperclipIcon,
   PlusIcon,
   SendIcon,
+  SparklesIcon,
   SquareIcon,
   XIcon,
 } from "lucide-react";
@@ -36,6 +37,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -751,4 +756,46 @@ export const PromptInputModelSelectValue = ({
   ...props
 }: PromptInputModelSelectValueProps) => (
   <SelectValue className={cn(className)} {...props} suppressHydrationWarning />
+);
+
+export type PromptInputDropdownSelectProps = ComponentProps<
+  typeof DropdownMenu
+> & {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  label: string;
+  icon?: React.ReactNode;
+};
+
+export const PromptInputDropdownSelect = ({
+  value,
+  onValueChange,
+  options,
+  label,
+  icon,
+  ...props
+}: PromptInputDropdownSelectProps) => (
+  <DropdownMenu {...props}>
+    <DropdownMenuTrigger asChild>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="shrink-0 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        {icon ?? <SparklesIcon className="size-4" />}
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="start" className="w-48">
+      <DropdownMenuLabel>{label}</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuRadioGroup value={value} onValueChange={onValueChange}>
+        {options.map((option) => (
+          <DropdownMenuRadioItem key={option.value} value={option.value}>
+            {option.label}
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+    </DropdownMenuContent>
+  </DropdownMenu>
 );

@@ -54,6 +54,8 @@ export async function GET(
       depth: depthParam,
     } = await params;
 
+    console.log({ deploymentId });
+
     const targetFolder = normalizeFolderPath(decodeURIComponent(folderParam));
     const maxDepth = Number.parseInt(depthParam, 10);
 
