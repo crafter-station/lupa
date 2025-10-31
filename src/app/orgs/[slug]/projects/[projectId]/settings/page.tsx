@@ -3,8 +3,6 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { ProjectDetails } from "./project-details";
 
-export const revalidate = 30;
-
 export default async function ProjectSettingsPage({
   params,
 }: {

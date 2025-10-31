@@ -6,8 +6,6 @@ import * as schema from "@/db/schema";
 import { CreateProject } from "./create-project-wrapper";
 import { ProjectList } from "./project-list";
 
-export const revalidate = 30;
-
 export default async function ProjectsPage({
   params,
 }: {

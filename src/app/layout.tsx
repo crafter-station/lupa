@@ -1,5 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
-import { shadcn } from "@clerk/themes";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -7,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { Providers } from "./providers";
+import { ClerkProvider } from "./providers/clerk";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,17 +25,13 @@ export const metadata: Metadata = {
     "Keep your knowledge base fresh with automatic syncing. Search with semantic precision. Serve complete context to your agents. All in one platform built for production RAG systems.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      appearance={{
-        theme: shadcn,
-      }}
-    >
+    <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}

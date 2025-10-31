@@ -714,7 +714,7 @@ export const PromptInputModelSelectTrigger = ({
 }: PromptInputModelSelectTriggerProps) => (
   <SelectTrigger
     className={cn(
-      "border-none bg-transparent font-medium text-muted-foreground shadow-none transition-colors",
+      "!w-32 border-none bg-transparent font-medium text-muted-foreground shadow-none transition-colors",
       'hover:bg-accent hover:text-foreground [&[aria-expanded="true"]]:bg-accent [&[aria-expanded="true"]]:text-foreground',
       className,
     )}
@@ -750,5 +750,5 @@ export const PromptInputModelSelectValue = ({
   className,
   ...props
 }: PromptInputModelSelectValueProps) => (
-  <SelectValue className={cn(className)} {...props} />
+  <SelectValue className={cn(className)} {...props} suppressHydrationWarning />
 );

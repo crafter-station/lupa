@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
+import { motion } from "motion/react";
 import { useParams } from "next/navigation";
 import {
   Fragment,
@@ -475,11 +476,18 @@ export function AIPlayground({
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
   const [greeting, setGreeting] = useState("");
+  const [greetingLoaded, setGreetingLoaded] = useState(false);
   const textareaRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setGreeting(getOrGenerateGreeting(user?.firstName));
+    const timer = setTimeout(() => {
+      const loadedGreeting = getOrGenerateGreeting(user?.firstName);
+      setGreeting(loadedGreeting);
+      setGreetingLoaded(true);
+    }, 700);
+
+    return () => clearTimeout(timer);
   }, [user?.firstName]);
 
   useEffect(() => {
@@ -678,15 +686,32 @@ export function AIPlayground({
         <div className="flex-1 flex flex-col items-center justify-center px-4 pb-32">
           <div className="w-full max-w-2xl space-y-8">
             <div className="text-center space-y-3">
-              <div className="flex items-center justify-center gap-3">
-                <LupaIcon className="size-10" />
-                <h2 className="text-3xl font-semibold" suppressHydrationWarning>
-                  {greeting}
-                </h2>
+              <div className="relative h-10 flex items-center justify-center overflow-hidden">
+                <motion.div
+                  className="flex items-center gap-3 absolute"
+                  initial={{ x: "0%" }}
+                  animate={{ x: greetingLoaded ? "-50%" : "0%" }}
+                  transition={{ duration: 0.7, delay: 0.7, ease: "easeOut" }}
+                  style={{ left: "50%" }}
+                >
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.7 }}
+                  >
+                    <LupaIcon className="size-10" />
+                  </motion.div>
+                  <motion.h2
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: greetingLoaded ? 1 : 0 }}
+                    transition={{ duration: 0.5, delay: 1.4 }}
+                    className="text-3xl font-semibold whitespace-nowrap"
+                    suppressHydrationWarning
+                  >
+                    {greeting}
+                  </motion.h2>
+                </motion.div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Ask me anything about your documents
-              </p>
             </div>
 
             <div className="relative">
@@ -703,7 +728,7 @@ export function AIPlayground({
                   />
                 </div>
               )}
-              <PromptInput onSubmit={handleSubmit}>
+              <PromptInput onSubmit={handleSubmit} className="divide-y-0">
                 <PromptInputBody>
                   <RichTextarea
                     ref={textareaRef}
@@ -711,89 +736,98 @@ export function AIPlayground({
                     onKeyDown={handleKeyDown}
                     value={input}
                     placeholder="Ask something about your documents... (use @ to mention files)"
-                    className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 field-sizing-content bg-transparent dark:bg-transparent max-h-48 min-h-16 focus-visible:ring-0"
+                    className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 field-sizing-content bg-transparent dark:bg-transparent max-h-48 min-h-16 focus-visible:ring-0 text-sm"
                   />
                 </PromptInputBody>
-                <PromptInputToolbar>
-                  <PromptInputTools>
-                    <PromptInputModelSelect
-                      onValueChange={(value) => {
-                        setModel(value);
-                      }}
-                      value={model}
-                    >
-                      <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue />
-                      </PromptInputModelSelectTrigger>
-                      <PromptInputModelSelectContent>
-                        {models.map((model) => (
-                          <PromptInputModelSelectItem
-                            key={model.value}
-                            value={model.value}
-                          >
-                            {model.name}
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{
+                    height: greetingLoaded ? "auto" : 0,
+                    opacity: greetingLoaded ? 1 : 0,
+                    borderTop: greetingLoaded
+                      ? "1px solid var(--border)"
+                      : "none",
+                  }}
+                  transition={{ duration: 0.6, delay: 1.4, ease: "easeOut" }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <PromptInputToolbar>
+                    <PromptInputTools>
+                      <PromptInputModelSelect
+                        onValueChange={(value) => {
+                          setModel(value);
+                        }}
+                        value={model}
+                      >
+                        <PromptInputModelSelectTrigger>
+                          <PromptInputModelSelectValue placeholder="Select model" />
+                        </PromptInputModelSelectTrigger>
+                        <PromptInputModelSelectContent>
+                          {models.map((model) => (
+                            <PromptInputModelSelectItem
+                              key={model.value}
+                              value={model.value}
+                            >
+                              {model.name}
+                            </PromptInputModelSelectItem>
+                          ))}
+                        </PromptInputModelSelectContent>
+                      </PromptInputModelSelect>
+                      <PromptInputModelSelect
+                        onValueChange={(value) => {
+                          setReasoningEffort(
+                            value as "minimal" | "low" | "medium" | "high",
+                          );
+                        }}
+                        value={reasoningEffort}
+                      >
+                        <PromptInputModelSelectTrigger>
+                          <PromptInputModelSelectValue placeholder="Effort" />
+                        </PromptInputModelSelectTrigger>
+                        <PromptInputModelSelectContent>
+                          <PromptInputModelSelectItem value="minimal">
+                            Minimal
                           </PromptInputModelSelectItem>
-                        ))}
-                      </PromptInputModelSelectContent>
-                    </PromptInputModelSelect>
-                    <PromptInputModelSelect
-                      onValueChange={(value) => {
-                        setReasoningEffort(
-                          value as "minimal" | "low" | "medium" | "high",
-                        );
-                      }}
-                      value={reasoningEffort}
-                    >
-                      <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue
-                          placeholder={`Effort: ${reasoningEffort}`}
-                        />
-                      </PromptInputModelSelectTrigger>
-                      <PromptInputModelSelectContent>
-                        <PromptInputModelSelectItem value="minimal">
-                          Minimal
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="low">
-                          Low
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="medium">
-                          Medium
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="high">
-                          High
-                        </PromptInputModelSelectItem>
-                      </PromptInputModelSelectContent>
-                    </PromptInputModelSelect>
-                    <PromptInputModelSelect
-                      onValueChange={(value) => {
-                        setReasoningSummary(
-                          value === "none"
-                            ? undefined
-                            : (value as "auto" | "detailed"),
-                        );
-                      }}
-                      value={reasoningSummary || "none"}
-                    >
-                      <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue
-                          placeholder={`Summary: ${reasoningSummary || "none"}`}
-                        />
-                      </PromptInputModelSelectTrigger>
-                      <PromptInputModelSelectContent>
-                        <PromptInputModelSelectItem value="none">
-                          None
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="auto">
-                          Auto
-                        </PromptInputModelSelectItem>
-                        <PromptInputModelSelectItem value="detailed">
-                          Detailed
-                        </PromptInputModelSelectItem>
-                      </PromptInputModelSelectContent>
-                    </PromptInputModelSelect>
-                  </PromptInputTools>
-                  <PromptInputSubmit disabled={!input} status={status} />
-                </PromptInputToolbar>
+                          <PromptInputModelSelectItem value="low">
+                            Low
+                          </PromptInputModelSelectItem>
+                          <PromptInputModelSelectItem value="medium">
+                            Medium
+                          </PromptInputModelSelectItem>
+                          <PromptInputModelSelectItem value="high">
+                            High
+                          </PromptInputModelSelectItem>
+                        </PromptInputModelSelectContent>
+                      </PromptInputModelSelect>
+                      <PromptInputModelSelect
+                        onValueChange={(value) => {
+                          setReasoningSummary(
+                            value === "none"
+                              ? undefined
+                              : (value as "auto" | "detailed"),
+                          );
+                        }}
+                        value={reasoningSummary || "none"}
+                      >
+                        <PromptInputModelSelectTrigger>
+                          <PromptInputModelSelectValue placeholder="Summary" />
+                        </PromptInputModelSelectTrigger>
+                        <PromptInputModelSelectContent>
+                          <PromptInputModelSelectItem value="none">
+                            None
+                          </PromptInputModelSelectItem>
+                          <PromptInputModelSelectItem value="auto">
+                            Auto
+                          </PromptInputModelSelectItem>
+                          <PromptInputModelSelectItem value="detailed">
+                            Detailed
+                          </PromptInputModelSelectItem>
+                        </PromptInputModelSelectContent>
+                      </PromptInputModelSelect>
+                    </PromptInputTools>
+                    <PromptInputSubmit disabled={!input} status={status} />
+                  </PromptInputToolbar>
+                </motion.div>
               </PromptInput>
             </div>
           </div>
@@ -851,7 +885,7 @@ export function AIPlayground({
                       value={model}
                     >
                       <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue />
+                        <PromptInputModelSelectValue placeholder="Select model" />
                       </PromptInputModelSelectTrigger>
                       <PromptInputModelSelectContent>
                         {models.map((model) => (
@@ -873,9 +907,7 @@ export function AIPlayground({
                       value={reasoningEffort}
                     >
                       <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue
-                          placeholder={`Effort: ${reasoningEffort}`}
-                        />
+                        <PromptInputModelSelectValue placeholder="Effort" />
                       </PromptInputModelSelectTrigger>
                       <PromptInputModelSelectContent>
                         <PromptInputModelSelectItem value="minimal">
@@ -903,9 +935,7 @@ export function AIPlayground({
                       value={reasoningSummary || "none"}
                     >
                       <PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectValue
-                          placeholder={`Summary: ${reasoningSummary || "none"}`}
-                        />
+                        <PromptInputModelSelectValue placeholder="Summary" />
                       </PromptInputModelSelectTrigger>
                       <PromptInputModelSelectContent>
                         <PromptInputModelSelectItem value="none">

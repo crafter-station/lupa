@@ -1,15 +1,13 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { SearchPlaygroundClient } from "./client";
+import { DeploymentSelectorClient } from "./client";
 
-export default async function SearchPlaygroundPage({
-  params,
+export const DeploymentSelectorServer = async ({
+  projectId,
 }: {
-  params: Promise<{ projectId: string }>;
-}) {
-  const { projectId } = await params;
-
+  projectId: string;
+}) => {
   const [preloadedProject] = await db
     .select()
     .from(schema.Project)
@@ -24,5 +22,7 @@ export default async function SearchPlaygroundPage({
     .from(schema.Deployment)
     .where(eq(schema.Deployment.project_id, projectId));
 
-  return <SearchPlaygroundClient preloadedDeployments={preloadedDeployments} />;
-}
+  return (
+    <DeploymentSelectorClient preloadedDeployments={preloadedDeployments} />
+  );
+};

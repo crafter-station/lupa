@@ -1,23 +1,16 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type SidebarNavLinkProps = {
   href: string;
-  icon: LucideIcon;
   label: string;
-  collapsed: boolean;
+  children: React.ReactNode;
 };
 
-export function SidebarNavLink({
-  href,
-  icon: Icon,
-  label,
-  collapsed,
-}: SidebarNavLinkProps) {
+export function SidebarNavLink({ href, label, children }: SidebarNavLinkProps) {
   const pathname = usePathname();
   const isActive = pathname.startsWith(href);
 
@@ -25,15 +18,18 @@ export function SidebarNavLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all hover:bg-sidebar-accent",
+        "flex items-center gap-2 rounded-md h-8 text-sm hover:bg-sidebar-accent relative overflow-hidden",
         isActive &&
           "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
-        collapsed && "justify-center",
       )}
-      title={collapsed ? label : undefined}
+      title={label}
     >
-      <Icon className="size-4 shrink-0" />
-      {!collapsed && <span className="truncate">{label}</span>}
+      <div className="flex items-center justify-center w-10 shrink-0">
+        {children}
+      </div>
+      <span className="truncate transition-opacity duration-300 opacity-100 group-data-[sidebar-collapsed=true]/layout:opacity-0">
+        {label}
+      </span>
     </Link>
   );
 }

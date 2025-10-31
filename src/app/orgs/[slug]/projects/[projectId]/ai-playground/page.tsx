@@ -1,9 +1,7 @@
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { AIPlaygroundClient } from "./client";
-
-export const revalidate = 30;
+import { Suspense } from "react";
+import { DeploymentSelectorClient } from "@/components/deployment-selector/client";
+import { DeploymentSelectorServer } from "@/components/deployment-selector/server";
+import { AIPlayground } from "./ai-playground";
 
 export default async function AIPlaygroundPage({
   params,
@@ -12,19 +10,20 @@ export default async function AIPlaygroundPage({
 }) {
   const { projectId } = await params;
 
-  const [preloadedProject] = await db
-    .select()
-    .from(schema.Project)
-    .where(eq(schema.Project.id, projectId));
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between py-3 shrink-0">
+        <h1 className="text-xl font-bold">AI Playground</h1>
+        <Suspense
+          fallback={<DeploymentSelectorClient preloadedDeployments={[]} />}
+        >
+          <DeploymentSelectorServer projectId={projectId} />
+        </Suspense>
+      </div>
 
-  if (!preloadedProject) {
-    throw new Error("Project not found");
-  }
-
-  const preloadedDeployments = await db
-    .select()
-    .from(schema.Deployment)
-    .where(eq(schema.Deployment.project_id, projectId));
-
-  return <AIPlaygroundClient preloadedDeployments={preloadedDeployments} />;
+      <div className="flex-1 min-h-0">
+        <AIPlayground />
+      </div>
+    </div>
+  );
 }

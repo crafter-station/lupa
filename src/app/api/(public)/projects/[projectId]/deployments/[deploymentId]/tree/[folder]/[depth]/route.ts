@@ -8,8 +8,6 @@ import * as schema from "@/db/schema";
 import { normalizeFolderPath } from "@/lib/folder-utils";
 
 export const preferredRegion = ["iad1", "gru1"];
-export const revalidate = false;
-export const dynamic = "force-static";
 
 interface TreeFile {
   type: "file";

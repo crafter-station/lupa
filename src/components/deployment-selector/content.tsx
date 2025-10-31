@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Select,
   SelectContent,
@@ -9,33 +7,13 @@ import {
 } from "@/components/ui/select";
 import type { DeploymentSelect } from "@/db/schema";
 
-import type { DeploymentSelectorLoadingContextProps } from "./index";
-
-export function DeploymentSelectorLiveQuery({
-  preloadedDeployments,
-  selectedDeploymentId,
-  onDeploymentChange,
-}: DeploymentSelectorLoadingContextProps) {
-  return (
-    <DeploymentSelectorContent
-      deployments={preloadedDeployments}
-      selectedDeploymentId={selectedDeploymentId}
-      onDeploymentChange={onDeploymentChange}
-    />
-  );
-}
-
 export function DeploymentSelectorContent({
   deployments,
-  selectedDeploymentId,
-  onDeploymentChange,
 }: {
   deployments: DeploymentSelect[];
-  selectedDeploymentId: string;
-  onDeploymentChange: (deploymentId: string) => void;
 }) {
   return (
-    <Select value={selectedDeploymentId} onValueChange={onDeploymentChange}>
+    <Select>
       <SelectTrigger className="w-64">
         <SelectValue placeholder="Select deployment" />
       </SelectTrigger>
