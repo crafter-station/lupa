@@ -30,12 +30,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { RefreshFrequency, SnapshotType } from "@/db";
 import { DocumentCollection, SnapshotCollection } from "@/db/collections";
-import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
+import { getFolderAndDocument } from "@/lib/folder-utils";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
 
 export function CreateSnapshot() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId, path } = useParams<{
+    projectId: string;
+    path: string[];
+  }>();
   const [open, setOpen] = React.useState(false);
   const [_newSnapshot, setNewSnapshot] = useQueryState(
     "newSnapshot",
@@ -54,23 +57,30 @@ export function CreateSnapshot() {
   >("none");
   const [enhance, setEnhance] = React.useState(false);
 
-  const { documentId } = useFolderDocumentVersion();
+  const { document: documentName } = React.useMemo(
+    () => getFolderAndDocument(path),
+    [path],
+  );
+
   const { organization } = useOrganization();
+
+  const { data: documents } = useLiveQuery(
+    (q) =>
+      q
+        .from({ document: DocumentCollection })
+        .select(({ document }) => ({ ...document }))
+        .where(({ document }) => eq(document.name, documentName)),
+    [documentName],
+  );
+
+  const currentDocument = documents?.[0];
+
   const { data: snapshots } = useLiveQuery((q) =>
     q
       .from({ snapshot: SnapshotCollection })
       .select(({ snapshot }) => ({ ...snapshot }))
-      .where(({ snapshot }) => eq(snapshot.document_id, documentId)),
+      .where(({ snapshot }) => eq(snapshot.document_id, currentDocument.id)),
   );
-
-  const { data: documents } = useLiveQuery((q) =>
-    q
-      .from({ document: DocumentCollection })
-      .select(({ document }) => ({ ...document }))
-      .where(({ document }) => eq(document.id, documentId)),
-  );
-
-  const currentDocument = documents?.[0];
 
   React.useEffect(() => {
     if (open && currentDocument) {
@@ -100,7 +110,7 @@ export function CreateSnapshot() {
     onMutate: (data) => {
       SnapshotCollection.insert({
         id: data.snapshot_id,
-        document_id: documentId ?? "",
+        document_id: currentDocument.id ?? "",
         org_id: organization?.id ?? "",
 
         status: "queued",
@@ -132,7 +142,7 @@ export function CreateSnapshot() {
           body: JSON.stringify({
             ...data,
             project_id: projectId,
-            document_id: documentId,
+            document_id: currentDocument.id,
           }),
         });
       } else {
@@ -141,13 +151,13 @@ export function CreateSnapshot() {
         if (!data.file) {
           throw new Error("File is required");
         }
-        if (!documentId) {
+        if (!currentDocument.id) {
           throw new Error("Document ID is required");
         }
         formData.append("file", data.file);
         formData.append("project_id", projectId);
         formData.append("snapshot_id", data.snapshot_id);
-        formData.append("document_id", documentId);
+        formData.append("document_id", currentDocument.id);
 
         formData.append("type", "upload");
 
@@ -186,7 +196,7 @@ export function CreateSnapshot() {
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
-      if (!documentId) return;
+      if (!currentDocument.id) return;
 
       setIsUploading(true);
 
@@ -229,7 +239,7 @@ export function CreateSnapshot() {
       }
     },
     [
-      documentId,
+      currentDocument.id,
       currentDocument,
       refreshFrequency,
       metadataSchema,
@@ -243,7 +253,7 @@ export function CreateSnapshot() {
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
-      if (!documentId || !selectedFile) {
+      if (!currentDocument.id || !selectedFile) {
         toast.error("Please select a file");
         return;
       }
@@ -311,7 +321,7 @@ export function CreateSnapshot() {
       }
     },
     [
-      documentId,
+      currentDocument.id,
       currentDocument,
       selectedFile,
       metadataSchema,

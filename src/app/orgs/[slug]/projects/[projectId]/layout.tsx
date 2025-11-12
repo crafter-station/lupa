@@ -121,7 +121,7 @@ export default async function Layout({
       <main
         id="main-content"
         data-collapsed="false"
-        className="flex-1 overflow-y-auto transition-all duration-300 ml-56 group-data-[sidebar-collapsed=true]/layout:ml-14"
+        className="flex-1 overflow-y-auto transition-all duration-300 ml-56 group-data-[sidebar-collapsed=true]/layout:ml-10"
       >
         <div className="h-full">{children}</div>
       </main>
