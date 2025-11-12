@@ -8,8 +8,6 @@ import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const preferredRegion = ["iad1", "gru1"];
 
-export const fetchCache = "default-no-store";
-
 export const SearchResponseSchema = z.object({
   query: z.string(),
   results: z.array(
