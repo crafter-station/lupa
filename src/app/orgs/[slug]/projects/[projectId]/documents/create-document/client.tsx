@@ -29,12 +29,16 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { RefreshFrequency, SnapshotType } from "@/db";
 import { DocumentCollection, SnapshotCollection } from "@/db/collections";
-import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
+import { getFolderAndDocument } from "@/lib/folder-utils";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
 
 export function CreateDocument() {
-  const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
+  const { projectId, path, slug } = useParams<{
+    projectId: string;
+    path: string[];
+    slug: string;
+  }>();
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [snapshotType, setSnapshotType] =
@@ -46,9 +50,13 @@ export function CreateDocument() {
 
   const { organization } = useOrganization();
 
-  const { folder: contextFolder } = useFolderDocumentVersion();
+  const { folder: currentFolder } = React.useMemo(
+    () => getFolderAndDocument(path),
+    [path],
+  );
+
   const [selectedFolder, setSelectedFolder] = React.useState<string>(
-    contextFolder ?? "/",
+    currentFolder ?? "/",
   );
   const [metadataSchema, setMetadataSchema] = React.useState<Record<
     string,
@@ -69,7 +77,7 @@ export function CreateDocument() {
 
   React.useEffect(() => {
     if (open) {
-      setSelectedFolder(contextFolder ?? "/");
+      setSelectedFolder(currentFolder ?? "/");
       setMetadataSchema(null);
       setSelectedFile(null);
       setSnapshotType("website");
@@ -78,7 +86,7 @@ export function CreateDocument() {
       setEnhance(false);
       setNameValue("");
     }
-  }, [open, contextFolder]);
+  }, [open, currentFolder]);
 
   const isDuplicate = React.useMemo(() => {
     const trimmedName = nameValue.trim();

@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getFolderDocumentVersion } from "@/lib/folder-utils";
+import { getFolderAndDocument } from "@/lib/folder-utils";
+import { FloatingDock } from "./floating-dock";
 
 export default async function DocumentsPage({
   params,
@@ -20,76 +21,79 @@ export default async function DocumentsPage({
   params: Promise<{ projectId: string; path?: string[] }>;
 }) {
   const { projectId, path } = await params;
-  const { folder, document } = getFolderDocumentVersion(path);
+  const { folder, document } = getFolderAndDocument(path);
 
   console.log({ folder, document });
 
   return (
-    <div className="grid grid-cols-3 h-full w-full">
-      <div className="col-span-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead style={{ width: "200px" }}>Last Modified</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+    <>
+      <div className="grid grid-cols-3 h-full w-full">
+        <div className="col-span-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead style={{ width: "200px" }}>Last Modified</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <Suspense
+                fallback={
+                  <DocumentListClient
+                    projectId={projectId}
+                    preloadedItems={[]}
+                    folder={folder}
+                  />
+                }
+              >
+                <DocumentListServer projectId={projectId} folder={folder} />
+              </Suspense>
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="border-l col-span-2 grid grid-rows-3 h-full w-full">
+          <div className="row-span-1 border-b">
             <Suspense
               fallback={
-                <DocumentListClient
+                <DocumentDetailsClient
                   projectId={projectId}
-                  preloadedItems={[]}
                   folder={folder}
+                  documentName={document}
+                  preloadedDocument={null}
                 />
               }
             >
-              <DocumentListServer projectId={projectId} folder={folder} />
+              <DocumentDetailsServer
+                projectId={projectId}
+                folder={folder}
+                documentName={document}
+              />
             </Suspense>
-          </TableBody>
-        </Table>
-      </div>
+          </div>
 
-      <div className="border-l col-span-2 grid grid-rows-3 h-full w-full">
-        <div className="row-span-1 border-b">
-          <Suspense
-            fallback={
-              <DocumentDetailsClient
+          <div className="row-span-2">
+            <Suspense
+              fallback={
+                <SnapshotDetailsClient
+                  projectId={projectId}
+                  folder={folder}
+                  documentName={document}
+                  preloadedDocument={null}
+                  preloadedLatestSnapshot={null}
+                />
+              }
+            >
+              <SnapshotDetailsServer
                 projectId={projectId}
                 folder={folder}
                 documentName={document}
-                preloadedDocument={null}
               />
-            }
-          >
-            <DocumentDetailsServer
-              projectId={projectId}
-              folder={folder}
-              documentName={document}
-            />
-          </Suspense>
-        </div>
-
-        <div className="row-span-2">
-          <Suspense
-            fallback={
-              <SnapshotDetailsClient
-                projectId={projectId}
-                folder={folder}
-                documentName={document}
-                preloadedDocument={null}
-                preloadedLatestSnapshot={null}
-              />
-            }
-          >
-            <SnapshotDetailsServer
-              projectId={projectId}
-              folder={folder}
-              documentName={document}
-            />
-          </Suspense>
+            </Suspense>
+          </div>
         </div>
       </div>
-    </div>
+      <FloatingDock />
+    </>
   );
 }

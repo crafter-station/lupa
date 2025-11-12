@@ -53,10 +53,9 @@ export function sanitizeSegment(value: string): string {
   return value.trim().replace(/\//g, "");
 }
 
-export function getFolderDocumentVersion(path?: string[]) {
+export function getFolderAndDocument(path?: string[]) {
   let folder: string | null = null;
   let document: string | null = null;
-  let version: string | null = null;
 
   if (path?.[path.length - 1]?.endsWith(".md")) {
     folder = path.slice(0, path.length - 1).join("/");
@@ -67,7 +66,6 @@ export function getFolderDocumentVersion(path?: string[]) {
   ) {
     folder = path.slice(0, path.length - 2).join("/");
     document = path[path.length - 2];
-    version = path[path.length - 1];
   } else {
     folder = path?.join("/") ?? null;
   }
@@ -81,6 +79,5 @@ export function getFolderDocumentVersion(path?: string[]) {
   return {
     folder,
     document,
-    version,
   };
 }
