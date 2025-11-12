@@ -93,7 +93,7 @@ export default async function DocumentsPage({
           </div>
         </div>
       </div>
-      <FloatingDock folder={folder} document={document} />
+      <FloatingDock document={document} />
     </>
   );
 }
