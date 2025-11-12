@@ -1,7 +1,6 @@
 "use client";
 
 import { useOrganization } from "@clerk/nextjs";
-import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { createOptimisticAction, eq, useLiveQuery } from "@tanstack/react-db";
 import { FileText, Globe, Loader2, Upload } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -28,20 +27,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type {
-  DocumentSelect,
-  MetadataSchemaConfig,
-  RefreshFrequency,
-  SnapshotSelect,
-  SnapshotType,
-} from "@/db";
-import { useCollections } from "@/hooks/use-collections";
-import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
+import type { RefreshFrequency, SnapshotType } from "@/db";
+import { DocumentCollection, SnapshotCollection } from "@/db/collections";
+import { getFolderAndDocument } from "@/lib/folder-utils";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
 
 export function CreateDocument() {
-  const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
+  const { projectId, path, slug } = useParams<{
+    projectId: string;
+    path: string[];
+    slug: string;
+  }>();
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [snapshotType, setSnapshotType] =
@@ -49,20 +46,25 @@ export function CreateDocument() {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [enhance, setEnhance] = React.useState(false);
+  const [nameValue, setNameValue] = React.useState("");
 
   const { organization } = useOrganization();
 
-  const { folder: contextFolder } = useFolderDocumentVersion();
-  const [selectedFolder, setSelectedFolder] = React.useState<string>(
-    contextFolder ?? "/",
+  const { folder: currentFolder } = React.useMemo(
+    () => getFolderAndDocument(path),
+    [path],
   );
-  const [metadataSchema, setMetadataSchema] =
-    React.useState<MetadataSchemaConfig | null>(null);
+
+  const [selectedFolder, setSelectedFolder] = React.useState<string>(
+    currentFolder ?? "/",
+  );
+  const [metadataSchema, setMetadataSchema] = React.useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [refreshFrequency, setRefreshFrequency] = React.useState<
     RefreshFrequency | "none"
   >("none");
-
-  const { DocumentCollection, SnapshotCollection } = useCollections();
 
   const { data: allDocuments = [] } = useLiveQuery(
     (q) =>
@@ -75,122 +77,158 @@ export function CreateDocument() {
 
   React.useEffect(() => {
     if (open) {
-      setSelectedFolder(contextFolder ?? "/");
+      setSelectedFolder(currentFolder ?? "/");
       setMetadataSchema(null);
       setSelectedFile(null);
       setSnapshotType("website");
       setIsUploading(false);
       setRefreshFrequency("none");
       setEnhance(false);
+      setNameValue("");
     }
-  }, [open, contextFolder]);
+  }, [open, currentFolder]);
+
+  const isDuplicate = React.useMemo(() => {
+    const trimmedName = nameValue.trim();
+    if (!trimmedName) return false;
+    return allDocuments.some(
+      (doc) => doc.folder === selectedFolder && doc.name === trimmedName,
+    );
+  }, [allDocuments, selectedFolder, nameValue]);
 
   const createDocument = createOptimisticAction<
-    DocumentSelect & {
-      snapshot: SnapshotSelect & {
-        file?: File;
-        parsing_instruction?: string;
-      };
-    }
+    {
+      document_id: string;
+      snapshot_id: string;
+      folder: string;
+      name: string;
+      description?: string | null;
+
+      enhance?: boolean;
+      metadata_schema?: Record<string, unknown> | null;
+    } & (
+      | {
+          type: "website";
+          url: string;
+          refresh_frequency?: "daily" | "weekly" | "monthly" | null;
+        }
+      | {
+          type: "upload";
+          file: File;
+          parsing_instructions?: string | null;
+        }
+    )
   >({
-    onMutate: (document) => {
+    onMutate: (data) => {
       DocumentCollection.insert({
-        id: document.id,
-        project_id: document.project_id,
-        folder: document.folder,
-        name: document.name,
-        description: document.description,
-        metadata_schema: document.metadata_schema,
-        refresh_enabled: document.refresh_enabled,
-        refresh_frequency: document.refresh_frequency,
-        refresh_schedule_id: document.refresh_schedule_id,
-        created_at: document.created_at,
-        updated_at: document.updated_at,
+        id: data.document_id,
+        project_id: projectId,
         org_id: organization?.id ?? "",
+
+        folder: data.folder,
+        name: data.name,
+        description: data.description ?? null,
+        metadata_schema: data.metadata_schema ?? null,
+        refresh_frequency:
+          data.type === "website" ? (data.refresh_frequency ?? null) : null,
+        refresh_schedule_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
       SnapshotCollection.insert({
-        ...document.snapshot,
+        id: data.snapshot_id,
+        document_id: data.document_id,
+        org_id: organization?.id ?? "",
+
+        type: data.type,
+        url: data.type === "website" ? data.url : "",
+        status: "queued",
+        markdown_url: "",
+        enhance: !!data.enhance,
+
+        changes_detected: null,
+        chunks_count: null,
+        tokens_count: null,
+
+        metadata: null,
+
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
     },
-    mutationFn: async (document) => {
-      const formData = new FormData();
+    mutationFn: async (data) => {
+      let response: Response;
 
-      formData.append("id", document.id);
-      formData.append("project_id", document.project_id);
-      formData.append("folder", document.folder);
-      formData.append("name", document.name);
-      if (document.description) {
-        formData.append("description", document.description);
-      }
-      if (document.metadata_schema) {
-        formData.append(
-          "metadata_schema",
-          JSON.stringify(document.metadata_schema),
-        );
-      }
-      formData.append("refresh_enabled", document.refresh_enabled.toString());
-      if (document.refresh_frequency) {
-        formData.append("refresh_frequency", document.refresh_frequency);
-      }
+      if (data.type === "website") {
+        response = await fetch("/api/documents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ...data, project_id: projectId }),
+        });
+      } else {
+        const formData = new FormData();
 
-      formData.append("snapshot.id", document.snapshot.id);
-      formData.append("snapshot.type", document.snapshot.type);
-      formData.append("snapshot.status", document.snapshot.status);
+        if (!data.file) {
+          throw new Error("No file provided");
+        }
+        formData.append("file", data.file);
 
-      if (document.snapshot.type === "website" && document.snapshot.url) {
-        formData.append("snapshot.url", document.snapshot.url);
-      }
+        formData.append("project_id", projectId);
 
-      if (document.snapshot.type === "upload" && document.snapshot.file) {
-        formData.append("snapshot.file", document.snapshot.file);
-      }
+        formData.append("type", "upload");
 
-      if (document.snapshot.metadata) {
-        formData.append(
-          "snapshot.metadata",
-          JSON.stringify(document.snapshot.metadata),
-        );
-      }
-      if (document.snapshot.parsing_instruction) {
-        formData.append(
-          "snapshot.parsing_instruction",
-          document.snapshot.parsing_instruction,
-        );
-      }
+        formData.append("document_id", data.document_id);
+        formData.append("snapshot_id", data.snapshot_id);
 
-      if (document.snapshot.enhance) {
-        formData.append(
-          "snapshot.enhance",
-          document.snapshot.enhance.toString(),
-        );
-      }
+        formData.append("folder", data.folder);
+        formData.append("name", data.name);
+        if (data.description) {
+          formData.append("description", data.description);
+        }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/documents`,
-        {
+        if (data.metadata_schema) {
+          formData.append(
+            "metadata_schema",
+            JSON.stringify(data.metadata_schema),
+          );
+        }
+        if (data.enhance) {
+          formData.append("enhance", data.enhance.toString());
+        }
+
+        if (data.parsing_instructions) {
+          formData.append("parsing_instructions", data.parsing_instructions);
+        }
+
+        response = await fetch("/api/documents", {
           method: "POST",
           body: formData,
-        },
-      );
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to insert document: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as {
-        success: boolean;
-        txid: number;
+      const json = (await response.json()) as {
+        document_txid?: number;
+        snapshot_txid?: number;
+        document_id: string;
+        snapshot_id: string;
       };
 
-      await (DocumentCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
-      await (SnapshotCollection.utils as ElectricCollectionUtils).awaitTxId(
-        data.txid,
-      );
+      if (json.document_txid) {
+        await DocumentCollection.utils.awaitTxId(json.document_txid);
+      }
+      if (json.snapshot_txid) {
+        await SnapshotCollection.utils.awaitTxId(json.snapshot_txid);
+      }
 
       return {
-        txid: data.txid,
+        documentId: json.document_id,
+        snapshotId: json.snapshot_id,
       };
     },
   });
@@ -201,44 +239,29 @@ export function CreateDocument() {
 
       const formData = new FormData(e.target as HTMLFormElement);
 
-      const documentId = generateId();
-      const snapshotId = generateId();
       const folder = selectedFolder || "/";
 
+      const document_id = generateId();
+
       createDocument({
-        id: documentId,
-        project_id: projectId,
+        document_id,
+        snapshot_id: generateId(),
+
         folder,
         name: formData.get("name") as string,
         description: formData.get("description") as string,
+
         metadata_schema: metadataSchema,
-        refresh_enabled: refreshFrequency !== "none",
+        enhance,
+
+        type: "website",
+        url: formData.get("url") as string,
         refresh_frequency:
           refreshFrequency !== "none" ? refreshFrequency : null,
-        refresh_schedule_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        org_id: organization?.id ?? "",
-        snapshot: {
-          id: snapshotId,
-          document_id: documentId,
-          markdown_url: null,
-          chunks_count: null,
-          type: "website",
-          status: "queued",
-          url: formData.get("url") as string,
-          metadata: null,
-          extracted_metadata: null,
-          changes_detected: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          org_id: organization?.id ?? "",
-          enhance: false,
-        },
       });
 
       router.push(
-        `/orgs/${slug}/projects/${projectId}/documents/${folder}doc:${documentId}?newSnapshot=true`,
+        `/orgs/${slug}/projects/${projectId}/documents/${folder}doc:${document_id}?newSnapshot=true`,
       );
       setOpen(false);
     },
@@ -250,7 +273,7 @@ export function CreateDocument() {
       refreshFrequency,
       router,
       slug,
-      organization,
+      enhance,
     ],
   );
 
@@ -281,49 +304,26 @@ export function CreateDocument() {
           | string
           | null;
 
-        const documentId = generateId();
-        const snapshotId = generateId();
-
-        const snapshotMetadata: Record<string, unknown> = {
-          file_name: selectedFile.name,
-          file_size: selectedFile.size,
-        };
+        const document_id = generateId();
 
         createDocument({
-          id: documentId,
-          project_id: projectId,
+          document_id,
+          snapshot_id: generateId(),
+
           folder: selectedFolder || "/",
           name,
           description,
+
           metadata_schema: metadataSchema,
-          refresh_enabled: false,
-          refresh_frequency: null,
-          refresh_schedule_id: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          org_id: organization?.id ?? "",
-          snapshot: {
-            id: snapshotId,
-            document_id: documentId,
-            markdown_url: null,
-            chunks_count: null,
-            type: "upload",
-            status: "queued",
-            url: "",
-            metadata: snapshotMetadata,
-            changes_detected: false,
-            extracted_metadata: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            org_id: organization?.id ?? "",
-            enhance: false,
-            file: selectedFile,
-            parsing_instruction: parsingInstruction || undefined,
-          },
+          enhance,
+
+          type: "upload",
+          file: selectedFile,
+          parsing_instructions: parsingInstruction,
         });
 
         router.push(
-          `/orgs/${slug}/projects/${projectId}/documents/${selectedFolder || "/"}doc:${documentId}?newSnapshot=true`,
+          `/orgs/${slug}/projects/${projectId}/documents/${selectedFolder || "/"}doc:${document_id}?newSnapshot=true`,
         );
         setOpen(false);
       } catch (error) {
@@ -343,7 +343,7 @@ export function CreateDocument() {
       createDocument,
       router,
       slug,
-      organization,
+      enhance,
     ],
   );
 
@@ -396,9 +396,29 @@ export function CreateDocument() {
                   : "Name"
               }
               name="name"
+              value={nameValue}
               required={snapshotType === "website"}
               disabled={isUploading}
+              onChange={(e) => {
+                const sanitized = e.target.value
+                  .trim()
+                  .replace(/\s+/g, "-")
+                  .replace(/[^a-zA-Z0-9_-]/g, "");
+                setNameValue(sanitized);
+              }}
+              className={isDuplicate ? "border-destructive" : ""}
             />
+            {isDuplicate ? (
+              <p className="text-xs text-destructive">
+                A document named "{nameValue}" already exists in folder "
+                {selectedFolder}"
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Only letters (a-z, A-Z), numbers, hyphens, and underscores
+                allowed
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -550,7 +570,10 @@ export function CreateDocument() {
           <Button
             type="submit"
             disabled={
-              isUploading || (snapshotType === "upload" && !selectedFile)
+              isUploading ||
+              (snapshotType === "upload" && !selectedFile) ||
+              (snapshotType === "website" && isDuplicate) ||
+              (snapshotType === "website" && !nameValue.trim())
             }
           >
             {isUploading ? (

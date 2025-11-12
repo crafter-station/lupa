@@ -1,11 +1,10 @@
 import { eq } from "drizzle-orm";
+import { clerk } from "@/clients/clerk";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { clerk } from "@/lib/clerk";
+
 import { CreateProject } from "./create-project-wrapper";
 import { ProjectList } from "./project-list";
-
-export const revalidate = 30;
 
 export default async function ProjectsPage({
   params,

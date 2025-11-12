@@ -28,8 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { RefreshFrequency } from "@/db";
-import { useCollections } from "@/hooks/use-collections";
-import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
+import { DocumentCollection, SnapshotCollection } from "@/db/collections";
 import { generateId } from "@/lib/generate-id";
 
 type DiscoveredLink = {
@@ -46,10 +45,9 @@ type DiscoveredLink = {
 export function BulkCreateClient() {
   const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
   const router = useRouter();
-  const { folder: contextFolder } = useFolderDocumentVersion();
 
   const [rootUrl, setRootUrl] = React.useState("");
-  const [rootFolder, setRootFolder] = React.useState(contextFolder ?? "/");
+  const [rootFolder, setRootFolder] = React.useState("/");
   const [limit, setLimit] = React.useState(50);
   const [shouldFetch, setShouldFetch] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -61,8 +59,6 @@ export function BulkCreateClient() {
     id: string;
     publicAccessToken: string;
   } | null>(null);
-
-  const { DocumentCollection, SnapshotCollection } = useCollections();
 
   const { data: allDocuments = [] } = useLiveQuery(
     (q) =>
@@ -189,26 +185,48 @@ export function BulkCreateClient() {
       }
 
       const data = (await response.json()) as {
-        success: boolean;
-        txid: number;
         created_count: number;
         snapshot_ids: string[];
         run_id: string;
         public_access_token: string;
       };
 
-      if (data.success) {
-        setSnapshotIds(data.snapshot_ids);
-        setRunHandle({
-          id: data.run_id,
-          publicAccessToken: data.public_access_token,
-        });
-      }
+      setSnapshotIds(data.snapshot_ids);
+      setRunHandle({
+        id: data.run_id,
+        publicAccessToken: data.public_access_token,
+      });
     } catch (error) {
       console.error("Failed to create documents:", error);
       setIsCreating(false);
     }
   }, [discoveredLinks, projectId]);
+
+  const getDuplicateInfo = React.useCallback(
+    (link: DiscoveredLink) => {
+      const existsInDB = allDocuments.some(
+        (doc) => doc.folder === link.folder && doc.name === link.name,
+      );
+
+      const duplicateInList =
+        discoveredLinks.filter(
+          (l) =>
+            l.id !== link.id &&
+            l.folder === link.folder &&
+            l.name === link.name,
+        ).length > 0;
+
+      return { existsInDB, duplicateInList };
+    },
+    [allDocuments, discoveredLinks],
+  );
+
+  const totalDuplicates = React.useMemo(() => {
+    return discoveredLinks.filter((link) => {
+      const { existsInDB, duplicateInList } = getDuplicateInfo(link);
+      return existsInDB || duplicateInList;
+    }).length;
+  }, [discoveredLinks, getDuplicateInfo]);
 
   const toggleAllEnhance = () => {
     const allEnhanced = discoveredLinks.every((link) => link.enhance);
@@ -413,103 +431,137 @@ export function BulkCreateClient() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {discoveredLinks.map((link) => (
-                <TableRow key={link.id}>
-                  <TableCell>
-                    <Input
-                      value={link.name}
-                      onChange={(e) =>
-                        updateLink(link.id, "name", e.target.value)
-                      }
-                      disabled={isCreating}
-                      className="text-sm"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={link.description}
-                      onChange={(e) =>
-                        updateLink(link.id, "description", e.target.value)
-                      }
-                      disabled={isCreating}
-                      placeholder="Add description..."
-                      className="text-sm"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={link.url}
-                      onChange={(e) =>
-                        updateLink(link.id, "url", e.target.value)
-                      }
-                      disabled={isCreating}
-                      className="text-sm font-mono"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+              {discoveredLinks.map((link) => {
+                const { existsInDB, duplicateInList } = getDuplicateInfo(link);
+                const hasDuplicate = existsInDB || duplicateInList;
+
+                return (
+                  <TableRow key={link.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Input
+                          value={link.name}
+                          onChange={(e) => {
+                            const sanitized = e.target.value
+                              .trim()
+                              .replace(/\s+/g, "-")
+                              .replace(/[^a-zA-Z0-9_-]/g, "");
+                            updateLink(link.id, "name", sanitized);
+                          }}
+                          disabled={isCreating}
+                          className={
+                            hasDuplicate
+                              ? "text-sm border-destructive"
+                              : "text-sm"
+                          }
+                        />
+                        {hasDuplicate && (
+                          <p className="text-xs text-destructive">
+                            {existsInDB
+                              ? "Exists in database"
+                              : "Duplicate in list"}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <Input
-                        value={link.folder}
+                        value={link.description}
                         onChange={(e) =>
-                          updateLink(link.id, "folder", e.target.value)
+                          updateLink(link.id, "description", e.target.value)
+                        }
+                        disabled={isCreating}
+                        placeholder="Add description..."
+                        className="text-sm"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={link.url}
+                        onChange={(e) =>
+                          updateLink(link.id, "url", e.target.value)
                         }
                         disabled={isCreating}
                         className="text-sm font-mono"
                       />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={link.refresh_frequency}
-                      onValueChange={(value) =>
-                        updateLink(
-                          link.id,
-                          "refresh_frequency",
-                          value as RefreshFrequency | "none",
-                        )
-                      }
-                      disabled={isCreating}
-                    >
-                      <SelectTrigger className="text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Checkbox
-                      checked={link.enhance}
-                      onCheckedChange={(checked) =>
-                        updateLink(link.id, "enhance", checked === true)
-                      }
-                      disabled={isCreating}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteLink(link.id)}
-                      disabled={isCreating}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={link.folder}
+                          onChange={(e) =>
+                            updateLink(link.id, "folder", e.target.value)
+                          }
+                          disabled={isCreating}
+                          className="text-sm font-mono"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={link.refresh_frequency}
+                        onValueChange={(value) =>
+                          updateLink(
+                            link.id,
+                            "refresh_frequency",
+                            value as RefreshFrequency | "none",
+                          )
+                        }
+                        disabled={isCreating}
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={link.enhance}
+                        onCheckedChange={(checked) =>
+                          updateLink(link.id, "enhance", checked === true)
+                        }
+                        disabled={isCreating}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteLink(link.id)}
+                        disabled={isCreating}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
 
+        {totalDuplicates > 0 && (
+          <div className="p-4 border border-destructive bg-destructive/10 rounded-lg">
+            <p className="text-sm text-destructive font-medium">
+              {totalDuplicates} duplicate document name
+              {totalDuplicates !== 1 ? "s" : ""} detected. Please rename or
+              remove duplicates before creating.
+            </p>
+          </div>
+        )}
+
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <Button
             onClick={handleCreateAll}
-            disabled={isCreating || discoveredLinks.length === 0}
+            disabled={
+              isCreating || discoveredLinks.length === 0 || totalDuplicates > 0
+            }
             size="lg"
             className="shadow-lg"
           >

@@ -11,11 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useCollections } from "@/hooks/use-collections";
+import { ProjectCollection } from "@/db/collections";
 import { generateId } from "@/lib/generate-id";
 
 export function CreateProject() {
-  const { ProjectCollection } = useCollections();
   const [open, setOpen] = React.useState(false);
   const { organization } = useOrganization();
 
@@ -28,6 +27,9 @@ export function CreateProject() {
         id: generateId(),
         name: formData.get("name") as string,
         description: formData.get("description") as string,
+        production_deployment_id: null,
+        staging_deployment_id: null,
+        vector_index_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         org_id: organization?.id ?? "",
@@ -35,7 +37,7 @@ export function CreateProject() {
 
       setOpen(false);
     },
-    [ProjectCollection, organization],
+    [organization],
   );
 
   return (

@@ -203,23 +203,6 @@ export function FilePicker({
                       </>
                     )}
                   </div>
-                  {file.extractedMetadata &&
-                    Object.keys(file.extractedMetadata).length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {Object.entries(file.extractedMetadata)
-                          .slice(0, 3)
-                          .map(([key, value]) => (
-                            <Badge
-                              key={key}
-                              variant="outline"
-                              className="text-xs py-0 px-1.5 h-5"
-                            >
-                              {key}: {String(value).slice(0, 20)}
-                              {String(value).length > 20 ? "..." : ""}
-                            </Badge>
-                          ))}
-                      </div>
-                    )}
                 </div>
                 {isSelected && (
                   <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />

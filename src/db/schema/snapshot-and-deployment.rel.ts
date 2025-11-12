@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  unique,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { Deployment } from "./deployment";
 import { Snapshot } from "./snapshot";
@@ -19,6 +26,10 @@ export const SnapshotDeploymentRel = pgTable(
       .notNull()
       .references(() => Deployment.id, { onDelete: "cascade" }),
 
+    folder: text("folder").notNull(),
+    name: text("name").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+
     created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -26,7 +37,16 @@ export const SnapshotDeploymentRel = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.snapshot_id, t.deployment_id] })],
+  (t) => [
+    primaryKey({
+      columns: [t.snapshot_id, t.deployment_id],
+    }),
+    unique("deployment_folder_name_unique").on(
+      t.deployment_id,
+      t.folder,
+      t.name,
+    ),
+  ],
 );
 
 export const SnapshotDeploymentRelRelations = relations(

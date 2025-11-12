@@ -2,7 +2,7 @@ import { type OpenAIResponsesProviderOptions, openai } from "@ai-sdk/openai";
 import { logger, schemaTask } from "@trigger.dev/sdk";
 import { generateText } from "ai";
 import dedent from "dedent";
-import { z } from "zod";
+import { z } from "zod/v3";
 
 export const enhanceMdTask = schemaTask({
   id: "enhance-md",

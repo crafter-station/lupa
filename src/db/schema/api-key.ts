@@ -1,41 +1,77 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { Project } from "./project";
 
 export const API_KEY_TABLE = "api_key";
 
-export const ApiKey = pgTable(API_KEY_TABLE, {
-  id: text("id").primaryKey(),
+export const ApiKeyEnvironment = pgEnum("api_key_environment_enum", [
+  "live",
+  "test",
+]);
 
-  project_id: text("project_id")
-    .notNull()
-    .references(() => Project.id, { onDelete: "cascade" }),
+export const ApiKeyType = pgEnum("api_key_type_enum", ["sk", "pk"]);
 
-  name: text("name").notNull(),
+export type ApiKeyEnvironment = (typeof ApiKeyEnvironment.enumValues)[number];
+export type ApiKeyType = (typeof ApiKeyType.enumValues)[number];
 
-  key_hash: text("key_hash").notNull(),
+export const ApiKey = pgTable(
+  API_KEY_TABLE,
+  {
+    id: text("id").primaryKey(),
 
-  key_preview: text("key_preview").notNull(),
+    org_id: text("org_id").notNull(),
 
-  last_used_at: timestamp("last_used_at", {
-    withTimezone: true,
-    mode: "string",
-  }),
+    project_id: text("project_id")
+      .notNull()
+      .references(() => Project.id, { onDelete: "cascade" }),
 
-  created_at: timestamp("created_at", {
-    withTimezone: true,
-    mode: "string",
-  })
-    .notNull()
-    .defaultNow(),
+    name: text("name").notNull(),
 
-  updated_at: timestamp("updated_at", {
-    withTimezone: true,
-    mode: "string",
-  })
-    .notNull()
-    .defaultNow(),
-});
+    key_hash: text("key_hash").notNull().unique(),
+
+    key_preview: text("key_preview").notNull(),
+
+    environment: ApiKeyEnvironment("environment").notNull().default("live"),
+
+    key_type: ApiKeyType("key_type").notNull().default("sk"),
+
+    is_active: boolean("is_active").notNull().default(true),
+
+    last_used_at: timestamp("last_used_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+
+    created_at: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+
+    updated_at: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("api_key_project_env_type_name_unique")
+      .on(table.project_id, table.environment, table.key_type, table.name)
+      .where(sql`${table.is_active} = true`),
+    index("api_key_hash_active_idx").on(table.key_hash, table.is_active),
+  ],
+);
 
 export const ApiKeyInsertSchema = createInsertSchema(ApiKey);
 export const ApiKeySelectSchema = createSelectSchema(ApiKey);

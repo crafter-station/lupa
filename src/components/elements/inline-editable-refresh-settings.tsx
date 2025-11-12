@@ -16,7 +16,6 @@ import type { RefreshFrequency } from "@/db";
 import { cn } from "@/lib/utils";
 
 interface InlineEditableRefreshSettingsProps {
-  refreshEnabled: boolean;
   refreshFrequency: RefreshFrequency | null;
   onSave: (
     enabled: boolean,
@@ -26,22 +25,19 @@ interface InlineEditableRefreshSettingsProps {
 }
 
 export function InlineEditableRefreshSettings({
-  refreshEnabled,
   refreshFrequency,
   onSave,
   className,
 }: InlineEditableRefreshSettingsProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState<RefreshFrequency | "none">(
-    refreshEnabled && refreshFrequency ? refreshFrequency : "none",
+    refreshFrequency ? refreshFrequency : "none",
   );
   const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
-    setEditValue(
-      refreshEnabled && refreshFrequency ? refreshFrequency : "none",
-    );
-  }, [refreshEnabled, refreshFrequency]);
+    setEditValue(refreshFrequency ? refreshFrequency : "none");
+  }, [refreshFrequency]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -52,23 +48,19 @@ export function InlineEditableRefreshSettings({
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to save:", error);
-      setEditValue(
-        refreshEnabled && refreshFrequency ? refreshFrequency : "none",
-      );
+      setEditValue(refreshFrequency ? refreshFrequency : "none");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    setEditValue(
-      refreshEnabled && refreshFrequency ? refreshFrequency : "none",
-    );
+    setEditValue(refreshFrequency ? refreshFrequency : "none");
     setIsEditing(false);
   };
 
   const getDisplayText = () => {
-    if (!refreshEnabled || !refreshFrequency) {
+    if (!refreshFrequency) {
       return "No automatic refresh";
     }
     switch (refreshFrequency) {

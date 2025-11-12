@@ -1,0 +1,7 @@
+certifi
+charset-normalizer
+idna
+regex
+requests
+tiktoken
+urllib3

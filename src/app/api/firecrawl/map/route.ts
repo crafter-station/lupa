@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
-import { z } from "zod";
-import { firecrawl } from "@/lib/firecrawl";
+import { z } from "zod/v3";
+import { firecrawl } from "@/clients/firecrawl";
 
-export const preferredRegion = "iad1";
+export const preferredRegion = ["iad1", "gru1"];
 
 const MapRequestSchema = z.object({
   url: z.string().min(1, "URL is required"),

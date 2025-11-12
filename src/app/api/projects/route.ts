@@ -3,8 +3,10 @@ import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "zod/v3";
 import * as schema from "@/db/schema";
+
+export const preferredRegion = ["iad1", "gru1"];
 
 export const CreateProjectRequestSchema = z.object({
   id: z

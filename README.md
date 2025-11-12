@@ -11,10 +11,10 @@ Lupa is a production-ready RAG (Retrieval-Augmented Generation) infrastructure t
 </a>
 
 🔍 **Semantic Search**: pgvector-powered retrieval with <50ms P95 latency
-📄 **Smart Parsing**: Automatic chunking for PDF, DOCX, XLSX, CSV, HTML, and more  
-📊 **Agent Observability**: Track queries, relevance scores, and retrieval patterns  
-🔄 **Version Control**: Snapshot-based deployments with zero-downtime updates  
-⏰ **Auto-Refresh**: Schedule automatic updates for web-scraped documents (daily, weekly, monthly)  
+📄 **Smart Parsing**: Automatic chunking for PDF, DOCX, XLSX, CSV, HTML, and more
+📊 **Agent Observability**: Track queries, relevance scores, and retrieval patterns
+🔄 **Version Control**: Snapshot-based deployments with zero-downtime updates
+⏰ **Auto-Refresh**: Schedule automatic updates for web-scraped documents (daily, weekly, monthly)
 
 ## Features
 
@@ -330,7 +330,7 @@ const result = streamText({
 ```typescript
 import { ChatOpenAI } from "@langchain/openai";
 import { DynamicStructuredTool } from "@langchain/core/tools";
-import { z } from "zod";
+import { z } from "zod/v3";
 
 const searchTool = new DynamicStructuredTool({
   name: "search_knowledge",

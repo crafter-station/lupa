@@ -13,6 +13,8 @@ interface InlineEditableFieldProps {
   className?: string;
   placeholder?: string;
   required?: boolean;
+  sanitizeName?: boolean;
+  onValidate?: (value: string) => { valid: boolean; message?: string };
 }
 
 export function InlineEditableField({
@@ -21,11 +23,24 @@ export function InlineEditableField({
   className,
   placeholder = "Click to edit",
   required = false,
+  sanitizeName = false,
+  onValidate,
 }: InlineEditableFieldProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [validationError, setValidationError] = React.useState<string | null>(
+    null,
+  );
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const sanitizeValue = (val: string) => {
+    if (!sanitizeName) return val;
+    return val
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9_-]/g, "");
+  };
 
   React.useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -36,10 +51,24 @@ export function InlineEditableField({
 
   React.useEffect(() => {
     setEditValue(value);
+    setValidationError(null);
   }, [value]);
+
+  React.useEffect(() => {
+    if (onValidate && editValue.trim()) {
+      const validation = onValidate(editValue);
+      setValidationError(validation.valid ? null : validation.message || null);
+    } else {
+      setValidationError(null);
+    }
+  }, [editValue, onValidate]);
 
   const handleSave = async () => {
     if (required && !editValue.trim()) {
+      return;
+    }
+
+    if (validationError) {
       return;
     }
 
@@ -47,6 +76,7 @@ export function InlineEditableField({
     try {
       await onSave(editValue);
       setIsEditing(false);
+      setValidationError(null);
     } catch (error) {
       console.error("Failed to save:", error);
       setEditValue(value);
@@ -57,6 +87,7 @@ export function InlineEditableField({
 
   const handleCancel = () => {
     setEditValue(value);
+    setValidationError(null);
     setIsEditing(false);
   };
 
@@ -72,34 +103,48 @@ export function InlineEditableField({
 
   if (isEditing) {
     return (
-      <div className="flex items-center gap-1">
-        <Input
-          ref={inputRef}
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className={cn("h-8", className)}
-          disabled={isSaving}
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          onClick={handleSave}
-          disabled={isSaving || (required && !editValue.trim())}
-        >
-          <Check className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          onClick={handleCancel}
-          disabled={isSaving}
-        >
-          <X className="size-4" />
-        </Button>
+      <div className="space-y-1">
+        <div className="flex items-center gap-1">
+          <Input
+            ref={inputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => {
+              const newValue = sanitizeValue(e.target.value);
+              setEditValue(newValue);
+            }}
+            onKeyDown={handleKeyDown}
+            className={cn(
+              "h-8",
+              validationError && "border-destructive",
+              className,
+            )}
+            disabled={isSaving}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={handleSave}
+            disabled={
+              isSaving || (required && !editValue.trim()) || !!validationError
+            }
+          >
+            <Check className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={handleCancel}
+            disabled={isSaving}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+        {validationError && (
+          <p className="text-xs text-destructive">{validationError}</p>
+        )}
       </div>
     );
   }

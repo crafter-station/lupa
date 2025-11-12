@@ -10,7 +10,10 @@ import { YunoIcon } from "@/components/icons/yuno";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { highlightCode } from "@/lib/highlight";
+import { rootDomain } from "@/lib/utils";
 import { SignInButton } from "./sign-in-button-wrapper";
+
+const FOOTER_YEAR = 2025;
 
 const AGENT_CODE = `import { streamText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
@@ -24,7 +27,7 @@ const result = streamText({
       parameters: z.object({ query: z.string() }),
       execute: async ({ query }) => {
         const res = await fetch(
-          \`https://lupa.build/api/search?projectId=\${projectId}&deploymentId=\${deploymentId}&query=\${query}\`
+          \`https://${rootDomain}/api/search?projectId=\${projectId}&deploymentId=\${deploymentId}&query=\${query}\`
         );
         return res.json();
       }
@@ -34,7 +37,7 @@ const result = streamText({
       parameters: z.object({ snapshotId: z.string() }),
       execute: async ({ snapshotId }) => {
         const res = await fetch(
-          \`https://lupa.build/api/snapshots/\${snapshotId}\`
+          \`https://${rootDomain}/api/snapshots/\${snapshotId}\`
         );
         return res.text();
       }
@@ -82,7 +85,7 @@ export default async function Home() {
           </Link>
           <nav className="flex items-center gap-3 sm:gap-6">
             <a
-              href="https://docs.lupa.build"
+              href={`https://docs.${rootDomain}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs sm:text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -134,7 +137,7 @@ export default async function Home() {
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a
-                  href="https://docs.lupa.build"
+                  href={`https://docs.${rootDomain}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -522,7 +525,7 @@ export default async function Home() {
               <ul className="space-y-2 text-xs sm:text-sm">
                 <li>
                   <a
-                    href="https://docs.lupa.build"
+                    href={`https://docs.${rootDomain}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-muted-foreground transition-colors hover:text-foreground"
@@ -615,7 +618,7 @@ export default async function Home() {
           </div>
 
           <div className="mt-8 sm:mt-12 border-t border-border pt-6 sm:pt-8 text-center text-xs sm:text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Lupa. All rights reserved.
+            © {FOOTER_YEAR} Lupa. All rights reserved.
           </div>
         </div>
       </footer>

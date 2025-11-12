@@ -16,6 +16,7 @@ export async function highlightCode(
   code: string,
   lang: BundledLanguage = "typescript",
 ): Promise<string> {
+  "use cache";
   const highlighter = await getHighlighter();
 
   return highlighter.codeToHtml(code, {

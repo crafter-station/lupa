@@ -8,7 +8,7 @@ const CRON_PATTERNS: Record<RefreshFrequency, string> = {
 };
 
 export async function createDocumentSchedule(
-  documentId: string,
+  document_id: string,
   frequency: RefreshFrequency,
 ) {
   const cronPattern = CRON_PATTERNS[frequency];
@@ -16,8 +16,8 @@ export async function createDocumentSchedule(
   const schedule = await schedules.create({
     task: "refetch-website",
     cron: cronPattern,
-    externalId: documentId,
-    deduplicationKey: `doc-refresh-${documentId}`,
+    externalId: document_id,
+    deduplicationKey: `doc-refresh-${document_id}`,
     timezone: "UTC",
   });
 
@@ -25,32 +25,32 @@ export async function createDocumentSchedule(
 }
 
 export async function updateDocumentSchedule(
-  scheduleId: string,
-  documentId: string,
+  schedule_id: string,
+  document_id: string,
   frequency: RefreshFrequency,
 ) {
   const cronPattern = CRON_PATTERNS[frequency];
 
-  const schedule = await schedules.update(scheduleId, {
+  const schedule = await schedules.update(schedule_id, {
     task: "refetch-website",
     cron: cronPattern,
-    externalId: documentId,
+    externalId: document_id,
   });
 
   return schedule;
 }
 
-export async function deleteDocumentSchedule(scheduleId: string) {
-  const schedule = await schedules.del(scheduleId);
+export async function deleteDocumentSchedule(schedule_id: string) {
+  const schedule = await schedules.del(schedule_id);
   return schedule;
 }
 
-export async function deactivateDocumentSchedule(scheduleId: string) {
-  const schedule = await schedules.deactivate(scheduleId);
+export async function deactivateDocumentSchedule(schedule_id: string) {
+  const schedule = await schedules.deactivate(schedule_id);
   return schedule;
 }
 
-export async function activateDocumentSchedule(scheduleId: string) {
-  const schedule = await schedules.activate(scheduleId);
+export async function activateDocumentSchedule(schedule_id: string) {
+  const schedule = await schedules.activate(schedule_id);
   return schedule;
 }

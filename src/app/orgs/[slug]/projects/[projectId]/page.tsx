@@ -3,8 +3,6 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { AnalyticsDashboard } from "./analytics-dashboard";
 
-export const revalidate = 30;
-
 export default async function ProjectPage({
   params,
 }: {

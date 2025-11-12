@@ -7,18 +7,19 @@ import {
   SNAPSHOT_AND_DEPLOYMENT_REL_TABLE,
   type SnapshotDeploymentRelSelect,
 } from "@/db/schema";
+import { appBaseURL } from "@/lib/utils";
 
 export const SnapshotDeploymentRelCollection =
   createCollection<SnapshotDeploymentRelSelect>(
     electricCollectionOptions<SnapshotDeploymentRelSelect>({
       id: SNAPSHOT_AND_DEPLOYMENT_REL_TABLE,
       shapeOptions: {
-        url: `${process.env.NEXT_PUBLIC_URL}/api/collections/snapshot-and-deployment-rel`,
+        url: `${appBaseURL}/api/collections/snapshot-and-deployment-rel`,
       },
       getKey: (item) => `${item.snapshot_id}-${item.deployment_id}`,
       onInsert: async (item) => {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_URL}/api/snapshot-and-deployment-rel`,
+          `${appBaseURL}/api/snapshot-and-deployment-rel`,
           {
             method: "POST",
             headers: {

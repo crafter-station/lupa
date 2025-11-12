@@ -4,8 +4,6 @@ import * as schema from "@/db/schema";
 import { CreateDeployment } from "./create-deployment";
 import { DeploymentList } from "./deployment-list";
 
-export const revalidate = 30;
-
 export default async function DeploymentsPage({
   params,
 }: {
@@ -19,12 +17,17 @@ export default async function DeploymentsPage({
     .where(eq(schema.Deployment.project_id, projectId));
 
   return (
-    <>
-      <div className="flex justify-between items-start">
-        <h1 className="text-2xl font-bold">Deployment</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Deployments</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your deployment environments
+          </p>
+        </div>
         <CreateDeployment />
       </div>
       <DeploymentList preloadedDeployments={preloadedDeployments} />
-    </>
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   PaperclipIcon,
   PlusIcon,
   SendIcon,
+  SparklesIcon,
   SquareIcon,
   XIcon,
 } from "lucide-react";
@@ -36,6 +37,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -482,10 +487,13 @@ export const PromptInputBody = ({
   <div className={cn(className, "flex flex-col")} {...props} />
 );
 
-export type PromptInputTextareaProps = ComponentProps<typeof Textarea>;
+export type PromptInputTextareaProps = ComponentProps<typeof Textarea> & {
+  onKeyDown?: KeyboardEventHandler<HTMLTextAreaElement>;
+};
 
 export const PromptInputTextarea = ({
   onChange,
+  onKeyDown: externalOnKeyDown,
   className,
   placeholder = "What would you like to know?",
   ...props
@@ -493,18 +501,21 @@ export const PromptInputTextarea = ({
   const attachments = usePromptInputAttachments();
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+    externalOnKeyDown?.(e);
+
+    if (e.defaultPrevented) {
+      return;
+    }
+
     if (e.key === "Enter") {
-      // Don't submit if IME composition is in progress
       if (e.nativeEvent.isComposing) {
         return;
       }
 
       if (e.shiftKey) {
-        // Allow newline
         return;
       }
 
-      // Submit on Enter (without Shift)
       e.preventDefault();
       const form = e.currentTarget.form;
       if (form) {
@@ -708,7 +719,7 @@ export const PromptInputModelSelectTrigger = ({
 }: PromptInputModelSelectTriggerProps) => (
   <SelectTrigger
     className={cn(
-      "border-none bg-transparent font-medium text-muted-foreground shadow-none transition-colors",
+      "!w-32 border-none bg-transparent font-medium text-muted-foreground shadow-none transition-colors",
       'hover:bg-accent hover:text-foreground [&[aria-expanded="true"]]:bg-accent [&[aria-expanded="true"]]:text-foreground',
       className,
     )}
@@ -744,5 +755,47 @@ export const PromptInputModelSelectValue = ({
   className,
   ...props
 }: PromptInputModelSelectValueProps) => (
-  <SelectValue className={cn(className)} {...props} />
+  <SelectValue className={cn(className)} {...props} suppressHydrationWarning />
+);
+
+export type PromptInputDropdownSelectProps = ComponentProps<
+  typeof DropdownMenu
+> & {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  label: string;
+  icon?: React.ReactNode;
+};
+
+export const PromptInputDropdownSelect = ({
+  value,
+  onValueChange,
+  options,
+  label,
+  icon,
+  ...props
+}: PromptInputDropdownSelectProps) => (
+  <DropdownMenu {...props}>
+    <DropdownMenuTrigger asChild>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="shrink-0 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        {icon ?? <SparklesIcon className="size-4" />}
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="start" className="w-48">
+      <DropdownMenuLabel>{label}</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuRadioGroup value={value} onValueChange={onValueChange}>
+        {options.map((option) => (
+          <DropdownMenuRadioItem key={option.value} value={option.value}>
+            {option.label}
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+    </DropdownMenuContent>
+  </DropdownMenu>
 );

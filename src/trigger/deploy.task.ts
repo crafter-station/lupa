@@ -1,10 +1,11 @@
 import { batch, logger, schemaTask, wait } from "@trigger.dev/sdk";
+import { Index as VectorIndex } from "@upstash/vector";
 import { and, desc, eq, lte } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { db } from "@/db";
 import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";
-import { invalidateVectorCache } from "@/lib/vector";
+import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
 export const deploy = schemaTask({
   id: "deploy",
@@ -38,7 +39,10 @@ export const deploy = schemaTask({
         .from(schema.Document)
         .where(eq(schema.Document.project_id, deployment.project_id));
 
-      const snapshots: schema.SnapshotSelect[] = [];
+      const snapshots: (schema.SnapshotSelect & {
+        folder: string;
+        name: string;
+      })[] = [];
 
       for (const document of documents) {
         const results = await db
@@ -55,7 +59,11 @@ export const deploy = schemaTask({
           .limit(1);
 
         if (results.length) {
-          snapshots.push(results[0]);
+          snapshots.push({
+            ...results[0],
+            folder: document.folder,
+            name: document.name,
+          });
         }
       }
       if (!snapshots.length) {
@@ -67,58 +75,75 @@ export const deploy = schemaTask({
           deployment_id: deployment.id,
           snapshot_id: snapshot.id,
           org_id: deployment.org_id,
+          folder: snapshot.folder,
+          name: snapshot.name,
+          metadata: snapshot.metadata,
         })),
       );
 
-      const url = "https://api.upstash.com/v2/vector/index";
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${process.env.UPSTASH_MANAGEMENT_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: deploymentId,
-          region: "us-east-1",
-          similarity_function: "COSINE",
-          dimension_count: 1024,
-          type: "payg",
-          embedding_model: "BGE_M3",
-          index_type: "HYBRID",
-          sparse_embedding_model: "BM25",
-        }),
-      });
+      const [project] = await db
+        .select()
+        .from(schema.Project)
+        .where(eq(schema.Project.id, deployment.project_id))
+        .limit(1);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to create vector index: ${response.status} ${errorText}`,
-        );
+      if (!project) {
+        throw new Error(`Project not found for deployment ${deploymentId}`);
       }
 
-      const vectorIndex = (await response.json()) as {
-        id: string;
-        endpoint: string;
-        token: string;
-      };
+      if (!project.vector_index_id) {
+        const url = "https://api.upstash.com/v2/vector/index";
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${process.env.UPSTASH_MANAGEMENT_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: `prj_${project.id}`,
+            region: "us-east-1",
+            similarity_function: "COSINE",
+            dimension_count: 1024,
+            type: "payg",
+            embedding_model: "BGE_M3",
+            index_type: "HYBRID",
+            sparse_embedding_model: "BM25",
+          }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Failed to create vector index: ${response.status} ${errorText}`,
+          );
+        }
 
-      if (!vectorIndex?.id) {
-        throw new Error(
-          `Failed to create vector index for deployment ${deploymentId}`,
+        const vectorIndex = (await response.json()) as {
+          id: string;
+          endpoint: string;
+          token: string;
+        };
+
+        if (!vectorIndex?.id) {
+          throw new Error(
+            `Failed to create vector index for deployment ${deploymentId}`,
+          );
+        }
+
+        logger.info(`Vector index created: ${vectorIndex.id}`);
+
+        await db
+          .update(schema.Project)
+          .set({
+            vector_index_id: vectorIndex.id,
+            updated_at: new Date().toISOString(),
+          })
+          .where(eq(schema.Project.id, project.id));
+
+        await redis.set(
+          `vectorIndexId:${deployment.project_id}`,
+          vectorIndex.id,
         );
       }
-
-      logger.info(`Vector index created: ${vectorIndex.id}`);
-
-      await db
-        .update(schema.Deployment)
-        .set({
-          vector_index_id: vectorIndex.id,
-          updated_at: new Date().toISOString(),
-        })
-        .where(eq(schema.Deployment.id, deploymentId));
-
-      await redis.set(`vectorIndexId:${deploymentId}`, vectorIndex.id);
 
       await wait.for({ seconds: 15 });
 
@@ -128,6 +153,7 @@ export const deploy = schemaTask({
           payload: {
             deploymentId,
             snapshotId: snapshot.id,
+            projectId: deployment.project_id,
           },
         })),
       );
@@ -160,10 +186,11 @@ export const deploy = schemaTask({
 export const pushSnapshot = schemaTask({
   id: "push-snapshot",
   schema: z.object({
+    projectId: z.string(),
     deploymentId: z.string(),
     snapshotId: z.string(),
   }),
-  run: async ({ deploymentId, snapshotId }) => {
+  run: async ({ projectId, deploymentId, snapshotId }) => {
     try {
       const snapshots = await db
         .select()
@@ -181,28 +208,25 @@ export const pushSnapshot = schemaTask({
         throw new Error(`Snapshot ${snapshotId} does not have a markdown URL`);
       }
 
-      const documents = await db
+      const [document] = await db
         .select()
-        .from(schema.Document)
-        .where(eq(schema.Document.id, snapshot.document_id))
-        .limit(1);
+        .from(schema.SnapshotDeploymentRel)
+        .where(
+          and(
+            eq(schema.SnapshotDeploymentRel.snapshot_id, snapshotId),
+            eq(schema.SnapshotDeploymentRel.deployment_id, deploymentId),
+          ),
+        );
 
-      const document = documents[0];
       if (!document) {
-        throw new Error(`Document ${snapshot.document_id} not found`);
+        throw new Error(`Document not found for snapshot ${snapshotId}`);
       }
 
-      const vector = await (async () => {
-        try {
-          const { getVectorIndex } = await import("@/lib/vector");
-          return await getVectorIndex(deploymentId, { skipCache: true });
-        } catch (error) {
-          logger.error("Failed to get vector index using cache", { error });
-          throw error;
-        }
-      })();
+      const indexCredentials = await getVectorIndex(projectId);
+      const index = new VectorIndex(indexCredentials);
+      const namespace = index.namespace(deploymentId);
 
-      logger.info(`Vector index retrieved for deployment ${deploymentId}`);
+      logger.info(`Vector index retrieved for project ${projectId}`);
 
       const response = await fetch(snapshot.markdown_url);
       if (!response.ok) {
@@ -221,12 +245,6 @@ export const pushSnapshot = schemaTask({
       const chunkSize = 1000;
       const chunkOverlap = 200;
 
-      const fileName =
-        snapshot.type === "upload" && snapshot.metadata
-          ? (snapshot.metadata as { file_name?: string }).file_name ||
-            document.name
-          : document.name;
-
       for (let i = 0; i < markdown.length; i += chunkSize - chunkOverlap) {
         const chunk = markdown.slice(i, i + chunkSize);
         const chunkId = `${snapshot.document_id}_chunk_${Math.floor(i / (chunkSize - chunkOverlap))}`;
@@ -235,15 +253,15 @@ export const pushSnapshot = schemaTask({
           id: chunkId,
           content: chunk,
           metadata: {
-            snapshotId: snapshot.id,
-            documentId: snapshot.document_id,
-            documentName: document.name,
-            documentPath: document.folder,
-            fileName,
-            chunkIndex: Math.floor(i / (chunkSize - chunkOverlap)),
-            chunkSize: chunk.length,
-            createdAt: new Date().toISOString(),
-            ...(snapshot.extracted_metadata || {}),
+            chunk: {
+              index: Math.floor(i / (chunkSize - chunkOverlap)),
+            },
+            document: {
+              path: `${document.folder}${document.name}.md`,
+              chunks_count: chunks.length,
+              tokens_count: snapshot.tokens_count,
+              metadata: snapshot.metadata,
+            },
           },
         });
       }
@@ -266,7 +284,7 @@ export const pushSnapshot = schemaTask({
 
       for (let i = 0; i < vectorData.length; i += batchSize) {
         const batch = vectorData.slice(i, i + batchSize);
-        await vector.upsert(batch);
+        await namespace.upsert(batch);
         logger.info(
           `Uploaded batch ${i / batchSize + 1} of ${Math.ceil(vectorData.length / batchSize)}`,
         );
@@ -275,7 +293,7 @@ export const pushSnapshot = schemaTask({
 
       logger.info(`Successfully uploaded ${uploadedCount} vectors`);
 
-      await invalidateVectorCache(deploymentId);
+      await invalidateVectorCache(projectId);
 
       return { uploadedCount };
     } catch (error) {
