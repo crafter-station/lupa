@@ -3,8 +3,6 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { ApiKeysClient } from "./client";
 
-export const revalidate = 0;
-
 export default async function ApiKeysPage({
   params,
 }: {
