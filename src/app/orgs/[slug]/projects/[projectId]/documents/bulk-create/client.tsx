@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/table";
 import type { RefreshFrequency } from "@/db";
 import { DocumentCollection, SnapshotCollection } from "@/db/collections";
-import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { generateId } from "@/lib/generate-id";
 
 type DiscoveredLink = {
@@ -46,10 +45,9 @@ type DiscoveredLink = {
 export function BulkCreateClient() {
   const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
   const router = useRouter();
-  const { folder: contextFolder } = useFolderDocumentVersion();
 
   const [rootUrl, setRootUrl] = React.useState("");
-  const [rootFolder, setRootFolder] = React.useState(contextFolder ?? "/");
+  const [rootFolder, setRootFolder] = React.useState("/");
   const [limit, setLimit] = React.useState(50);
   const [shouldFetch, setShouldFetch] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);

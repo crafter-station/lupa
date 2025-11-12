@@ -79,12 +79,12 @@ export function CreateSnapshot() {
     q
       .from({ snapshot: SnapshotCollection })
       .select(({ snapshot }) => ({ ...snapshot }))
-      .where(({ snapshot }) => eq(snapshot.document_id, currentDocument.id)),
+      .where(({ snapshot }) => eq(snapshot.document_id, currentDocument?.id)),
   );
 
   React.useEffect(() => {
     if (open && currentDocument) {
-      setMetadataSchema(currentDocument.metadata_schema);
+      setMetadataSchema(currentDocument?.metadata_schema);
       setSnapshotType("website");
       setSelectedFile(null);
       setIsUploading(false);
@@ -110,7 +110,7 @@ export function CreateSnapshot() {
     onMutate: (data) => {
       SnapshotCollection.insert({
         id: data.snapshot_id,
-        document_id: currentDocument.id ?? "",
+        document_id: currentDocument?.id ?? "",
         org_id: organization?.id ?? "",
 
         status: "queued",
@@ -142,7 +142,7 @@ export function CreateSnapshot() {
           body: JSON.stringify({
             ...data,
             project_id: projectId,
-            document_id: currentDocument.id,
+            document_id: currentDocument?.id,
           }),
         });
       } else {
@@ -151,13 +151,13 @@ export function CreateSnapshot() {
         if (!data.file) {
           throw new Error("File is required");
         }
-        if (!currentDocument.id) {
+        if (!currentDocument?.id) {
           throw new Error("Document ID is required");
         }
         formData.append("file", data.file);
         formData.append("project_id", projectId);
         formData.append("snapshot_id", data.snapshot_id);
-        formData.append("document_id", currentDocument.id);
+        formData.append("document_id", currentDocument?.id);
 
         formData.append("type", "upload");
 
@@ -196,7 +196,7 @@ export function CreateSnapshot() {
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
-      if (!currentDocument.id) return;
+      if (!currentDocument?.id) return;
 
       setIsUploading(true);
 
@@ -239,7 +239,6 @@ export function CreateSnapshot() {
       }
     },
     [
-      currentDocument.id,
       currentDocument,
       refreshFrequency,
       metadataSchema,
@@ -321,7 +320,6 @@ export function CreateSnapshot() {
       }
     },
     [
-      currentDocument.id,
       currentDocument,
       selectedFile,
       metadataSchema,
