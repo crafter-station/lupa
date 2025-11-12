@@ -22,6 +22,8 @@ export default async function DocumentsPage({
   const { projectId, path } = await params;
   const { folder, document } = getFolderDocumentVersion(path);
 
+  console.log({ folder, document });
+
   return (
     <div className="grid grid-cols-3 h-full w-full">
       <div className="col-span-1">

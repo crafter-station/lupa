@@ -4,9 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import React from "react";
 
 import { InlineEditableField } from "@/components/elements/inline-editable-field";
-import { InlineEditableFolder } from "@/components/elements/inline-editable-folder";
 import { InlineEditableRefreshSettings } from "@/components/elements/inline-editable-refresh-settings";
 import { InlineEditableTextarea } from "@/components/elements/inline-editable-textarea";
+import { InlineEditableFolder } from "@/components/inline-editable-folder";
 import { Label } from "@/components/ui/label";
 
 import type { RefreshFrequency } from "@/db";
@@ -48,7 +48,7 @@ export function DocumentDetailsContent({ projectId, document }: ContentProps) {
         doc.folder = newFolder;
         doc.updated_at = new Date().toISOString();
       });
-      const newUrl = `/orgs/${slug}/projects/${projectId}/documents${newFolder}${document.name}`;
+      const newUrl = `/orgs/${slug}/projects/${projectId}/documents${newFolder}${document.name}.md`;
       router.push(newUrl);
     },
     [router, projectId, document, slug],
@@ -117,9 +117,8 @@ export function DocumentDetailsContent({ projectId, document }: ContentProps) {
           <Label className="text-xs text-muted-foreground">Folder</Label>
           <InlineEditableFolder
             value={document.folder}
-            onSave={handleUpdateFolder}
             projectId={projectId}
-            className="text-sm"
+            onSave={handleUpdateFolder}
           />
         </div>
 

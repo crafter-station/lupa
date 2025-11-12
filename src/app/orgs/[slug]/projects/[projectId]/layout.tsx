@@ -34,7 +34,7 @@ export default async function Layout({
       className="group/layout flex h-screen overflow-hidden"
       data-sidebar-collapsed="true"
     >
-      <aside className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border transition-[width] duration-300 flex flex-col z-50 w-56 group-data-[sidebar-collapsed=true]/layout:w-14">
+      <aside className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border transition-[width] duration-300 flex flex-col z-50 w-56 group-data-[sidebar-collapsed=true]/layout:w-10">
         <div className="flex-1 overflow-y-auto py-2">
           <div className="space-y-1.5 mb-2">
             <div className="h-7 flex items-center relative overflow-hidden">
@@ -104,7 +104,7 @@ export default async function Layout({
           </nav>
         </div>
 
-        <div className="p-2 border-t border-sidebar-border">
+        <div className="py-1.5 border-t border-sidebar-border">
           <div className="flex items-center justify-between gap-2 space-y-2 opacity-100 transition-opacity duration-300 group-data-[sidebar-collapsed=true]/layout:opacity-0 group-data-[sidebar-collapsed=true]/layout:hidden">
             <OrganizationSwitcher
               afterCreateOrganizationUrl="/orgs/:slug/projects"

@@ -18,7 +18,7 @@ export function SidebarNavLink({ href, label, children }: SidebarNavLinkProps) {
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-2 rounded-md h-8 text-sm hover:bg-sidebar-accent relative overflow-hidden",
+        "flex items-center rounded-md h-8 text-sm hover:bg-sidebar-accent relative overflow-hidden",
         isActive &&
           "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
       )}
@@ -27,7 +27,7 @@ export function SidebarNavLink({ href, label, children }: SidebarNavLinkProps) {
       <div className="flex items-center justify-center w-10 shrink-0">
         {children}
       </div>
-      <span className="truncate transition-opacity duration-300 opacity-100 group-data-[sidebar-collapsed=true]/layout:opacity-0">
+      <span className="truncate transition-opacity duration-300 opacity-100 group-data-[sidebar-collapsed=true]/layout:opacity-0 group-data-[sidebar-collapsed=true]/layout:ml-0 ml-2 group-data-[sidebar-collapsed=true]/layout:w-0">
         {label}
       </span>
     </Link>
