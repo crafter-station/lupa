@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import type { NextRequest } from "next/server";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -8,6 +9,8 @@ import { extractSessionOrg, proxyToPublicAPI } from "@/lib/api-proxy";
 export const preferredRegion = ["iad1", "gru1"];
 
 export async function GET(req: NextRequest) {
+  await headers();
+
   try {
     await extractSessionOrg();
 

@@ -13,6 +13,8 @@ import { highlightCode } from "@/lib/highlight";
 import { rootDomain } from "@/lib/utils";
 import { SignInButton } from "./sign-in-button-wrapper";
 
+const FOOTER_YEAR = 2025;
+
 const AGENT_CODE = `import { streamText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -616,7 +618,7 @@ export default async function Home() {
           </div>
 
           <div className="mt-8 sm:mt-12 border-t border-border pt-6 sm:pt-8 text-center text-xs sm:text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Lupa. All rights reserved.
+            © {FOOTER_YEAR} Lupa. All rights reserved.
           </div>
         </div>
       </footer>
