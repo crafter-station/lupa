@@ -4,8 +4,7 @@ import dynamic from "next/dynamic";
 import * as React from "react";
 
 import type { DocumentSelect, SnapshotSelect } from "@/db/schema";
-
-import { DocumentListContent } from "./client";
+import { DocumentListContent } from "./content";
 
 export type DocumentListLoadingContextProps = {
   preloadedDocuments: DocumentSelect[];
@@ -19,7 +18,7 @@ const DocumentListLoadingContext =
   });
 
 export const DocumentListDynamic = dynamic(
-  () => import("./client").then((module) => module.DocumentListLiveQuery),
+  () => import("./live").then((module) => module.DocumentListLive),
   {
     ssr: false,
 

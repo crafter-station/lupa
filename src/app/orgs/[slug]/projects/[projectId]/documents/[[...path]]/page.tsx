@@ -1,136 +1,70 @@
-import { eq, inArray } from "drizzle-orm";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { CreateDocument } from "../create-document";
-import { DocumentList } from "../document-list";
-import { DocumentVersionViewer } from "./document-version-viewer";
+import { Suspense } from "react";
+import { DocumentListClient } from "@/components/document-list/client";
+import { DocumentListServer } from "@/components/document-list/server";
+import { DocumentViewerClient } from "@/components/document-viewer/client";
+import { DocumentViewerServer } from "@/components/document-viewer/server";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { getFolderDocumentVersion } from "@/lib/folder-utils";
 
-export default async function DocumentsPathPage({
+export default async function DocumentsPage({
   params,
 }: {
-  params: Promise<{ projectId: string; path?: string[]; slug: string }>;
+  params: Promise<{ projectId: string; path?: string[] }>;
 }) {
-  const { slug, projectId, path: rawPath = [] } = await params;
-
-  const path = rawPath.map(decodeURIComponent);
-
-  const lastSegment = path[path.length - 1];
-  const secondLastSegment = path.length > 1 ? path[path.length - 2] : null;
-
-  let isDocumentView = lastSegment?.startsWith("doc:");
-  let documentId: string | null = null;
-
-  if (
-    lastSegment?.startsWith("v") &&
-    !Number.isNaN(Number(lastSegment.slice(1))) &&
-    secondLastSegment?.startsWith("doc:")
-  ) {
-    isDocumentView = true;
-    documentId = secondLastSegment.slice(4);
-  } else if (lastSegment?.startsWith("doc:")) {
-    isDocumentView = true;
-    documentId = lastSegment.slice(4);
-  }
-
-  if (isDocumentView && documentId) {
-    const [preloadedDocument] = await db
-      .select()
-      .from(schema.Document)
-      .where(eq(schema.Document.id, documentId));
-
-    const snapshots = preloadedDocument
-      ? await db
-          .select()
-          .from(schema.Snapshot)
-          .where(eq(schema.Snapshot.document_id, documentId))
-      : [];
-
-    const preloadedDocuments = await db
-      .select()
-      .from(schema.Document)
-      .where(eq(schema.Document.project_id, projectId));
-
-    const preloadedSnapshotsForList =
-      preloadedDocuments.length > 0
-        ? await db
-            .select()
-            .from(schema.Snapshot)
-            .where(
-              inArray(
-                schema.Snapshot.document_id,
-                preloadedDocuments.map((d) => d.id),
-              ),
-            )
-        : [];
-
-    return (
-      <div className="grid grid-cols-2 gap-4 h-[calc(100vh-10rem)]">
-        <div className="overflow-y-auto flex flex-col gap-2">
-          <div className="flex justify-between items-start">
-            <h1 className="text-2xl font-bold">Documents</h1>
-            <div className="flex gap-2">
-              <Link
-                href={`/orgs/${slug}/projects/${projectId}/documents/bulk-create`}
-              >
-                <Button variant="outline">Bulk Create from Website</Button>
-              </Link>
-              <CreateDocument />
-            </div>
-          </div>
-          <DocumentList
-            preloadedDocuments={preloadedDocuments}
-            preloadedSnapshots={preloadedSnapshotsForList}
-          />
-        </div>
-        <div className="overflow-y-auto border-l pl-4">
-          <DocumentVersionViewer
-            documentId={documentId}
-            preloadedDocument={preloadedDocument ?? null}
-            preloadedSnapshots={snapshots}
-            preloadedAllDocuments={preloadedDocuments}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const preloadedDocuments = await db
-    .select()
-    .from(schema.Document)
-    .where(eq(schema.Document.project_id, projectId));
-
-  const preloadedSnapshotsForList =
-    preloadedDocuments.length > 0
-      ? await db
-          .select()
-          .from(schema.Snapshot)
-          .where(
-            inArray(
-              schema.Snapshot.document_id,
-              preloadedDocuments.map((d) => d.id),
-            ),
-          )
-      : [];
+  const { projectId, path } = await params;
+  const { folder, document } = getFolderDocumentVersion(path);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-between items-start">
-        <h1 className="text-2xl font-bold">Documents</h1>
-        <div className="flex gap-2">
-          <Link
-            href={`/orgs/${slug}/projects/${projectId}/documents/bulk-create`}
-          >
-            <Button variant="outline">Bulk Create from Website</Button>
-          </Link>
-          <CreateDocument />
-        </div>
+    <div className="grid grid-cols-3 h-full">
+      <div className="col-span-1">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead style={{ width: "200px" }}>Last Modified</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <Suspense
+              fallback={
+                <DocumentListClient
+                  projectId={projectId}
+                  preloadedItems={[]}
+                  folder={folder}
+                />
+              }
+            >
+              <DocumentListServer projectId={projectId} folder={folder} />
+            </Suspense>
+          </TableBody>
+        </Table>
       </div>
-      <DocumentList
-        preloadedDocuments={preloadedDocuments}
-        preloadedSnapshots={preloadedSnapshotsForList}
-      />
+
+      <div className="col-span-2">
+        <Suspense
+          fallback={
+            <DocumentViewerClient
+              projectId={projectId}
+              folder={folder}
+              documentName={document}
+              preloadedDocument={null}
+              preloadedLatestSnapshot={null}
+            />
+          }
+        >
+          <DocumentViewerServer
+            projectId={projectId}
+            folder={folder}
+            documentName={document}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 }

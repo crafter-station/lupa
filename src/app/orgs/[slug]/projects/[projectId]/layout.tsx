@@ -123,7 +123,7 @@ export default async function Layout({
         data-collapsed="false"
         className="flex-1 overflow-y-auto transition-all duration-300 ml-56 group-data-[sidebar-collapsed=true]/layout:ml-14"
       >
-        <div className="h-full px-4">{children}</div>
+        <div className="h-full">{children}</div>
       </main>
     </div>
   );

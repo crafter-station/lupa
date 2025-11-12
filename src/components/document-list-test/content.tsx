@@ -11,7 +11,6 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Folder, Globe, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -28,11 +27,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { DocumentSelect, SnapshotSelect } from "@/db";
-import { DocumentCollection, SnapshotCollection } from "@/db/collections";
+import { DocumentCollection } from "@/db/collections";
 import { useFolderDocumentVersion } from "@/hooks/use-folder-document-version";
 import { fetchMarkdown } from "@/hooks/use-markdown";
 import { cn } from "@/lib/utils";
-import type { DocumentListLoadingContextProps } from "./index";
 
 type FolderItem = {
   type: "folder";
@@ -105,106 +103,6 @@ function DroppableFolderRow({
     >
       {children}
     </TableRow>
-  );
-}
-
-export function DocumentListLiveQuery({
-  preloadedDocuments,
-  preloadedSnapshots,
-}: DocumentListLoadingContextProps) {
-  const { projectId } = useParams<{
-    projectId: string;
-    path?: string[];
-  }>();
-
-  const { data: freshDocuments, status: documentsStatus } = useLiveQuery((q) =>
-    q
-      .from({ document: DocumentCollection })
-      .select(({ document }) => ({ ...document }))
-      .where(({ document }) => eq(document.project_id, projectId)),
-  );
-
-  const allDocuments = React.useMemo(() => {
-    if (documentsStatus !== "ready") {
-      return [...preloadedDocuments];
-    }
-
-    if (freshDocuments.length === 0) return [];
-    if (preloadedDocuments.length === 0) return [...freshDocuments];
-
-    const lastFresh = freshDocuments.toSorted(
-      (a, b) =>
-        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-    )[freshDocuments.length - 1];
-
-    const lastPreloaded = preloadedDocuments.toSorted(
-      (a, b) =>
-        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-    )[preloadedDocuments.length - 1];
-
-    if (
-      new Date(lastFresh.updated_at).getTime() >
-      new Date(lastPreloaded.updated_at).getTime()
-    ) {
-      return [...freshDocuments];
-    }
-    return [...preloadedDocuments];
-  }, [documentsStatus, freshDocuments, preloadedDocuments]);
-
-  // Load all snapshots for documents in this project (more efficient than filtering)
-  const documentIds = React.useMemo(
-    () => allDocuments.map((d) => d.id),
-    [allDocuments],
-  );
-
-  const { data: freshSnapshots, status: snapshotsStatus } = useLiveQuery(
-    (q) =>
-      q
-        .from({ snapshot: SnapshotCollection })
-        .select(({ snapshot }) => ({ ...snapshot })),
-    [],
-  );
-
-  // Filter snapshots client-side for better performance 👀
-  const projectSnapshots = React.useMemo(() => {
-    if (!freshSnapshots) return [];
-    const documentIdSet = new Set(documentIds);
-    return freshSnapshots.filter((s) => documentIdSet.has(s.document_id));
-  }, [freshSnapshots, documentIds]);
-
-  const allSnapshots = React.useMemo(() => {
-    const filteredPreloaded = preloadedSnapshots.filter((s) =>
-      documentIds.includes(s.document_id),
-    );
-
-    if (snapshotsStatus !== "ready") {
-      return [...filteredPreloaded];
-    }
-
-    if (projectSnapshots.length === 0) return [];
-    if (filteredPreloaded.length === 0) return [...projectSnapshots];
-
-    const lastFresh = projectSnapshots.toSorted(
-      (a, b) =>
-        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-    )[projectSnapshots.length - 1];
-
-    const lastPreloaded = filteredPreloaded.toSorted(
-      (a, b) =>
-        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-    )[filteredPreloaded.length - 1];
-
-    if (
-      new Date(lastFresh.updated_at).getTime() >
-      new Date(lastPreloaded.updated_at).getTime()
-    ) {
-      return [...projectSnapshots];
-    }
-    return [...filteredPreloaded];
-  }, [snapshotsStatus, projectSnapshots, preloadedSnapshots, documentIds]);
-
-  return (
-    <DocumentListContent documents={allDocuments} snapshots={allSnapshots} />
   );
 }
 
@@ -321,50 +219,6 @@ export function DocumentListContent({
       }
     }
   }, [folderSnapshots, queryClient]);
-
-  const items = React.useMemo(() => {
-    const folders = new Set<string>();
-    const documentsInPath: DocumentSelect[] = [];
-
-    for (const doc of allDocuments) {
-      const docFolder = doc.folder;
-
-      if (docFolder === currentFolder) {
-        documentsInPath.push(doc);
-      } else if (
-        docFolder.startsWith(currentFolder) &&
-        docFolder !== currentFolder
-      ) {
-        const relativePath = docFolder.slice(currentFolder.length);
-        const nextSegment = relativePath.split("/")[0];
-        if (nextSegment) {
-          folders.add(nextSegment);
-        }
-      }
-    }
-
-    const result: ListItem[] = [];
-
-    for (const folderName of Array.from(folders).sort()) {
-      result.push({
-        type: "folder",
-        name: folderName,
-        path: `${currentFolder}${folderName}/`,
-      });
-    }
-
-    for (const doc of documentsInPath.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )) {
-      result.push({
-        type: "document",
-        document: doc,
-      });
-    }
-
-    return result;
-  }, [allDocuments, currentFolder]);
 
   const getLatestSnapshot = (documentId: string): SnapshotSelect | null => {
     const docSnapshots = allSnapshots.filter(
