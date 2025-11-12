@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import { DocumentDetailsClient } from "@/components/document-details/client";
+import { DocumentDetailsServer } from "@/components/document-details/server";
 import { DocumentListClient } from "@/components/document-list/client";
 import { DocumentListServer } from "@/components/document-list/server";
-import { DocumentViewerClient } from "@/components/document-viewer/client";
-import { DocumentViewerServer } from "@/components/document-viewer/server";
+import { SnapshotDetailsClient } from "@/components/snapshot-details/client";
+import { SnapshotDetailsServer } from "@/components/snapshot-details/server";
 import {
   Table,
   TableBody,
@@ -21,7 +23,7 @@ export default async function DocumentsPage({
   const { folder, document } = getFolderDocumentVersion(path);
 
   return (
-    <div className="grid grid-cols-3 h-full">
+    <div className="grid grid-cols-3 h-full w-full">
       <div className="col-span-1">
         <Table>
           <TableHeader>
@@ -46,24 +48,45 @@ export default async function DocumentsPage({
         </Table>
       </div>
 
-      <div className="col-span-2">
-        <Suspense
-          fallback={
-            <DocumentViewerClient
+      <div className="border-l col-span-2 grid grid-rows-3 h-full w-full">
+        <div className="row-span-1 border-b">
+          <Suspense
+            fallback={
+              <DocumentDetailsClient
+                projectId={projectId}
+                folder={folder}
+                documentName={document}
+                preloadedDocument={null}
+              />
+            }
+          >
+            <DocumentDetailsServer
               projectId={projectId}
               folder={folder}
               documentName={document}
-              preloadedDocument={null}
-              preloadedLatestSnapshot={null}
             />
-          }
-        >
-          <DocumentViewerServer
-            projectId={projectId}
-            folder={folder}
-            documentName={document}
-          />
-        </Suspense>
+          </Suspense>
+        </div>
+
+        <div className="row-span-2">
+          <Suspense
+            fallback={
+              <SnapshotDetailsClient
+                projectId={projectId}
+                folder={folder}
+                documentName={document}
+                preloadedDocument={null}
+                preloadedLatestSnapshot={null}
+              />
+            }
+          >
+            <SnapshotDetailsServer
+              projectId={projectId}
+              folder={folder}
+              documentName={document}
+            />
+          </Suspense>
+        </div>
       </div>
     </div>
   );
