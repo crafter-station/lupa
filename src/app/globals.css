@@ -181,11 +181,17 @@
 
 html.dark .shiki,
 html.dark .shiki span {
-  color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
-  font-style: var(--shiki-dark-font-style);
-  font-weight: var(--shiki-dark-font-weight);
-  text-decoration: var(--shiki-dark-text-decoration);
+  /* biome-ignore lint/complexity/noImportantStyles: needed for shiki */
+  color: var(--shiki-dark) !important;
+  /* biome-ignore lint/complexity/noImportantStyles: needed for shiki */
+  background-color: var(--shiki-dark-bg) !important;
+  /* Optional, if you also want font styles */
+  /* biome-ignore lint/complexity/noImportantStyles: needed for shiki */
+  font-style: var(--shiki-dark-font-style) !important;
+  /* biome-ignore lint/complexity/noImportantStyles: needed for shiki */
+  font-weight: var(--shiki-dark-font-weight) !important;
+  /* biome-ignore lint/complexity/noImportantStyles: needed for shiki */
+  text-decoration: var(--shiki-dark-text-decoration) !important;
 }
 
 .file-mention-textarea::placeholder {
