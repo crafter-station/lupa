@@ -6,7 +6,7 @@ import { Index as VectorIndex } from "@upstash/vector";
 import z from "zod/v3";
 import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 export const SearchResponseSchema = z.object({
   query: z.string(),

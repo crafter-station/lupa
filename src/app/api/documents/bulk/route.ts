@@ -8,7 +8,7 @@ import {
 } from "@/lib/api-proxy";
 import { IdSchema } from "@/lib/generate-id";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 const BulkDocumentItemSchema = z.object({
   folder: z.string().default("/"),

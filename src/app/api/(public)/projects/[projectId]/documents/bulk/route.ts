@@ -15,7 +15,7 @@ import { generateId } from "@/lib/generate-id";
 import { createDocumentSchedule } from "@/lib/schedules";
 import { processWebsiteSnapshotBulkTask } from "@/trigger/process-website-snapshot-bulk.task";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 export const maxDuration = 60;
 
 const BulkDocumentItemSchema = z.object({

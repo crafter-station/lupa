@@ -5,7 +5,10 @@ import {
   randomBytes,
   scryptSync,
 } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
 import { redis } from "@/db/redis";
+import * as schema from "@/db/schema";
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32;
@@ -69,38 +72,33 @@ interface CachedVectorConfig {
   encryptedToken: string;
 }
 
+export const REDIS_VECTOR_CONFIG_KEY = (projectId: string) =>
+  `vectorConfig:${projectId}`;
+export const REDIS_VECTOR_INDEX_ID_KEY = (projectId: string) =>
+  `vectorIndexId:${projectId}`;
+
 export async function getVectorIndex(projectId: string) {
-  const cacheKey = `vectorConfig:${projectId}`;
-
-  const res = await fetch(
-    `${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(cacheKey)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-      },
-      cache: "force-cache",
-    },
+  const cachedVectorConfig = await redis.get<CachedVectorConfig>(
+    REDIS_VECTOR_CONFIG_KEY(projectId),
   );
-
-  if (res.ok) {
-    const data = await res.json();
-    const cachedVectorConfig = JSON.parse(data.result) as CachedVectorConfig;
-    const { endpoint, encryptedToken } = cachedVectorConfig;
-    const token = decrypt(encryptedToken);
-
+  if (cachedVectorConfig) {
     return {
-      url: `https://${endpoint}`,
-      token,
+      url: cachedVectorConfig.endpoint,
+      token: decrypt(cachedVectorConfig.encryptedToken),
     };
   }
 
-  const vectorIndexId = await redis.get<string>(`vectorIndexId:${projectId}`);
+  const [project] = await db
+    .select({ vectorIndexId: schema.Project.vector_index_id })
+    .from(schema.Project)
+    .where(eq(schema.Project.id, projectId))
+    .limit(1);
 
-  if (!vectorIndexId) {
+  if (!project?.vectorIndexId) {
     throw new Error("Vector index not found");
   }
 
-  const url = `https://api.upstash.com/v2/vector/index/${vectorIndexId}`;
+  const url = `https://api.upstash.com/v2/vector/index/${project.vectorIndexId}`;
   const upstashResponse = await fetch(url, {
     method: "GET",
     headers: {
@@ -119,10 +117,10 @@ export async function getVectorIndex(projectId: string) {
   const encryptedToken = encrypt(vectorConfig.token);
 
   await redis.set(
-    cacheKey,
+    REDIS_VECTOR_CONFIG_KEY(projectId),
     {
       id: vectorConfig.id,
-      endpoint: vectorConfig.endpoint,
+      endpoint: `https://${vectorConfig.endpoint}`,
       encryptedToken,
     },
     {

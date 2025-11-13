@@ -14,7 +14,7 @@ import { createDocumentSchedule } from "@/lib/schedules";
 import { getAPIBaseURL } from "@/lib/utils";
 import { DocumentNameSchema, FolderPathSchema } from "@/lib/validation";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 const BaseDocumentSchema = z.object({
   document_id: IdSchema.optional(),

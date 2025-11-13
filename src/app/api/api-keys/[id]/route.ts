@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { ApiKey } from "@/db/schema";
 import { deleteApiKey, revokeApiKey } from "@/lib/crypto/api-key";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 export async function DELETE(
   _request: Request,

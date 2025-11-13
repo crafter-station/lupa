@@ -8,7 +8,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { DocumentNameSchema, FolderPathSchema } from "@/lib/validation";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 export async function GET(
   _request: Request,

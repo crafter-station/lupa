@@ -4,7 +4,7 @@ import { z } from "zod/v3";
 import { ELECTRIC_URL } from "@/clients/electric";
 import { DOCUMENT_TABLE } from "@/db";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 const WhereParamsSchema = z.object({
   where: z.string().optional(),

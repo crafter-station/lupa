@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getTopEmbeddings } from "@/lib/tinybird-client";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 export async function GET(
   request: NextRequest,

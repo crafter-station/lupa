@@ -14,7 +14,7 @@ import {
   updateDocumentSchedule,
 } from "@/lib/schedules";
 
-export const preferredRegion = ["iad1", "gru1"];
+export const preferredRegion = ["iad1"];
 
 export async function PATCH(
   request: Request,

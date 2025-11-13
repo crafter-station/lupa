@@ -5,7 +5,12 @@ import { z } from "zod/v3";
 import { db } from "@/db";
 import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";
-import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
+import {
+  encrypt,
+  getVectorIndex,
+  invalidateVectorCache,
+  REDIS_VECTOR_CONFIG_KEY,
+} from "@/lib/crypto/vector";
 
 export const deploy = schemaTask({
   id: "deploy",
@@ -129,6 +134,18 @@ export const deploy = schemaTask({
           );
         }
 
+        await redis.set(
+          REDIS_VECTOR_CONFIG_KEY(deployment.project_id),
+          {
+            id: vectorIndex.id,
+            endpoint: `https://${vectorIndex.endpoint}`,
+            encryptedToken: encrypt(vectorIndex.token),
+          },
+          {
+            ex: 60 * 60 * 24, // 24 hours
+          },
+        );
+
         logger.info(`Vector index created: ${vectorIndex.id}`);
 
         await db
@@ -138,14 +155,7 @@ export const deploy = schemaTask({
             updated_at: new Date().toISOString(),
           })
           .where(eq(schema.Project.id, project.id));
-
-        await redis.set(
-          `vectorIndexId:${deployment.project_id}`,
-          vectorIndex.id,
-        );
       }
-
-      await wait.for({ seconds: 15 });
 
       const results = await batch.triggerAndWait<typeof pushSnapshot>(
         snapshots.map((snapshot) => ({
@@ -165,6 +175,8 @@ export const deploy = schemaTask({
           updated_at: new Date().toISOString(),
         })
         .where(eq(schema.Deployment.id, deploymentId));
+
+      await wait.for({ seconds: 15 });
 
       return results;
     } catch (error) {
