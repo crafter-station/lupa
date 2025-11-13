@@ -47,6 +47,8 @@ export async function GET(
     }>;
   },
 ) {
+  "use cache";
+
   try {
     const {
       deploymentId,

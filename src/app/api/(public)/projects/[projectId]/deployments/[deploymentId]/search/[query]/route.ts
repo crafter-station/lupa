@@ -48,6 +48,8 @@ export async function GET(
     params: Promise<{ projectId: string; deploymentId: string; query: string }>;
   },
 ) {
+  "use cache";
+
   try {
     const { deploymentId, projectId, query } = await params;
 

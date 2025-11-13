@@ -22,6 +22,8 @@ export async function GET(
     }>;
   },
 ) {
+  "use cache";
+
   try {
     const { deploymentId, path } = await params;
 
