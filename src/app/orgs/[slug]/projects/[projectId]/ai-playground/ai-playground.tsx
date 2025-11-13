@@ -524,7 +524,6 @@ export function AIPlayground() {
       api: "/api/chat",
       body: {
         projectId,
-        deploymentId,
       },
     }),
     onError: (error) => {
@@ -666,6 +665,7 @@ export function AIPlayground() {
           model,
           reasoningEffort,
           reasoningSummary,
+          deploymentId,
         },
       },
     );
