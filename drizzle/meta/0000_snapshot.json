@@ -1,5 +1,5 @@
 {
-  "id": "64ddedd3-e86f-439a-8b80-59a31a5de92a",
+  "id": "ccc00f8b-1d98-4cd3-9b8a-fa3c14c0a265",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -122,6 +122,27 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "api_key_hash_active_idx": {
+          "name": "api_key_hash_active_idx",
+          "columns": [
+            {
+              "expression": "key_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "is_active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -233,6 +254,33 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "deployment_project_env_status_idx": {
+          "name": "deployment_project_env_status_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "environment",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -288,13 +336,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
-        },
-        "refresh_enabled": {
-          "name": "refresh_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "refresh_frequency": {
           "name": "refresh_frequency",

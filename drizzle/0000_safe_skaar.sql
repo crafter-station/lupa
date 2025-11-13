@@ -42,7 +42,6 @@ CREATE TABLE "document" (
 	"description" text,
 	"project_id" text NOT NULL,
 	"metadata_schema" jsonb,
-	"refresh_enabled" boolean DEFAULT false NOT NULL,
 	"refresh_frequency" "refresh_frequency_enum",
 	"refresh_schedule_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -96,4 +95,6 @@ ALTER TABLE "api_key" ADD CONSTRAINT "api_key_project_id_project_id_fk" FOREIGN 
 ALTER TABLE "snapshot_and_deployment_rel" ADD CONSTRAINT "snapshot_and_deployment_rel_snapshot_id_snapshot_id_fk" FOREIGN KEY ("snapshot_id") REFERENCES "public"."snapshot"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "snapshot_and_deployment_rel" ADD CONSTRAINT "snapshot_and_deployment_rel_deployment_id_deployment_id_fk" FOREIGN KEY ("deployment_id") REFERENCES "public"."deployment"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "api_key_project_env_type_name_unique" ON "api_key" USING btree ("project_id","environment","key_type","name") WHERE "api_key"."is_active" = true;--> statement-breakpoint
-CREATE UNIQUE INDEX "deployment_project_environment_unique" ON "deployment" USING btree ("project_id","environment") WHERE "deployment"."environment" IS NOT NULL;
+CREATE INDEX "api_key_hash_active_idx" ON "api_key" USING btree ("key_hash","is_active");--> statement-breakpoint
+CREATE UNIQUE INDEX "deployment_project_environment_unique" ON "deployment" USING btree ("project_id","environment") WHERE "deployment"."environment" IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "deployment_project_env_status_idx" ON "deployment" USING btree ("project_id","environment","status");
