@@ -11,6 +11,7 @@ export function DocumentListLive({
   projectId,
   folder,
   preloadedItems,
+  orgSlug,
 }: LiveProps) {
   const { data: liveDocuments } = useLiveQuery(
     (q) =>
@@ -30,7 +31,7 @@ export function DocumentListLive({
     folder,
     documents: liveDocuments,
     projectId,
-    orgSlug: "the-cave",
+    orgSlug,
   });
 
   const items = React.useMemo(() => {

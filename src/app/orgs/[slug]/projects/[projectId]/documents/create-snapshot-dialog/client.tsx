@@ -34,7 +34,7 @@ import { getFolderAndDocument } from "@/lib/folder-utils";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
 
-export function CreateSnapshot() {
+export function CreateSnapshotDialog() {
   const { projectId, path } = useParams<{
     projectId: string;
     path: string[];
@@ -347,9 +347,8 @@ export function CreateSnapshot() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          New Snapshot
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Plus className="h-4 w-4" />
         </Button>
       </DialogTrigger>
 

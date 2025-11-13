@@ -29,7 +29,7 @@ export const DocumentListServer = async ({
     folder,
     documents,
     projectId,
-    orgSlug: "the-cave",
+    orgSlug,
   });
 
   return (

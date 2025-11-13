@@ -4,13 +4,12 @@ import { Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 
-export const CreateSnapshot = dynamic(
-  () => import("./client").then((m) => m.CreateSnapshot),
+export const CreateSnapshotDialog = dynamic(
+  () => import("./client").then((m) => m.CreateSnapshotDialog),
   {
     loading: () => (
-      <Button variant="outline" size="sm">
-        <Plus className="h-4 w-4 mr-1" />
-        New Snapshot
+      <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Plus className="h-4 w-4" />
       </Button>
     ),
     ssr: false,

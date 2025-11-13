@@ -33,7 +33,7 @@ import { getFolderAndDocument } from "@/lib/folder-utils";
 import { generateId } from "@/lib/generate-id";
 import { getMimeTypeLabel, isSupportedFileType } from "@/lib/parsers";
 
-export function CreateDocument() {
+export function CreateDocumentDialog() {
   const { projectId, path, slug } = useParams<{
     projectId: string;
     path: string[];
@@ -433,7 +433,9 @@ export function CreateDocument() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">Create Document</Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <FileText className="h-4 w-4" />
+        </Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl">
