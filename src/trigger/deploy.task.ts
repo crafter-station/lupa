@@ -155,6 +155,8 @@ export const deploy = schemaTask({
             updated_at: new Date().toISOString(),
           })
           .where(eq(schema.Project.id, project.id));
+
+        await wait.for({ seconds: 15 });
       }
 
       const results = await batch.triggerAndWait<typeof pushSnapshot>(
@@ -175,8 +177,6 @@ export const deploy = schemaTask({
           updated_at: new Date().toISOString(),
         })
         .where(eq(schema.Deployment.id, deploymentId));
-
-      await wait.for({ seconds: 15 });
 
       return results;
     } catch (error) {

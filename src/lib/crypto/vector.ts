@@ -74,8 +74,6 @@ interface CachedVectorConfig {
 
 export const REDIS_VECTOR_CONFIG_KEY = (projectId: string) =>
   `vectorConfig:${projectId}`;
-export const REDIS_VECTOR_INDEX_ID_KEY = (projectId: string) =>
-  `vectorIndexId:${projectId}`;
 
 export async function getVectorIndex(projectId: string) {
   const cachedVectorConfig = await redis.get<CachedVectorConfig>(

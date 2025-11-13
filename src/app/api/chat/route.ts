@@ -75,12 +75,14 @@ export async function POST(request: Request) {
 
     let deploymentId = requestDeploymentId;
 
-    if (project.productionDeploymentId) {
-      deploymentId = project.productionDeploymentId;
-    } else {
-      throw new Error(
-        "Project doesnt have a production deployment. You must specify a deployment id.",
-      );
+    if (!deploymentId) {
+      if (project.productionDeploymentId) {
+        deploymentId = project.productionDeploymentId;
+      } else {
+        throw new Error(
+          "Project doesnt have a production deployment. You must specify a deployment id.",
+        );
+      }
     }
 
     const fileMentionRegex = /@(\/[\w\-/.]+)/g;
