@@ -1,9 +1,9 @@
 import { Pool } from "@neondatabase/serverless";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { revalidateTag } from "next/cache";
 import type { NextRequest } from "next/server";
 import { z } from "zod/v3";
-
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
@@ -291,6 +291,8 @@ export async function POST(
         }
       }
     }
+
+    revalidateTag(`docs-${projectId}`, "max");
 
     return Response.json({
       document_txid: document_txid ? parseInt(document_txid, 10) : undefined,

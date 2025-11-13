@@ -1,6 +1,7 @@
 export type ServerProps = {
   projectId: string;
   folder: string;
+  orgSlug: string;
 };
 
 export type ListItem = {
@@ -19,4 +20,5 @@ export type LiveProps = {
   projectId: string;
   folder: string;
   preloadedItems: ListItem[];
+  orgSlug: string;
 };

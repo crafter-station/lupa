@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { DocumentDetailsClient } from "@/components/document-details/client";
 import { DocumentDetailsServer } from "@/components/document-details/server";
-import { DocumentListClient } from "@/components/document-list/client";
 import { DocumentListServer } from "@/components/document-list/server";
 import { SnapshotDetailsClient } from "@/components/snapshot-details/client";
 import { SnapshotDetailsServer } from "@/components/snapshot-details/server";
@@ -18,12 +17,10 @@ import { FloatingDock } from "./floating-dock";
 export default async function DocumentsPage({
   params,
 }: {
-  params: Promise<{ projectId: string; path?: string[] }>;
+  params: Promise<{ projectId: string; path?: string[]; slug: string }>;
 }) {
-  const { projectId, path } = await params;
+  const { projectId, path, slug } = await params;
   const { folder, document } = getFolderAndDocument(path);
-
-  console.log({ folder, document });
 
   return (
     <>
@@ -37,17 +34,11 @@ export default async function DocumentsPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              <Suspense
-                fallback={
-                  <DocumentListClient
-                    projectId={projectId}
-                    preloadedItems={[]}
-                    folder={folder}
-                  />
-                }
-              >
-                <DocumentListServer projectId={projectId} folder={folder} />
-              </Suspense>
+              <DocumentListServer
+                projectId={projectId}
+                folder={folder}
+                orgSlug={slug}
+              />
             </TableBody>
           </Table>
         </div>

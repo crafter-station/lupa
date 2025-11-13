@@ -10,6 +10,7 @@ const DocumentListLoadingContext = React.createContext<LiveProps>({
   preloadedItems: [],
   folder: "/",
   projectId: "",
+  orgSlug: "",
 });
 
 export const DocumentListDynamic = dynamic(
@@ -30,15 +31,17 @@ export const DocumentListClient = ({
   preloadedItems,
   projectId,
   folder,
+  orgSlug,
 }: LiveProps) => {
   return (
     <DocumentListLoadingContext.Provider
-      value={{ projectId, folder, preloadedItems }}
+      value={{ projectId, folder, preloadedItems, orgSlug }}
     >
       <DocumentListDynamic
         projectId={projectId}
         preloadedItems={preloadedItems}
         folder={folder}
+        orgSlug={orgSlug}
       />
     </DocumentListLoadingContext.Provider>
   );

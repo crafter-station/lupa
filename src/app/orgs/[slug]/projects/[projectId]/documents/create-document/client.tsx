@@ -40,14 +40,6 @@ export function CreateDocument() {
     slug: string;
   }>();
   const router = useRouter();
-  const [open, setOpen] = React.useState(false);
-  const [snapshotType, setSnapshotType] =
-    React.useState<SnapshotType>("website");
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [isUploading, setIsUploading] = React.useState(false);
-  const [enhance, setEnhance] = React.useState(false);
-  const [nameValue, setNameValue] = React.useState("");
-
   const { organization } = useOrganization();
 
   const { folder: currentFolder } = React.useMemo(
@@ -55,7 +47,16 @@ export function CreateDocument() {
     [path],
   );
 
-  const [selectedFolder, setSelectedFolder] = React.useState<string>(
+  const [open, setOpen] = React.useState(false);
+  const isSubmittingRef = React.useRef(false);
+
+  const [snapshotType, setSnapshotType] =
+    React.useState<SnapshotType>("website");
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [enhance, setEnhance] = React.useState(false);
+  const [nameValue, setNameValue] = React.useState("");
+  const [selectedFolderState, setSelectedFolderState] = React.useState<string>(
     currentFolder ?? "/",
   );
   const [metadataSchema, setMetadataSchema] = React.useState<Record<
@@ -65,6 +66,14 @@ export function CreateDocument() {
   const [refreshFrequency, setRefreshFrequency] = React.useState<
     RefreshFrequency | "none"
   >("none");
+
+  const selectedFolder = selectedFolderState;
+
+  const handleFolderChange = React.useCallback((folder: string) => {
+    if (!isSubmittingRef.current) {
+      setSelectedFolderState(folder);
+    }
+  }, []);
 
   const { data: allDocuments = [] } = useLiveQuery(
     (q) =>
@@ -76,8 +85,14 @@ export function CreateDocument() {
   );
 
   React.useEffect(() => {
-    if (open) {
-      setSelectedFolder(currentFolder ?? "/");
+    console.log("[DEBUG] Effect triggered:", {
+      open,
+      isSubmitting: isSubmittingRef.current,
+      currentFolder,
+    });
+    if (open && !isSubmittingRef.current) {
+      console.log("[DEBUG] Resetting form state");
+      setSelectedFolderState(currentFolder ?? "/");
       setMetadataSchema(null);
       setSelectedFile(null);
       setSnapshotType("website");
@@ -242,13 +257,17 @@ export function CreateDocument() {
       const folder = selectedFolder || "/";
 
       const document_id = generateId();
+      const name = formData.get("name") as string;
+
+      console.log("[DEBUG] handleUrlSubmit: Setting isSubmittingRef to true");
+      isSubmittingRef.current = true;
 
       createDocument({
         document_id,
         snapshot_id: generateId(),
 
         folder,
-        name: formData.get("name") as string,
+        name,
         description: formData.get("description") as string,
 
         metadata_schema: metadataSchema,
@@ -260,10 +279,21 @@ export function CreateDocument() {
           refreshFrequency !== "none" ? refreshFrequency : null,
       });
 
-      router.push(
-        `/orgs/${slug}/projects/${projectId}/documents/${folder}doc:${document_id}?newSnapshot=true`,
-      );
+      console.log("[DEBUG] handleUrlSubmit: Calling setOpen(false)");
       setOpen(false);
+
+      console.log(
+        "[DEBUG] handleUrlSubmit: Navigating to:",
+        `/orgs/${slug}/projects/${projectId}/documents/${folder}${name}.md`,
+      );
+      router.push(
+        `/orgs/${slug}/projects/${projectId}/documents/${folder}${name}.md`,
+      );
+
+      setTimeout(() => {
+        console.log("[DEBUG] Clearing isSubmittingRef after 1 second");
+        isSubmittingRef.current = false;
+      }, 1000);
     },
     [
       projectId,
@@ -295,6 +325,8 @@ export function CreateDocument() {
       }
 
       setIsUploading(true);
+      console.log("[DEBUG] handleFileSubmit: Setting isSubmittingRef to true");
+      isSubmittingRef.current = true;
 
       try {
         const formData = new FormData(e.target as HTMLFormElement);
@@ -322,15 +354,27 @@ export function CreateDocument() {
           parsing_instructions: parsingInstruction,
         });
 
-        router.push(
-          `/orgs/${slug}/projects/${projectId}/documents/${selectedFolder || "/"}doc:${document_id}?newSnapshot=true`,
-        );
+        console.log("[DEBUG] handleFileSubmit: Calling setOpen(false)");
         setOpen(false);
+
+        console.log(
+          "[DEBUG] handleFileSubmit: Navigating to:",
+          `/orgs/${slug}/projects/${projectId}/documents/${selectedFolder || "/"}doc:${document_id}`,
+        );
+        router.push(
+          `/orgs/${slug}/projects/${projectId}/documents/${selectedFolder || "/"}doc:${document_id}`,
+        );
+
+        setTimeout(() => {
+          console.log("[DEBUG] Clearing isSubmittingRef after 1 second");
+          isSubmittingRef.current = false;
+        }, 1000);
       } catch (error) {
         console.error("Upload error:", error);
         toast.error(
           error instanceof Error ? error.message : "Failed to upload file",
         );
+        isSubmittingRef.current = false;
       } finally {
         setIsUploading(false);
       }
@@ -367,8 +411,27 @@ export function CreateDocument() {
     [snapshotType, handleUrlSubmit, handleFileSubmit],
   );
 
+  const handleOpenChange = React.useCallback(
+    (newOpen: boolean) => {
+      console.log("[DEBUG] handleOpenChange:", {
+        newOpen,
+        isSubmitting: isSubmittingRef.current,
+        currentOpen: open,
+      });
+      if (newOpen && isSubmittingRef.current) {
+        console.log(
+          "[DEBUG] BLOCKED: Preventing dialog open during submission",
+        );
+        return;
+      }
+      console.log("[DEBUG] Setting open to:", newOpen);
+      setOpen(newOpen);
+    },
+    [open],
+  );
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">Create Document</Button>
       </DialogTrigger>
@@ -382,7 +445,7 @@ export function CreateDocument() {
           <FolderPathSelector
             documents={allDocuments}
             initialFolder={selectedFolder}
-            onChange={setSelectedFolder}
+            onChange={handleFolderChange}
           />
 
           <div className="space-y-2">

@@ -1,4 +1,5 @@
 import { and, eq, like } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { DocumentListClient } from "./client";
@@ -8,7 +9,12 @@ import type { ServerProps } from "./props";
 export const DocumentListServer = async ({
   projectId,
   folder,
+  orgSlug,
 }: ServerProps) => {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`docs-${projectId}`);
+
   const documents = await db
     .select()
     .from(schema.Document)
@@ -31,6 +37,7 @@ export const DocumentListServer = async ({
       preloadedItems={items}
       folder={folder}
       projectId={projectId}
+      orgSlug={orgSlug}
     />
   );
 };
