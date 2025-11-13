@@ -25,6 +25,14 @@ export const config = {
   ],
 };
 
+const SPECIAL_SUBDOMAINS = new Set([
+  "clerk",
+  "accounts",
+  "clkmail",
+  "clk",
+  "www",
+]);
+
 const ROUTES = [
   {
     pattern: /^\/api\/deployments/,
@@ -221,6 +229,10 @@ export default clerkMiddleware(
             : null;
         }
       }
+    }
+
+    if (subdomain && SPECIAL_SUBDOMAINS.has(subdomain)) {
+      return NextResponse.next();
     }
 
     if (subdomain === "docs") {
