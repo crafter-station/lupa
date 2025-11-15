@@ -1,6 +1,5 @@
 import { Suspense } from "react";
-import { DeploymentSelectorClient } from "@/components/deployment-selector/client";
-import { DeploymentSelectorServer } from "@/components/deployment-selector/server";
+import { DeploymentSelector } from "@/components/deployment-selector";
 import { AIPlayground } from "./ai-playground";
 
 export default async function AIPlaygroundPage({
@@ -13,10 +12,8 @@ export default async function AIPlaygroundPage({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-end py-3 shrink-0">
-        <Suspense
-          fallback={<DeploymentSelectorClient preloadedDeployments={[]} />}
-        >
-          <DeploymentSelectorServer projectId={projectId} />
+        <Suspense>
+          <DeploymentSelector projectId={projectId} />
         </Suspense>
       </div>
 

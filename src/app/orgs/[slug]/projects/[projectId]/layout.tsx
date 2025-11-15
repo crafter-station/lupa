@@ -1,22 +1,14 @@
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
-import {
-  Bot,
-  FileText,
-  Key,
-  Rocket,
-  Search,
-  Settings,
-  Workflow,
-} from "lucide-react";
+import { Bot, FileText, Key, Rocket, Search, Workflow } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { SidebarNavLinkServer } from "@/components/elements/sidebar-nav-link-server";
 import { SidebarToggleButton } from "@/components/elements/sidebar-toggle-button";
 import { LupaIcon } from "@/components/icons/lupa";
 import { LupaFullIcon } from "@/components/icons/lupa-full";
-import { ProjectSwitcherClient } from "@/components/project-switcher/client";
-import { ProjectSwitcherServer } from "@/components/project-switcher/server";
+import { ProjectSwitcher } from "@/components/project-switcher";
 import { Separator } from "@/components/ui/separator";
+
 export default async function Layout({
   children,
   params,
@@ -24,6 +16,8 @@ export default async function Layout({
   children: React.ReactNode;
   params: Promise<{ slug: string; projectId: string }>;
 }) {
+  "use cache";
+
   const { slug, projectId } = await params;
 
   const baseUrl = `/orgs/${slug}/projects/${projectId}`;
@@ -54,11 +48,7 @@ export default async function Layout({
 
             <SidebarToggleButton variant="collapsed" />
             <div className="h-9 opacity-100 transition-opacity duration-300 group-data-[sidebar-collapsed=true]/layout:opacity-0 group-data-[sidebar-collapsed=true]/layout:pointer-events-none">
-              <Suspense
-                fallback={<ProjectSwitcherClient preloadedProjects={[]} />}
-              >
-                <ProjectSwitcherServer />
-              </Suspense>
+              <ProjectSwitcher org_slug={slug} />
             </div>
           </div>
 
@@ -69,6 +59,11 @@ export default async function Layout({
               href={`${baseUrl}/documents`}
               icon={FileText}
               label="Documents"
+            />
+            <SidebarNavLinkServer
+              href={`${baseUrl}/deployments`}
+              icon={Rocket}
+              label="Deployments"
             />
             <SidebarNavLinkServer
               href={`${baseUrl}/ai-playground`}
@@ -87,30 +82,24 @@ export default async function Layout({
             />
             <Separator />
             <SidebarNavLinkServer
-              href={`${baseUrl}/settings`}
-              icon={Settings}
-              label="Settings"
-            />
-            <SidebarNavLinkServer
               href={`${baseUrl}/api-keys`}
               icon={Key}
               label="API Keys"
-            />
-            <SidebarNavLinkServer
-              href={`${baseUrl}/deployments`}
-              icon={Rocket}
-              label="Deployments"
             />
           </nav>
         </div>
 
         <div className="py-1.5 border-t border-sidebar-border">
           <div className="flex items-center justify-between gap-2 space-y-2 opacity-100 transition-opacity duration-300 group-data-[sidebar-collapsed=true]/layout:opacity-0 group-data-[sidebar-collapsed=true]/layout:hidden">
-            <OrganizationSwitcher
-              afterCreateOrganizationUrl="/orgs/:slug/projects"
-              afterSelectOrganizationUrl="/orgs/:slug/projects"
-            />
-            <UserButton />
+            <Suspense>
+              <OrganizationSwitcher
+                afterCreateOrganizationUrl="/orgs/:slug/projects"
+                afterSelectOrganizationUrl="/orgs/:slug/projects"
+              />
+            </Suspense>
+            <Suspense>
+              <UserButton />
+            </Suspense>
           </div>
 
           <div className="hidden justify-center group-data-[sidebar-collapsed=true]/layout:flex">

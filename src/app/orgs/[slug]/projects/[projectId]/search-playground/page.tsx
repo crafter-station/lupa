@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
+import { Suspense } from "react";
+import { DeploymentSelector } from "@/components/deployment-selector";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { SearchPlaygroundClient } from "./client";
+import { SearchPlayground } from "./search-playground";
 
 export default async function SearchPlaygroundPage({
   params,
@@ -19,10 +21,18 @@ export default async function SearchPlaygroundPage({
     throw new Error("Project not found");
   }
 
-  const preloadedDeployments = await db
-    .select()
-    .from(schema.Deployment)
-    .where(eq(schema.Deployment.project_id, projectId));
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between py-3 shrink-0">
+        <h1 className="text-xl font-bold">Search Playground</h1>
+        <Suspense>
+          <DeploymentSelector projectId={projectId} />
+        </Suspense>
+      </div>
 
-  return <SearchPlaygroundClient preloadedDeployments={preloadedDeployments} />;
+      <div className="flex-1 min-h-0">
+        <SearchPlayground />
+      </div>
+    </div>
+  );
 }

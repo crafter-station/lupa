@@ -3,7 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod/v3";
 import { db } from "@/db";
-import { redis } from "@/db/redis";
 import * as schema from "@/db/schema";
 import { hashApiKey } from "@/lib/crypto/api-key";
 import { generateId, IdSchema } from "@/lib/generate-id";
@@ -143,20 +142,6 @@ export async function POST(request: Request) {
       key_type: keyType,
       is_active: true,
     });
-
-    await redis.set(
-      `apikey:${keyHash}`,
-      JSON.stringify({
-        id: apiKeyId,
-        org_id: project.org_id,
-        project_id: project.id,
-        is_active: true,
-        name: name,
-        environment,
-        key_type: keyType,
-      }),
-      { ex: 60 * 60 * 24 * 30 },
-    );
 
     return Response.json(
       {
