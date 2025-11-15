@@ -1,6 +1,6 @@
 "use client";
-
 import { useParams, useRouter } from "next/navigation";
+import * as React from "react";
 import {
   Select,
   SelectContent,
@@ -19,9 +19,14 @@ export function ProjectSwitcherContent({
   const params = useParams<{ slug: string; projectId?: string }>();
   const router = useRouter();
 
-  const handleProjectChange = (projectId: string) => {
-    router.push(`/orgs/${params.slug}/projects/${projectId}`);
-  };
+  const handleProjectChange = React.useCallback(
+    (projectId: string) => {
+      if (projectId && projectId !== params.projectId) {
+        router.push(`/orgs/${params.slug}/projects/${projectId}`);
+      }
+    },
+    [router, params],
+  );
 
   return (
     <Select value={params.projectId} onValueChange={handleProjectChange}>
