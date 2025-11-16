@@ -37,7 +37,7 @@ async function performSearch(
   deploymentId: string,
   decodedQuery: string,
 ) {
-  "use cache";
+  "use cache: remote";
   cacheLife({
     stale: 2592000,
     revalidate: 2592000,
