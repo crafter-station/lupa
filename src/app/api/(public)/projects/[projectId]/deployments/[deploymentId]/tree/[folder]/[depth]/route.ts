@@ -3,6 +3,7 @@
 // users will hit https://<projectId>.lupa.build/api/tree?folder=/path&depth=2
 
 import { and, eq, sql } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { normalizeFolderPath } from "@/lib/folder-utils";
@@ -28,18 +29,18 @@ interface TreeDirectory {
 
 type TreeNode = TreeFile | TreeDirectory;
 
-interface TreeResponse {
-  path: string;
-  depth: number;
-  tree: TreeNode[];
-}
-
 async function getDirectoryTree(
   deploymentId: string,
   folderParam: string,
   depthParam: string,
 ) {
-  "use cache";
+  "use cache: remote";
+  cacheLife({
+    stale: 2592000,
+    revalidate: 2592000,
+    expire: 2592000000,
+  });
+  cacheTag(`tree:${deploymentId}:${folderParam}:${depthParam}`);
 
   const targetFolder = normalizeFolderPath(decodeURIComponent(folderParam));
   const maxDepth = Number.parseInt(depthParam, 10);

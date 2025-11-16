@@ -3,6 +3,7 @@
 // users will hit https://<projectId>.lupa.build/api/cat/?path=/path/to/file.md
 
 import { and, eq } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -11,7 +12,13 @@ import { DocumentNameSchema, FolderPathSchema } from "@/lib/validation";
 export const preferredRegion = ["iad1"];
 
 async function getDocumentContent(deploymentId: string, path: string) {
-  "use cache";
+  "use cache: remote";
+  cacheLife({
+    stale: 2592000,
+    revalidate: 2592000,
+    expire: 2592000000,
+  });
+  cacheTag(`cat:${deploymentId}:${path}`);
 
   const parts = path.split("/");
   const rawDocumentName = parts.pop();
