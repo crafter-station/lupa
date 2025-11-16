@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod/v3";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { extractSessionOrg, validateProjectOwnership } from "@/lib/api-proxy";
 import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { GET_DOCUMENT_CONTENTS_PROMPT } from "@/lib/prompts/get-document-contents.prompt";
 import { GET_FILE_TREE_PROMPT } from "@/lib/prompts/get-file-tree.prompt";
@@ -44,6 +45,8 @@ async function fetchFileContent(
 
 export async function POST(request: Request) {
   try {
+    const { orgId } = await extractSessionOrg();
+
     const {
       projectId,
       deploymentId,
@@ -60,17 +63,7 @@ export async function POST(request: Request) {
       reasoningSummary?: "auto" | "detailed";
     } = await request.json();
 
-    const [project] = await db
-      .select({
-        name: schema.Project.name,
-        description: schema.Project.description,
-      })
-      .from(schema.Project)
-      .where(eq(schema.Project.id, projectId));
-
-    if (!project) {
-      throw new Error(`Project not found for id ${projectId}`);
-    }
+    const project = await validateProjectOwnership(projectId, orgId);
 
     const fileMentionRegex = /@(\/[\w\-/.]+)/g;
     const processedMessages = await Promise.all(
