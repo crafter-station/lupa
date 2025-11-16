@@ -12,6 +12,7 @@ export default async function ProjectsPage({
   params: Promise<{ slug: string }>;
 }) {
   "use cache";
+
   const { slug } = await params;
 
   const org = await clerk.organizations.getOrganization({

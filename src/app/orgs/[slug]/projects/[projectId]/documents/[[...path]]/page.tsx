@@ -22,6 +22,8 @@ export default async function DocumentsPage({
 }: {
   params: Promise<{ projectId: string; path?: string[]; slug: string }>;
 }) {
+  "use cache";
+
   const { projectId, path, slug } = await params;
   const { folder, name } = getSelectedDocumentNameAndFolder(path);
 
