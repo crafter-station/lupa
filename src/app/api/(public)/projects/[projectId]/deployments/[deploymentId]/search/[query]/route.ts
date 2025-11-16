@@ -3,7 +3,7 @@
 // users will hit https://<projectId>.lupa.build/api/search/?query=<query>
 
 import { Index as VectorIndex } from "@upstash/vector";
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import z from "zod/v3";
 import { getVectorIndex, invalidateVectorCache } from "@/lib/crypto/vector";
 
@@ -38,7 +38,12 @@ async function performSearch(
   decodedQuery: string,
 ) {
   "use cache";
-  cacheLife("max");
+  cacheLife({
+    stale: 2592000,
+    revalidate: 2592000,
+    expire: 2592000000,
+  });
+  cacheTag(`search:${projectId}:${deploymentId}:${decodedQuery}`);
 
   const indexCredentials = await getVectorIndex(projectId);
   const index = new VectorIndex(indexCredentials);
