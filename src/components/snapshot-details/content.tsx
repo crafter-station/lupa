@@ -6,20 +6,18 @@ import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { useMarkdown } from "@/hooks/use-markdown";
 import type { ContentProps } from "./props";
 
 export function SnapshotDetailsContent({
-  document,
+  selectedDocument,
   latestSnapshot,
+  markdownContent,
 }: ContentProps) {
-  const {
-    data: markdown,
-    isLoading: loading,
-    isError,
-  } = useMarkdown(latestSnapshot?.markdown_url);
+  const markdown = markdownContent;
+  const loading = false;
+  const isError = false;
 
-  if (!document) {
+  if (!selectedDocument) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
         <p className="text-sm">Select a document to view snapshot</p>

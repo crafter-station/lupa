@@ -14,6 +14,7 @@ export type ListItem = {
 export type ContentProps = {
   items: ListItem[];
   folder: string;
+  selectedDocumentName?: string | null;
 };
 
 export type LiveProps = {

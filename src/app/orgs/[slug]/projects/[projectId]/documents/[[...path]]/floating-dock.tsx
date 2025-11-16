@@ -9,10 +9,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { DocumentSelect } from "@/db";
 import { CreateDocumentDialog } from "../create-document-dialog";
 import { CreateSnapshotDialog } from "../create-snapshot-dialog";
 
-export function FloatingDock({ document }: { document: string | null }) {
+export function FloatingDock({
+  selectedDocument,
+  documents,
+}: {
+  selectedDocument: DocumentSelect | null;
+  documents: DocumentSelect[];
+}) {
   const { slug, projectId } = useParams<{
     slug: string;
     projectId: string;
@@ -23,15 +30,18 @@ export function FloatingDock({ document }: { document: string | null }) {
       <div className="flex items-center gap-1 px-2 py-2 bg-background/80 backdrop-blur-md border rounded-full shadow-lg">
         <Tooltip>
           <TooltipTrigger asChild>
-            <CreateDocumentDialog />
+            <CreateDocumentDialog
+              documents={documents}
+              selectedDocument={selectedDocument}
+            />
           </TooltipTrigger>
           <TooltipContent>Create Document</TooltipContent>
         </Tooltip>
 
-        {document ? (
+        {selectedDocument ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <CreateSnapshotDialog />
+              <CreateSnapshotDialog selectedDocument={selectedDocument} />
             </TooltipTrigger>
             <TooltipContent>New Snapshot</TooltipContent>
           </Tooltip>

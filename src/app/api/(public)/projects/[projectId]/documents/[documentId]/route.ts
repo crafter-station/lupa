@@ -1,6 +1,4 @@
-import { Pool } from "@neondatabase/serverless";
 import { and, eq, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/neon-serverless";
 import { db } from "@/db";
 import type { RefreshFrequency } from "@/db/schema";
 import * as schema from "@/db/schema";
@@ -24,14 +22,6 @@ export async function PATCH(
     params: Promise<{ projectId: string; documentId: string }>;
   },
 ) {
-  if (!process.env.DATABASE_URL) {
-    return Response.json(
-      { error: "DATABASE_URL not configured" },
-      { status: 500 },
-    );
-  }
-
-  let pool: Pool | undefined;
   try {
     await requireSecretKey(request);
 
@@ -60,16 +50,7 @@ export async function PATCH(
       );
     }
 
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL.replace("-pooler", ""),
-    });
-
-    const dbPool = drizzle({
-      client: pool,
-      schema,
-    });
-
-    const document = await dbPool.query.Document.findFirst({
+    const document = await db.query.Document.findFirst({
       where: eq(schema.Document.id, documentId),
     });
 
@@ -131,32 +112,22 @@ export async function PATCH(
       }
     }
 
-    const result = await dbPool.transaction(async (tx) => {
-      await tx
-        .update(schema.Document)
-        .set({
-          ...updates,
-          ...scheduleChanges,
-          updated_at: sql`NOW()`,
-        })
-        .where(eq(schema.Document.id, documentId));
+    await db
+      .update(schema.Document)
+      .set({
+        ...updates,
+        ...scheduleChanges,
+        updated_at: sql`NOW()`,
+      })
+      .where(eq(schema.Document.id, documentId));
 
-      const txid = await tx.execute(
-        sql`SELECT pg_current_xact_id()::xid::text as txid`,
-      );
-
-      return {
-        txid: txid.rows[0].txid as string,
-      };
-    });
-
-    await pool.end();
-
-    return Response.json({ txid: parseInt(result.txid, 10) });
+    return new Response(
+      JSON.stringify({
+        ok: true,
+      }),
+      { status: 200 },
+    );
   } catch (error) {
-    if (pool) {
-      await pool.end();
-    }
     return handleApiError(error);
   }
 }

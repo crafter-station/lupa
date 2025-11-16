@@ -1,6 +1,5 @@
 "use client";
 
-import { useLiveQuery } from "@tanstack/react-db";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import * as React from "react";
@@ -13,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { DocumentSelect } from "@/db";
-import { DocumentCollection } from "@/db/collections";
 
 import type { TopDocumentsListProps } from "./index";
 
@@ -21,44 +19,10 @@ export function TopDocumentsListLiveQuery({
   topDocumentsData,
   preloadedDocuments,
 }: TopDocumentsListProps) {
-  const { data: freshData, status } = useLiveQuery((q) =>
-    q
-      .from({ document: DocumentCollection })
-      .select(({ document }) => ({ ...document })),
-  );
-
-  const documents = React.useMemo(() => {
-    if (status !== "ready") {
-      return [...preloadedDocuments] as DocumentSelect[];
-    }
-
-    if (freshData.length === 0) return [];
-    if (preloadedDocuments.length === 0)
-      return [...freshData] as DocumentSelect[];
-
-    const lastFresh = freshData.toSorted(
-      (a, b) =>
-        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-    )[freshData.length - 1];
-
-    const lastPreloaded = preloadedDocuments.toSorted(
-      (a, b) =>
-        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-    )[preloadedDocuments.length - 1];
-
-    if (
-      new Date(lastFresh.updated_at).getTime() >
-      new Date(lastPreloaded.updated_at).getTime()
-    ) {
-      return [...freshData] as DocumentSelect[];
-    }
-    return [...preloadedDocuments] as DocumentSelect[];
-  }, [status, freshData, preloadedDocuments]);
-
   return (
     <TopDocumentsListContent
       topDocumentsData={topDocumentsData}
-      documents={documents}
+      documents={preloadedDocuments}
     />
   );
 }

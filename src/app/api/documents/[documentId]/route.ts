@@ -1,6 +1,4 @@
-import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
-import { after } from "next/server";
 import z from "zod/v3";
 import { db } from "@/db";
 import { handleApiError } from "@/lib/api-error";
@@ -22,7 +20,7 @@ export const PATCH = async (
   },
 ) => {
   try {
-    const { orgId, orgSlug } = await extractSessionOrg();
+    const { orgId } = await extractSessionOrg();
 
     const { documentId } = await params;
 
@@ -44,15 +42,6 @@ export const PATCH = async (
       .parse(body);
 
     await validateProjectOwnership(project_id, orgId);
-
-    after(async () => {
-      revalidatePath(
-        `/orgs/${orgSlug}/projects/${project_id}/documents${document.folder}`,
-      );
-      revalidatePath(
-        `/orgs/${orgSlug}/projects/${project_id}/documents${document.folder}doc:${documentId}`,
-      );
-    });
 
     return await proxyToPublicAPI(project_id, `/documents/${documentId}`, {
       method: "PATCH",

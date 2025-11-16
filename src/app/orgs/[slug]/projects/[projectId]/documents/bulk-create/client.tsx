@@ -1,6 +1,5 @@
 "use client";
 
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { CheckCircle2, Circle, Loader2, Trash2, XCircle } from "lucide-react";
@@ -27,12 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { RefreshFrequency } from "@/db";
-import { DocumentCollection, SnapshotCollection } from "@/db/collections";
-import { generateId } from "@/lib/generate-id";
+import type { DocumentSelect, RefreshFrequency, SnapshotSelect } from "@/db";
 
 type DiscoveredLink = {
-  id: string;
   url: string;
   title: string;
   description: string;
@@ -42,8 +38,16 @@ type DiscoveredLink = {
   enhance: boolean;
 };
 
-export function BulkCreateClient() {
-  const { projectId, slug } = useParams<{ projectId: string; slug: string }>();
+type BulkCreateClientProps = {
+  projectId: string;
+  documents: DocumentSelect[];
+};
+
+export function BulkCreateClient({
+  projectId,
+  documents: allDocuments,
+}: BulkCreateClientProps) {
+  const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
 
   const [rootUrl, setRootUrl] = React.useState("");
@@ -60,27 +64,23 @@ export function BulkCreateClient() {
     publicAccessToken: string;
   } | null>(null);
 
-  const { data: allDocuments = [] } = useLiveQuery(
-    (q) =>
-      q
-        .from({ document: DocumentCollection })
-        .select(({ document }) => ({ ...document }))
-        .where(({ document }) => eq(document.project_id, projectId)),
-    [],
-  );
+  const { data: snapshots = [] } = useQuery<SnapshotSelect[]>({
+    queryKey: ["snapshots", projectId, snapshotIds],
+    queryFn: async () => {
+      if (snapshotIds.length === 0) return [];
 
-  const { data: allSnapshots = [] } = useLiveQuery(
-    (q) =>
-      q
-        .from({ snapshot: SnapshotCollection })
-        .select(({ snapshot }) => ({ ...snapshot })),
-    [],
-  );
+      const response = await fetch(
+        `/api/snapshots?${snapshotIds.map((id) => `ids[]=${id}`).join("&")}`,
+      );
 
-  const snapshots = React.useMemo(
-    () => allSnapshots.filter((s) => snapshotIds.includes(s.id)),
-    [allSnapshots, snapshotIds],
-  );
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      return data.snapshots || [];
+    },
+    enabled: snapshotIds.length > 0,
+    refetchInterval: isCreating ? 2000 : false,
+  });
 
   const { run } = useRealtimeRun(runHandle?.id, {
     accessToken: runHandle?.publicAccessToken,
@@ -132,7 +132,6 @@ export function BulkCreateClient() {
     if (firecrawlData && shouldFetch) {
       const initialLinks = firecrawlData
         .map((link) => ({
-          id: generateId(),
           url: link.url,
           title: link.title || "",
           description: link.description || "",
@@ -159,7 +158,6 @@ export function BulkCreateClient() {
     setIsCreating(true);
 
     const documentsToCreate = discoveredLinks.map((link) => ({
-      id: generateId(),
       folder: link.folder,
       name: link.name,
       description: link.description || null,
@@ -211,7 +209,7 @@ export function BulkCreateClient() {
       const duplicateInList =
         discoveredLinks.filter(
           (l) =>
-            l.id !== link.id &&
+            l.url !== link.url &&
             l.folder === link.folder &&
             l.name === link.name,
         ).length > 0;
@@ -235,18 +233,18 @@ export function BulkCreateClient() {
     );
   };
 
-  const deleteLink = (id: string) => {
-    setDiscoveredLinks((links) => links.filter((link) => link.id !== id));
+  const deleteLink = (url: string) => {
+    setDiscoveredLinks((links) => links.filter((link) => link.url !== url));
   };
 
   const updateLink = (
-    id: string,
+    url: string,
     field: keyof DiscoveredLink,
     value: string | boolean,
   ) => {
     setDiscoveredLinks((links) =>
       links.map((link) =>
-        link.id === id ? { ...link, [field]: value } : link,
+        link.url === url ? { ...link, [field]: value } : link,
       ),
     );
   };
@@ -436,7 +434,7 @@ export function BulkCreateClient() {
                 const hasDuplicate = existsInDB || duplicateInList;
 
                 return (
-                  <TableRow key={link.id}>
+                  <TableRow key={link.url}>
                     <TableCell>
                       <div className="space-y-1">
                         <Input
@@ -446,7 +444,7 @@ export function BulkCreateClient() {
                               .trim()
                               .replace(/\s+/g, "-")
                               .replace(/[^a-zA-Z0-9_-]/g, "");
-                            updateLink(link.id, "name", sanitized);
+                            updateLink(link.url, "name", sanitized);
                           }}
                           disabled={isCreating}
                           className={
@@ -468,7 +466,7 @@ export function BulkCreateClient() {
                       <Input
                         value={link.description}
                         onChange={(e) =>
-                          updateLink(link.id, "description", e.target.value)
+                          updateLink(link.url, "description", e.target.value)
                         }
                         disabled={isCreating}
                         placeholder="Add description..."
@@ -479,7 +477,7 @@ export function BulkCreateClient() {
                       <Input
                         value={link.url}
                         onChange={(e) =>
-                          updateLink(link.id, "url", e.target.value)
+                          updateLink(link.url, "url", e.target.value)
                         }
                         disabled={isCreating}
                         className="text-sm font-mono"
@@ -490,7 +488,7 @@ export function BulkCreateClient() {
                         <Input
                           value={link.folder}
                           onChange={(e) =>
-                            updateLink(link.id, "folder", e.target.value)
+                            updateLink(link.url, "folder", e.target.value)
                           }
                           disabled={isCreating}
                           className="text-sm font-mono"
@@ -502,7 +500,7 @@ export function BulkCreateClient() {
                         value={link.refresh_frequency}
                         onValueChange={(value) =>
                           updateLink(
-                            link.id,
+                            link.url,
                             "refresh_frequency",
                             value as RefreshFrequency | "none",
                           )
@@ -524,7 +522,7 @@ export function BulkCreateClient() {
                       <Checkbox
                         checked={link.enhance}
                         onCheckedChange={(checked) =>
-                          updateLink(link.id, "enhance", checked === true)
+                          updateLink(link.url, "enhance", checked === true)
                         }
                         disabled={isCreating}
                       />
@@ -533,7 +531,7 @@ export function BulkCreateClient() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteLink(link.id)}
+                        onClick={() => deleteLink(link.url)}
                         disabled={isCreating}
                       >
                         <Trash2 className="h-4 w-4" />

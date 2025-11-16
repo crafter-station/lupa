@@ -1,7 +1,5 @@
-import { Pool } from "@neondatabase/serverless";
 import { put } from "@vercel/blob";
 import { desc, eq, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/neon-serverless";
 import type { NextRequest } from "next/server";
 import { z } from "zod/v3";
 import { db } from "@/db";
@@ -15,7 +13,6 @@ import { processSnapshotTask } from "@/trigger/process-snapshot.task";
 export const preferredRegion = ["iad1"];
 
 const WebsiteSnapshotSchema = z.object({
-  snapshot_id: IdSchema.optional(),
   document_id: IdSchema,
 
   enhance: z.boolean().optional(),
@@ -24,7 +21,6 @@ const WebsiteSnapshotSchema = z.object({
 });
 
 const UploadSnapshotSchema = z.object({
-  snapshot_id: IdSchema.optional(),
   document_id: IdSchema,
 
   enhance: z.boolean().optional(),
@@ -54,7 +50,6 @@ async function parseRequestData(request: Request, type: "website" | "upload") {
 
   const formData = await request.formData();
   const parsed = UploadSnapshotSchema.parse({
-    snapshot_id: formData.get("snapshot_id") || undefined,
     document_id: formData.get("document_id"),
     file: formData.get("file"),
     enhance: formData.get("enhance") === "true",
@@ -126,71 +121,7 @@ async function handleTypeChange(
   }
 }
 
-async function createSnapshotWithTxid({
-  pool,
-  snapshot_id,
-  document_id,
-  org_id,
-  type,
-  url,
-  enhance,
-  refresh_schedule_id,
-  is_type_change,
-}: {
-  pool: Pool;
-  url: string;
-  snapshot_id: string;
-  document_id: string;
-  org_id: string;
-  type: "website" | "upload";
-  enhance: boolean;
-  refresh_schedule_id: string | null;
-  is_type_change: boolean;
-}): Promise<string> {
-  const dbPool = drizzle({ client: pool, schema });
-
-  const result = await dbPool.transaction(async (tx) => {
-    const txidResult = await tx.execute(
-      sql`SELECT pg_current_xact_id()::xid::text as txid`,
-    );
-
-    if (!txidResult.rows[0]?.txid) {
-      throw new Error("Failed to get transaction ID");
-    }
-
-    await tx.insert(schema.Snapshot).values({
-      id: snapshot_id,
-      org_id: org_id,
-      document_id: document_id,
-      type,
-      status: "queued",
-      url,
-      enhance,
-    });
-
-    if (is_type_change && refresh_schedule_id) {
-      try {
-        await deleteDocumentSchedule(refresh_schedule_id);
-        await tx
-          .update(schema.Document)
-          .set({
-            refresh_frequency: null,
-            refresh_schedule_id: null,
-            updated_at: sql`NOW()`,
-          })
-          .where(eq(schema.Document.id, document_id));
-      } catch (error) {
-        console.error("Failed to delete schedule:", error);
-      }
-    }
-
-    return { txid: txidResult.rows[0].txid as string };
-  });
-
-  return result.txid;
-}
-
-async function createSnapshotSimple({
+async function createSnapshot({
   snapshot_id,
   document_id,
   org_id,
@@ -236,13 +167,6 @@ export async function POST(
     params: Promise<{ projectId: string }>;
   },
 ) {
-  if (!process.env.DATABASE_URL) {
-    return Response.json(
-      { error: "DATABASE_URL not configured" },
-      { status: 500 },
-    );
-  }
-
   try {
     await requireSecretKey(request);
 
@@ -255,7 +179,7 @@ export async function POST(
 
     const document = await validateDocument(data.document_id, projectId);
 
-    const snapshotId = data.snapshot_id || generateId();
+    const snapshotId = generateId();
 
     let snapshotUrl = "";
 
@@ -277,44 +201,16 @@ export async function POST(
     const isTypeChange =
       previousSnapshot?.type === "website" && type === "upload";
 
-    let snapshotTxid: string | undefined;
-
-    if (data.snapshot_id) {
-      if (!process.env.DATABASE_URL) {
-        throw new Error("DATABASE_URL not configured");
-      }
-
-      const pool = new Pool({
-        connectionString: process.env.DATABASE_URL.replace("-pooler", ""),
-      });
-
-      try {
-        snapshotTxid = await createSnapshotWithTxid({
-          pool,
-          snapshot_id: data.snapshot_id,
-          document_id: data.document_id,
-          org_id: document.org_id,
-          type,
-          enhance: data.enhance || false,
-          refresh_schedule_id: document.refresh_schedule_id,
-          is_type_change: isTypeChange,
-          url: snapshotUrl,
-        });
-      } finally {
-        await pool.end();
-      }
-    } else {
-      await createSnapshotSimple({
-        snapshot_id: snapshotId,
-        document_id: data.document_id,
-        org_id: document.org_id,
-        type,
-        url: snapshotUrl,
-        enhance: data.enhance || false,
-        refresh_schedule_id: document.refresh_schedule_id,
-        is_type_change: isTypeChange,
-      });
-    }
+    await createSnapshot({
+      snapshot_id: snapshotId,
+      document_id: data.document_id,
+      org_id: document.org_id,
+      type,
+      url: snapshotUrl,
+      enhance: data.enhance || false,
+      refresh_schedule_id: document.refresh_schedule_id,
+      is_type_change: isTypeChange,
+    });
 
     try {
       await processSnapshotTask.trigger({
@@ -331,7 +227,6 @@ export async function POST(
 
     return Response.json({
       snapshot_id: snapshotId,
-      txid: snapshotTxid ? parseInt(snapshotTxid, 10) : undefined,
     });
   } catch (error) {
     return handleApiError(error);

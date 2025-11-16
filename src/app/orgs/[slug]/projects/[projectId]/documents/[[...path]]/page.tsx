@@ -1,9 +1,9 @@
-import { Suspense } from "react";
-import { DocumentDetailsClient } from "@/components/document-details/client";
-import { DocumentDetailsServer } from "@/components/document-details/server";
-import { DocumentListServer } from "@/components/document-list/server";
-import { SnapshotDetailsClient } from "@/components/snapshot-details/client";
-import { SnapshotDetailsServer } from "@/components/snapshot-details/server";
+import { and, eq, like } from "drizzle-orm";
+
+import { DocumentDetails } from "@/components/document-details";
+import { DocumentList } from "@/components/document-list";
+import { getItems } from "@/components/document-list/get-items";
+import { SnapshotDetails } from "@/components/snapshot-details";
 import {
   Table,
   TableBody,
@@ -11,7 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getFolderAndDocument } from "@/lib/folder-utils";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { getSelectedDocumentNameAndFolder } from "@/lib/folder-utils";
+
 import { FloatingDock } from "./floating-dock";
 
 export default async function DocumentsPage({
@@ -20,7 +23,28 @@ export default async function DocumentsPage({
   params: Promise<{ projectId: string; path?: string[]; slug: string }>;
 }) {
   const { projectId, path, slug } = await params;
-  const { folder, document } = getFolderAndDocument(path);
+  const { folder, name } = getSelectedDocumentNameAndFolder(path);
+
+  const documents = await db
+    .select()
+    .from(schema.Document)
+    .where(
+      and(
+        eq(schema.Document.project_id, projectId),
+        like(schema.Document.folder, `${folder}%`),
+      ),
+    );
+
+  const selectedDocument = documents.find(
+    (doc) => doc.folder === folder && doc.name === name,
+  );
+
+  const items = getItems({
+    documents,
+    folder,
+    orgSlug: slug,
+    projectId,
+  });
 
   return (
     <>
@@ -34,10 +58,10 @@ export default async function DocumentsPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              <DocumentListServer
-                projectId={projectId}
+              <DocumentList
                 folder={folder}
-                orgSlug={slug}
+                items={items}
+                selectedDocumentName={name}
               />
             </TableBody>
           </Table>
@@ -45,46 +69,22 @@ export default async function DocumentsPage({
 
         <div className="border-l col-span-2 grid grid-rows-3 h-full w-full">
           <div className="row-span-1 border-b">
-            <Suspense
-              fallback={
-                <DocumentDetailsClient
-                  projectId={projectId}
-                  folder={folder}
-                  documentName={document}
-                  preloadedDocument={null}
-                />
-              }
-            >
-              <DocumentDetailsServer
-                projectId={projectId}
-                folder={folder}
-                documentName={document}
-              />
-            </Suspense>
+            <DocumentDetails
+              projectId={projectId}
+              selectedDocument={selectedDocument ?? null}
+              documents={documents}
+            />
           </div>
 
           <div className="row-span-2">
-            <Suspense
-              fallback={
-                <SnapshotDetailsClient
-                  projectId={projectId}
-                  folder={folder}
-                  documentName={document}
-                  preloadedDocument={null}
-                  preloadedLatestSnapshot={null}
-                />
-              }
-            >
-              <SnapshotDetailsServer
-                projectId={projectId}
-                folder={folder}
-                documentName={document}
-              />
-            </Suspense>
+            <SnapshotDetails selectedDocument={selectedDocument ?? null} />
           </div>
         </div>
       </div>
-      <FloatingDock document={document} />
+      <FloatingDock
+        selectedDocument={selectedDocument ?? null}
+        documents={documents}
+      />
     </>
   );
 }

@@ -28,7 +28,12 @@ export const POST = async (req: NextRequest) => {
 
       const newFormData = new FormData();
       for (const [key, value] of formData.entries()) {
-        if (key !== "project_id" && key !== "type") {
+        if (
+          key !== "project_id" &&
+          key !== "type" &&
+          key !== "document_id" &&
+          key !== "snapshot_id"
+        ) {
           newFormData.append(key, value);
         }
       }
@@ -38,7 +43,13 @@ export const POST = async (req: NextRequest) => {
       projectId = IdSchema.parse(json.project_id);
       type = z.enum(["website", "upload"]).parse(json.type);
 
-      const { projectId: _projectId, type: _type, ...cleanJson } = json;
+      const {
+        project_id: _projectId,
+        type: _type,
+        document_id: _docId,
+        snapshot_id: _snapId,
+        ...cleanJson
+      } = json;
       body = JSON.stringify(cleanJson);
     }
 

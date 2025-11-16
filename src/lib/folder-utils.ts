@@ -53,19 +53,19 @@ export function sanitizeSegment(value: string): string {
   return value.trim().replace(/\//g, "");
 }
 
-export function getFolderAndDocument(path?: string[]) {
+export function getSelectedDocumentNameAndFolder(path?: string[]) {
   let folder: string | null = null;
-  let document: string | null = null;
+  let name: string | null = null;
 
   if (path?.[path.length - 1]?.endsWith(".md")) {
     folder = path.slice(0, path.length - 1).join("/");
-    document = path[path.length - 1].split(".").slice(0, -1).join(".");
+    name = path[path.length - 1].split(".").slice(0, -1).join(".");
   } else if (
     path?.[path.length - 2]?.endsWith(".md") &&
     path?.[path.length - 1]?.startsWith("v")
   ) {
     folder = path.slice(0, path.length - 2).join("/");
-    document = path[path.length - 2];
+    name = path[path.length - 2];
   } else {
     folder = path?.join("/") ?? null;
   }
@@ -78,6 +78,6 @@ export function getFolderAndDocument(path?: string[]) {
 
   return {
     folder,
-    document,
+    name,
   };
 }
