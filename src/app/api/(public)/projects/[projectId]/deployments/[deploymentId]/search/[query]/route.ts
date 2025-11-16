@@ -31,6 +31,32 @@ export const ErrorResponseSchema = z.object({
   error: z.string(),
 });
 
+async function performSearch(
+  projectId: string,
+  deploymentId: string,
+  decodedQuery: string,
+) {
+  "use cache";
+
+  const indexCredentials = await getVectorIndex(projectId);
+  const index = new VectorIndex(indexCredentials);
+  const namespace = index.namespace(deploymentId);
+
+  const results = await namespace.query({
+    data: decodedQuery,
+    topK: 5,
+    includeData: true,
+    includeMetadata: true,
+  });
+
+  return results.map((result) => ({
+    id: result.id,
+    score: result.score,
+    data: result.data,
+    metadata: result.metadata,
+  }));
+}
+
 /**
  * Search within a deployment
  * @description Perform a search query against the specified deployment.
@@ -48,32 +74,16 @@ export async function GET(
     params: Promise<{ projectId: string; deploymentId: string; query: string }>;
   },
 ) {
-  "use cache";
-
   try {
     const { deploymentId, projectId, query } = await params;
-
-    const indexCredentials = await getVectorIndex(projectId);
-    const index = new VectorIndex(indexCredentials);
-    const namespace = index.namespace(deploymentId);
-
     const decodedQuery = decodeURIComponent(query);
-    const results = await namespace.query({
-      data: decodedQuery,
-      topK: 5,
-      includeData: true,
-      includeMetadata: true,
-    });
+
+    const results = await performSearch(projectId, deploymentId, decodedQuery);
 
     return new Response(
       JSON.stringify({
         query: decodedQuery,
-        results: results.map((result) => ({
-          id: result.id,
-          score: result.score,
-          data: result.data,
-          metadata: result.metadata,
-        })),
+        results,
       }),
       {
         headers: { "Content-Type": "application/json" },
