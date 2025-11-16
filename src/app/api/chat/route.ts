@@ -46,14 +46,14 @@ export async function POST(request: Request) {
   try {
     const {
       projectId,
-      deploymentId: requestDeploymentId,
+      deploymentId,
       messages,
       model,
       reasoningEffort,
       reasoningSummary,
     }: {
       projectId: string;
-      deploymentId?: string | null;
+      deploymentId: string;
       messages: UIMessage[];
       model: string;
       reasoningEffort?: "minimal" | "low" | "medium" | "high";
@@ -64,25 +64,12 @@ export async function POST(request: Request) {
       .select({
         name: schema.Project.name,
         description: schema.Project.description,
-        productionDeploymentId: schema.Project.production_deployment_id,
       })
       .from(schema.Project)
       .where(eq(schema.Project.id, projectId));
 
     if (!project) {
       throw new Error(`Project not found for id ${projectId}`);
-    }
-
-    let deploymentId = requestDeploymentId;
-
-    if (!deploymentId) {
-      if (project.productionDeploymentId) {
-        deploymentId = project.productionDeploymentId;
-      } else {
-        throw new Error(
-          "Project doesnt have a production deployment. You must specify a deployment id.",
-        );
-      }
     }
 
     const fileMentionRegex = /@(\/[\w\-/.]+)/g;

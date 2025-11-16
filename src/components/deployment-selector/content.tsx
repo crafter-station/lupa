@@ -1,6 +1,7 @@
 "use client";
 
 import { Rocket } from "lucide-react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,15 +22,29 @@ export function DeploymentSelectorContent({
 }) {
   const [deploymentId, setDeploymentId] = useDeploymentId();
 
-  const selectedDeploymentId =
-    deploymentId ??
-    (deployments.length
-      ? deployments.find((d) => d.environment === "production")?.id ||
-        deployments.toSorted(
-          (a, b) =>
-            new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-        )[0].id
-      : undefined);
+  const selectedDeploymentId = React.useMemo(() => {
+    if (deploymentId) return deploymentId;
+
+    if (!deployments.length) return undefined;
+
+    const productionDeployment = deployments.find(
+      (d) => d.environment === "production",
+    );
+    if (productionDeployment) return productionDeployment.id;
+
+    const newest = deployments.toSorted(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    )[0];
+
+    return newest.id;
+  }, [deploymentId, deployments]);
+
+  React.useEffect(() => {
+    if (!deploymentId && selectedDeploymentId) {
+      setDeploymentId(selectedDeploymentId);
+    }
+  }, [deploymentId, selectedDeploymentId, setDeploymentId]);
 
   return (
     <DropdownMenu>

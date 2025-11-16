@@ -21,19 +21,20 @@ interface FileMentionPickerProps {
 
 async function fetchFileTree(
   projectId: string,
-  deploymentId?: string | null,
+  deploymentId: string,
 ): Promise<TreeFile[]> {
-  const search = new URLSearchParams({
-    projectId,
-    path: "/",
-    depth: "0",
+  const response = await fetch("/api/tree", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      projectId,
+      deploymentId,
+      path: "/",
+      depth: "0",
+    }),
   });
-
-  if (deploymentId) {
-    search.append("deploymentId", deploymentId);
-  }
-
-  const response = await fetch(`/api/tree?${search}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch file tree");
@@ -58,7 +59,11 @@ export function FileMentionPicker({
 
   const { data: files, isLoading } = useQuery({
     queryKey: ["file-tree", projectId, deploymentId],
-    queryFn: () => fetchFileTree(projectId, deploymentId),
+    queryFn: () => {
+      if (!deploymentId) throw new Error("Deployment ID is required");
+      return fetchFileTree(projectId, deploymentId);
+    },
+    enabled: !!deploymentId,
     staleTime: Number.POSITIVE_INFINITY,
   });
 

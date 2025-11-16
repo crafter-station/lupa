@@ -34,6 +34,54 @@ interface TreeResponse {
   tree: TreeNode[];
 }
 
+async function getDirectoryTree(
+  deploymentId: string,
+  folderParam: string,
+  depthParam: string,
+) {
+  "use cache";
+
+  const targetFolder = normalizeFolderPath(decodeURIComponent(folderParam));
+  const maxDepth = Number.parseInt(depthParam, 10);
+
+  if (Number.isNaN(maxDepth) || maxDepth < 0) {
+    throw new Error("Invalid depth parameter");
+  }
+
+  const documents = await db
+    .select({
+      documentId: schema.Snapshot.document_id,
+      documentName: schema.SnapshotDeploymentRel.name,
+      documentPath: schema.SnapshotDeploymentRel.folder,
+      snapshotId: schema.Snapshot.id,
+      chunksCount: schema.Snapshot.chunks_count,
+      tokensCount: schema.Snapshot.tokens_count,
+      metadata: schema.Snapshot.metadata,
+    })
+    .from(schema.SnapshotDeploymentRel)
+    .innerJoin(
+      schema.Snapshot,
+      eq(schema.SnapshotDeploymentRel.snapshot_id, schema.Snapshot.id),
+    )
+    .where(
+      and(
+        eq(schema.SnapshotDeploymentRel.deployment_id, deploymentId),
+        eq(schema.Snapshot.status, "success"),
+        targetFolder === "/"
+          ? undefined
+          : sql`${schema.SnapshotDeploymentRel.folder} LIKE ${`${targetFolder}%`}`,
+      ),
+    );
+
+  const tree = buildTree(documents, targetFolder, maxDepth);
+
+  return {
+    path: targetFolder,
+    depth: maxDepth,
+    tree,
+  };
+}
+
 export async function GET(
   _request: Request,
   {
@@ -47,57 +95,10 @@ export async function GET(
     }>;
   },
 ) {
-  "use cache";
-
   try {
-    const {
-      deploymentId,
-      folder: folderParam,
-      depth: depthParam,
-    } = await params;
+    const { deploymentId, folder, depth } = await params;
 
-    const targetFolder = normalizeFolderPath(decodeURIComponent(folderParam));
-    const maxDepth = Number.parseInt(depthParam, 10);
-
-    if (Number.isNaN(maxDepth) || maxDepth < 0) {
-      return new Response(
-        JSON.stringify({ error: "Invalid depth parameter" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    const documents = await db
-      .select({
-        documentId: schema.Snapshot.document_id,
-        documentName: schema.SnapshotDeploymentRel.name,
-        documentPath: schema.SnapshotDeploymentRel.folder,
-        snapshotId: schema.Snapshot.id,
-        chunksCount: schema.Snapshot.chunks_count,
-        tokensCount: schema.Snapshot.tokens_count,
-        metadata: schema.Snapshot.metadata,
-      })
-      .from(schema.SnapshotDeploymentRel)
-      .innerJoin(
-        schema.Snapshot,
-        eq(schema.SnapshotDeploymentRel.snapshot_id, schema.Snapshot.id),
-      )
-      .where(
-        and(
-          eq(schema.SnapshotDeploymentRel.deployment_id, deploymentId),
-          eq(schema.Snapshot.status, "success"),
-          targetFolder === "/"
-            ? undefined
-            : sql`${schema.SnapshotDeploymentRel.folder} LIKE ${`${targetFolder}%`}`,
-        ),
-      );
-
-    const tree = buildTree(documents, targetFolder, maxDepth);
-
-    const response: TreeResponse = {
-      path: targetFolder,
-      depth: maxDepth,
-      tree,
-    };
+    const response = await getDirectoryTree(deploymentId, folder, depth);
 
     return new Response(JSON.stringify(response), {
       headers: { "Content-Type": "application/json" },
@@ -105,12 +106,20 @@ export async function GET(
   } catch (error) {
     console.error("Tree API error:", error);
 
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Internal server error",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    let statusCode = 500;
+    let errorMessage = "Internal server error";
+
+    if (error instanceof Error) {
+      if (error.message.includes("Invalid depth parameter")) {
+        errorMessage = error.message;
+        statusCode = 400;
+      }
+    }
+
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: statusCode,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 

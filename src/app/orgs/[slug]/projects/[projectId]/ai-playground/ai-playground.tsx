@@ -492,9 +492,18 @@ export function AIPlayground() {
     queryKey: ["file-tree", projectId, deploymentId],
     queryFn: async () => {
       console.log("🌲 Prefetching file tree on mount");
-      const response = await fetch(
-        `/api/tree?projectId=${projectId}&deploymentId=${deploymentId}&path=/&depth=0`,
-      );
+      const response = await fetch("/api/tree", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId,
+          deploymentId,
+          path: "/",
+          depth: "0",
+        }),
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch file tree");
       }
@@ -504,6 +513,7 @@ export function AIPlayground() {
       console.log("✅ File tree flattened:", flattenedFiles);
       return flattenedFiles;
     },
+    enabled: !!deploymentId,
     staleTime: Number.POSITIVE_INFINITY,
   });
 
@@ -524,6 +534,7 @@ export function AIPlayground() {
       api: "/api/chat",
       body: {
         projectId,
+        deploymentId,
       },
     }),
     onError: (error) => {

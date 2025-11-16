@@ -1,48 +1,25 @@
-import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import type { NextRequest } from "next/server";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { z } from "zod/v3";
 import { handleApiError } from "@/lib/api-error";
 import { extractSessionOrg, proxyToPublicAPI } from "@/lib/api-proxy";
+import { IdSchema } from "@/lib/generate-id";
 
 export const preferredRegion = ["iad1"];
 
-export async function GET(req: NextRequest) {
-  await headers();
-
+export async function POST(req: NextRequest) {
   try {
     await extractSessionOrg();
 
-    const { searchParams } = new URL(req.url);
-    const projectId = searchParams.get("projectId");
-    const requestDeploymentId = searchParams.get("deploymentId");
-    const path = searchParams.get("path") || "/";
-    const depth = searchParams.get("depth") || "0";
+    const json = await req.json();
 
-    if (!projectId) {
-      return Response.json({ error: "projectId is required" }, { status: 400 });
-    }
-
-    const [project] = await db
-      .select()
-      .from(schema.Project)
-      .where(eq(schema.Project.id, projectId))
-      .limit(1);
-
-    if (!project) {
-      return Response.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    let deploymentId = requestDeploymentId;
-
-    if (!deploymentId || deploymentId === "null") {
-      if (project.production_deployment_id) {
-        deploymentId = project.production_deployment_id;
-      } else {
-        throw new Error("Deployment ID not found");
-      }
-    }
+    const { projectId, deploymentId, path, depth } = z
+      .object({
+        projectId: IdSchema,
+        deploymentId: IdSchema,
+        path: z.string().default("/"),
+        depth: z.string().default("0"),
+      })
+      .parse(json);
 
     return await proxyToPublicAPI(
       projectId,

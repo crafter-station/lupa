@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useDeploymentId } from "@/hooks/use-deployment-id";
 import type { MetadataFilter, SearchResponse } from "@/lib/types/search";
 
 function useDebouncedValue<T>(value: T, delay: number): T {
@@ -43,8 +44,11 @@ async function searchDeployment(
   _metadataFilters?: MetadataFilter[],
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
-  const response = await fetch(`/api/search/`, {
+  const response = await fetch("/api/search", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ query, projectId, deploymentId }),
     signal,
   });
@@ -57,10 +61,11 @@ async function searchDeployment(
 }
 
 export function SearchPlayground() {
-  const { projectId, deploymentId } = useParams<{
+  const { projectId } = useParams<{
     projectId: string;
-    deploymentId: string;
   }>();
+  const [deploymentId] = useDeploymentId();
+
   const [query, setQuery] = React.useState("");
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [metadataFilters, setMetadataFilters] = useState<MetadataFilter[]>([]);
@@ -76,16 +81,18 @@ export function SearchPlayground() {
       selectedDocumentIds,
       metadataFilters,
     ],
-    queryFn: ({ signal }) =>
-      searchDeployment(
+    queryFn: ({ signal }) => {
+      if (!deploymentId) throw new Error("Deployment ID is required");
+      return searchDeployment(
         debouncedQuery,
         projectId,
         deploymentId,
         selectedDocumentIds,
         metadataFilters,
         signal,
-      ),
-    enabled: debouncedQuery.trim().length > 0,
+      );
+    },
+    enabled: debouncedQuery.trim().length > 0 && !!deploymentId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
@@ -133,12 +140,14 @@ export function SearchPlayground() {
 
           <CollapsibleContent className="space-y-3">
             <div className="rounded-lg border bg-muted/30 p-3 space-y-3 max-h-[400px] overflow-y-auto">
-              <FilePicker
-                projectId={projectId}
-                deploymentId={deploymentId}
-                selectedDocumentIds={selectedDocumentIds}
-                onSelectionChange={setSelectedDocumentIds}
-              />
+              {deploymentId && (
+                <FilePicker
+                  projectId={projectId}
+                  deploymentId={deploymentId}
+                  selectedDocumentIds={selectedDocumentIds}
+                  onSelectionChange={setSelectedDocumentIds}
+                />
+              )}
 
               <Separator />
 

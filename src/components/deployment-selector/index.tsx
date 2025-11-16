@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { DeploymentSelectorContent } from "./content";
@@ -20,7 +20,12 @@ export const DeploymentSelector = async ({
   const deployments = await db
     .select()
     .from(schema.Deployment)
-    .where(eq(schema.Deployment.project_id, projectId));
+    .where(
+      and(
+        eq(schema.Deployment.project_id, projectId),
+        eq(schema.Deployment.status, "ready"),
+      ),
+    );
 
   return <DeploymentSelectorContent deployments={deployments} />;
 };

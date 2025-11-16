@@ -26,9 +26,15 @@ const result = streamText({
       description: 'Search knowledge base, returns chunks',
       parameters: z.object({ query: z.string() }),
       execute: async ({ query }) => {
-        const res = await fetch(
-          \`https://${rootDomain}/api/search?projectId=\${projectId}&deploymentId=\${deploymentId}&query=\${query}\`
-        );
+        const res = await fetch(\`https://${rootDomain}/api/search\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId,
+            deploymentId,
+            query
+          })
+        });
         return res.json();
       }
     }),
