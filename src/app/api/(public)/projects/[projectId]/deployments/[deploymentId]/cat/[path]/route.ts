@@ -16,7 +16,7 @@ async function getDocumentContent(deploymentId: string, path: string) {
   cacheLife({
     stale: 2592000,
     revalidate: 2592000,
-    expire: 2592000000,
+    expire: 2592000,
   });
   cacheTag(`cat:${deploymentId}:${path}`);
 
@@ -86,6 +86,7 @@ export async function GET(
     const body = await getDocumentContent(deploymentId, path);
 
     return new Response(body, {
+      status: 200,
       headers: {
         "Content-Type": "text/markdown",
       },

@@ -38,7 +38,7 @@ async function getDirectoryTree(
   cacheLife({
     stale: 2592000,
     revalidate: 2592000,
-    expire: 2592000000,
+    expire: 2592000,
   });
   cacheTag(`tree:${deploymentId}:${folderParam}:${depthParam}`);
 
@@ -102,6 +102,7 @@ export async function GET(
     const response = await getDirectoryTree(deploymentId, folder, depth);
 
     return new Response(JSON.stringify(response), {
+      status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {

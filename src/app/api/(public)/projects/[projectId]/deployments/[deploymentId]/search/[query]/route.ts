@@ -41,7 +41,7 @@ async function performSearch(
   cacheLife({
     stale: 2592000,
     revalidate: 2592000,
-    expire: 2592000000,
+    expire: 2592000,
   });
   cacheTag(`search:${projectId}:${deploymentId}:${decodedQuery}`);
 
@@ -93,6 +93,7 @@ export async function GET(
         results,
       }),
       {
+        status: 200,
         headers: { "Content-Type": "application/json" },
       },
     );
