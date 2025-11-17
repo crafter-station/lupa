@@ -7,32 +7,27 @@ import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { DocumentNameSchema, FolderPathSchema } from "@/lib/validation";
+import { ApiError, ErrorCode, handleApiError } from "@/lib/api-error";
+import {
+  CatPathSchema,
+  DocumentNameSchema,
+  FolderPathSchema,
+} from "@/lib/validation";
 
 export const preferredRegion = ["iad1"];
 
-async function getDocumentContent(deploymentId: string, path: string) {
+async function getDocumentContent(
+  deploymentId: string,
+  folder: string,
+  documentName: string,
+) {
   "use cache: remote";
   cacheLife({
     stale: 2592000,
     revalidate: 2592000,
     expire: 2592000,
   });
-  cacheTag(`cat:${deploymentId}:${path}`);
-
-  const parts = path.split("/");
-  const rawDocumentName = parts.pop();
-  const rawFolder = `${parts.join(`/`)}/`;
-
-  const { folder, documentName } = z
-    .object({
-      folder: FolderPathSchema,
-      documentName: DocumentNameSchema,
-    })
-    .parse({
-      folder: rawFolder,
-      documentName: rawDocumentName?.split(".")[0],
-    });
+  cacheTag(`cat:${deploymentId}:${folder}:${documentName}`);
 
   const [snapshot] = await db
     .select({
@@ -54,7 +49,7 @@ async function getDocumentContent(deploymentId: string, path: string) {
     .limit(1);
 
   if (!snapshot) {
-    throw new Error("Document not found in the selected deployment");
+    return null;
   }
 
   const blobUrl = `${process.env.VERCEL_BLOB_STORAGE_ROOT_DOMAIN}/parsed/${snapshot.snapshot_id}.md`;
@@ -62,10 +57,12 @@ async function getDocumentContent(deploymentId: string, path: string) {
   const blobResponse = await fetch(blobUrl);
 
   if (!blobResponse.ok) {
-    throw new Error("Document content not found");
+    return null;
   }
 
-  return blobResponse.body;
+  const text = await blobResponse.text();
+
+  return text;
 }
 
 export async function GET(
@@ -83,7 +80,31 @@ export async function GET(
   try {
     const { deploymentId, path } = await params;
 
-    const body = await getDocumentContent(deploymentId, path);
+    const validatedPath = CatPathSchema.parse(path);
+
+    const parts = validatedPath.split("/");
+    const rawDocumentName = parts.pop();
+    const rawFolder = `${parts.join(`/`)}/`;
+
+    const { folder, documentName } = z
+      .object({
+        folder: FolderPathSchema,
+        documentName: DocumentNameSchema,
+      })
+      .parse({
+        folder: rawFolder,
+        documentName: rawDocumentName?.split(".")[0],
+      });
+
+    const body = await getDocumentContent(deploymentId, folder, documentName);
+
+    if (!body) {
+      throw new ApiError(
+        ErrorCode.DOCUMENT_NOT_FOUND,
+        "Document not found in the selected deployment",
+        404,
+      );
+    }
 
     return new Response(body, {
       status: 200,
@@ -92,14 +113,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof Error) {
-      if (error.message.includes("not found")) {
-        return new Response(error.message, { status: 404 });
-      }
-    }
-
-    return new Response("Internal Server Error", { status: 500 });
+    return handleApiError(error);
   }
 }

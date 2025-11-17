@@ -6,10 +6,7 @@ import {
   tool,
   type UIMessage,
 } from "ai";
-import { eq } from "drizzle-orm";
 import { z } from "zod/v3";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
 import { extractSessionOrg, validateProjectOwnership } from "@/lib/api-proxy";
 import { generateInternalToken } from "@/lib/crypto/internal-token";
 import { GET_DOCUMENT_CONTENTS_PROMPT } from "@/lib/prompts/get-document-contents.prompt";

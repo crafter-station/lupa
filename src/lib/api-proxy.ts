@@ -40,6 +40,25 @@ export async function proxyToPublicAPI<T = unknown>(
       body: options.body,
     });
 
+    const contentType = response.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+
+    if (!isJson) {
+      if (!response.ok) {
+        const text = await response.text();
+        return new NextResponse(text, {
+          status: response.status,
+          headers: { "Content-Type": contentType },
+        });
+      }
+
+      const body = await response.text();
+      return new NextResponse(body, {
+        status: response.status,
+        headers: { "Content-Type": contentType },
+      });
+    }
+
     const data = await response.json();
 
     if (!response.ok) {

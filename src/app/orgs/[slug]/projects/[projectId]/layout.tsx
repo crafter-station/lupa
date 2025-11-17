@@ -71,9 +71,9 @@ export default async function Layout({
               label="AI Playground"
             />
             <SidebarNavLinkServer
-              href={`${baseUrl}/search-playground`}
+              href={`${baseUrl}/api-playground`}
               icon={Search}
-              label="Search Playground"
+              label="API Playground"
             />
             <SidebarNavLinkServer
               href={`${baseUrl}/mcp-playground`}

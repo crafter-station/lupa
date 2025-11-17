@@ -190,7 +190,7 @@ function buildTree(
     const fileNode: TreeFile = {
       type: "file",
       name: doc.documentName,
-      path: `${docPath}${doc.documentName}`,
+      path: `${docPath}${doc.documentName}.md`,
       metadata: {
         chunks_count: doc.chunksCount || 0,
         tokens_count: doc.tokensCount || 0,
@@ -228,7 +228,7 @@ function buildTree(
       const fileNode: TreeFile = {
         type: "file",
         name: doc.documentName,
-        path: `${docPath}${doc.documentName}`,
+        path: `${docPath}${doc.documentName}.md`,
         metadata: {
           chunks_count: doc.chunksCount || 0,
           tokens_count: doc.tokensCount || 0,
