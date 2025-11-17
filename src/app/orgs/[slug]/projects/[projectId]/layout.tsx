@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import { SidebarNavLinkServer } from "@/components/elements/sidebar-nav-link-server";
 import { SidebarToggleButton } from "@/components/elements/sidebar-toggle-button";
 import { LupaIcon } from "@/components/icons/lupa";
-import { LupaFullIcon } from "@/components/icons/lupa-full";
 import { ProjectSwitcher } from "@/components/project-switcher";
 import { Separator } from "@/components/ui/separator";
 
@@ -38,9 +37,9 @@ export default async function Layout({
                 </Link>
               </div>
 
-              <div className="flex items-center gap-2 transition-opacity duration-300 absolute left-10 opacity-100 group-data-[sidebar-collapsed=true]/layout:opacity-0 group-data-[sidebar-collapsed=true]/layout:pointer-events-none">
-                <Link href="/" className="flex items-center">
-                  <LupaFullIcon className="h-6" />
+              <div className="flex items-center gap-2 transition-opacity duration-300 absolute left-10 opacity-100 group-data-[sidebar-collapsed=true]/layout:opacity-0 group-data-[sidebar-collapsed=true]/layout:pointer-events-none w-[calc(100%-45px)] justify-between">
+                <Link href="/" className="flex items-center font-bold text-lg">
+                  Lupa
                 </Link>
                 <SidebarToggleButton variant="expanded" />
               </div>
